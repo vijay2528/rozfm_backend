@@ -1,0 +1,357 @@
+{
+  "info": {
+    "_postman_id": "rozfm-nodejs-api-v1",
+    "name": "RozFM Node.js API v1",
+    "description": "Mobile app Node.js / Express API for RozFM.\n\n**Setup**\n1. Import this collection into Postman.\n2. Collection variable `base_url` is pre-set to `http://127.0.0.1:5000/api/v1`.\n3. Run **Auth → Register** or **Auth → Login (Phone)** followed by **Auth → Verify OTP** (Demo OTP: `123456`). Token will automatically save to `{{token}}`.\n4. Run authenticated requests in **Authenticated — Profile** folder.\n\n**Response shape:** `{ \"success\": true, \"message\": \"...\", \"data\": { ... } }`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5000/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('token', json.data.token);",
+                  "    console.log('Token saved to collection variable.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"app.user@example.com\",\n  \"password\": \"Password123!\",\n  \"phone\": \"9876543210\",\n  \"platform\": \"android\",\n  \"locale\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new mobile user with email and password."
+          }
+        },
+        {
+          "name": "Login (Phone)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('token', json.data.token);",
+                  "    console.log('Token saved to collection variable.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\",\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Initiate phone login. Generates demo OTP `123456` valid for 10 minutes. Next step: POST /auth/verify-otp."
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('token', json.data.token);",
+                  "    console.log('Token saved to collection variable.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/verify-otp",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "verify-otp"]
+            },
+            "description": "Complete phone login after POST /auth/login. Demo OTP is 123456."
+          }
+        },
+        {
+          "name": "Login (Email)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('token', json.data.token);",
+                  "    console.log('Token saved to collection variable.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\",\n  \"email\": \"app.user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Direct email login. Returns JWT bearer token immediately."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout authenticated user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authenticated — Profile",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/profile",
+              "host": ["{{base_url}}"],
+              "path": ["user", "profile"]
+            },
+            "description": "Get current logged-in user profile. Also available at GET /me."
+          }
+        },
+        {
+          "name": "Update Profile (FormData)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "John Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "9876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "country",
+                  "value": "India",
+                  "type": "text"
+                },
+                {
+                  "key": "state",
+                  "value": "Gujarat",
+                  "type": "text"
+                },
+                {
+                  "key": "city",
+                  "value": "Ahmedabad",
+                  "type": "text"
+                },
+                {
+                  "key": "age_group",
+                  "value": "25-34",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/user/profile",
+              "host": ["{{base_url}}"],
+              "path": ["user", "profile"]
+            },
+            "description": "Update profile details and upload profile avatar to Cloudflare R2 storage using multipart/form-data."
+          }
+        },
+        {
+          "name": "Get Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": ["{{base_url}}"],
+              "path": ["me"]
+            },
+            "description": "Alias for GET /user/profile."
+          }
+        },
+        {
+          "name": "Update Me (JSON)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\",\n  \"phone\": \"9876543210\",\n  \"country\": \"India\",\n  \"state\": \"Gujarat\",\n  \"city\": \"Ahmedabad\",\n  \"age_group\": \"25-34\",\n  \"gender\": \"male\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": ["{{base_url}}"],
+              "path": ["me"]
+            },
+            "description": "Update profile fields via JSON body."
+          }
+        }
+      ]
+    }
+  ]
+}
