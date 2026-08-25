@@ -3,14 +3,14 @@
  */
 require('dotenv').config();
 const app = require('./app');
-const { initDb } = require('./config/db');
+const { checkConnection } = require('./config/db');
 
 const PORT = process.env.PORT || 5000;
 
-// Initialize MySQL Database connection & tables, then start server
+// Verify MySQL Database connection, then start server
 const startServer = async () => {
   try {
-    await initDb();
+    await checkConnection();
 
     const server = app.listen(PORT, () => {
       console.log(`=================================`);

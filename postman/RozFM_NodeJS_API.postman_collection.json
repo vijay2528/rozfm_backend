@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "rozfm-nodejs-api-v1",
     "name": "RozFM Node.js API v1",
-    "description": "Mobile app Node.js / Express API for RozFM.\n\n**Setup**\n1. Import this collection into Postman.\n2. Collection variable `base_url` is pre-set to `http://127.0.0.1:5000/api/v1`.\n3. Run **Auth → Register** or **Auth → Login (Phone)** followed by **Auth → Verify OTP** (Demo OTP: `123456`). Token will automatically save to `{{token}}`.\n4. Run authenticated requests in **Authenticated — Profile** folder.\n\n**Response shape:** `{ \"success\": true, \"message\": \"...\", \"data\": { ... } }`",
+    "description": "Mobile app Node.js / Express API for RozFM.\n\n**Setup**\n1. Import this collection into Postman.\n2. Collection variable `base_url` is pre-set to `http://127.0.0.1:5000/api/v1`.\n3. Run **Auth → Register** or **Auth → Login (Phone)** followed by **Auth → Verify OTP** (Demo OTP: `123456`). Token will automatically save to `{{token}}`.\n4. All authenticated requests use `Bearer {{token}}`.\n\n**Response shape:** `{ \"success\": true, \"message\": \"...\", \"data\": { ... } }`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -39,25 +39,15 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"app.user@example.com\",\n  \"password\": \"Password123!\",\n  \"phone\": \"9876543210\",\n  \"platform\": \"android\",\n  \"locale\": \"en\"\n}"
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"app.user@example.com\",\n  \"password\": \"Password123!\",\n  \"phone\": \"9876543210\",\n  \"platform\": \"android\",\n  \"locale\": \"en\",\n  \"device_token\": \"fcm-token-sample-123\",\n  \"device_type\": \"android\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "register"]
-            },
-            "description": "Register a new mobile user with email and password."
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] },
+            "description": "Register a new mobile user with name, email, password, phone, platform, and device token."
           }
         },
         {
@@ -80,66 +70,15 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\",\n  \"phone\": \"9876543210\"\n}"
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "login"]
-            },
-            "description": "Initiate phone login. Generates demo OTP `123456` valid for 10 minutes. Next step: POST /auth/verify-otp."
-          }
-        },
-        {
-          "name": "Verify OTP",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.success && json.data && json.data.token) {",
-                  "    pm.collectionVariables.set('token', json.data.token);",
-                  "    console.log('Token saved to collection variable.');",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/auth/verify-otp",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "verify-otp"]
-            },
-            "description": "Complete phone login after POST /auth/login. Demo OTP is 123456."
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "description": "Initiate phone login. Generates demo OTP 123456 valid for 10 minutes."
           }
         },
         {
@@ -162,52 +101,55 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\",\n  \"email\": \"app.user@example.com\"\n}"
+              "raw": "{\n  \"email\": \"app.user@example.com\",\n  \"password\": \"Password123!\",\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "login"]
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "description": "Direct email & password login."
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.success && json.data && json.data.token) {",
+                  "    pm.collectionVariables.set('token', json.data.token);",
+                  "    console.log('Token saved to collection variable.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\"\n}"
             },
-            "description": "Direct email login. Returns JWT bearer token immediately."
+            "url": { "raw": "{{base_url}}/auth/verify-otp", "host": ["{{base_url}}"], "path": ["auth", "verify-otp"] },
+            "description": "Verify OTP (demo OTP: 123456)."
           }
         },
         {
           "name": "Logout",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
             "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/auth/logout",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "logout"]
-            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] },
             "description": "Logout authenticated user."
           }
         }
@@ -215,140 +157,579 @@
     },
     {
       "name": "Authenticated — Profile",
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{token}}",
-            "type": "string"
-          }
-        ]
-      },
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
       "item": [
         {
           "name": "Get Profile",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/user/profile",
-              "host": ["{{base_url}}"],
-              "path": ["user", "profile"]
-            },
-            "description": "Get current logged-in user profile. Also available at GET /me."
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
           }
         },
         {
-          "name": "Update Profile (FormData)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "name",
-                  "value": "John Doe",
-                  "type": "text"
-                },
-                {
-                  "key": "phone",
-                  "value": "9876543210",
-                  "type": "text"
-                },
-                {
-                  "key": "country",
-                  "value": "India",
-                  "type": "text"
-                },
-                {
-                  "key": "state",
-                  "value": "Gujarat",
-                  "type": "text"
-                },
-                {
-                  "key": "city",
-                  "value": "Ahmedabad",
-                  "type": "text"
-                },
-                {
-                  "key": "age_group",
-                  "value": "25-34",
-                  "type": "text"
-                },
-                {
-                  "key": "gender",
-                  "value": "male",
-                  "type": "text"
-                },
-                {
-                  "key": "image",
-                  "type": "file",
-                  "src": []
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/user/profile",
-              "host": ["{{base_url}}"],
-              "path": ["user", "profile"]
-            },
-            "description": "Update profile details and upload profile avatar to Cloudflare R2 storage using multipart/form-data."
-          }
-        },
-        {
-          "name": "Get Me",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/me",
-              "host": ["{{base_url}}"],
-              "path": ["me"]
-            },
-            "description": "Alias for GET /user/profile."
-          }
-        },
-        {
-          "name": "Update Me (JSON)",
+          "name": "Update Profile (JSON)",
           "request": {
             "method": "PUT",
             "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Updated\",\n  \"phone\": \"9876543210\",\n  \"country\": \"India\",\n  \"state\": \"Gujarat\",\n  \"city\": \"Ahmedabad\",\n  \"age_group\": \"25-34\",\n  \"gender\": \"male\"\n}"
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"app.user@example.com\",\n  \"phone\": \"9876543210\",\n  \"country\": \"India\",\n  \"state\": \"Gujarat\",\n  \"city\": \"Ahmedabad\",\n  \"age_group\": \"25-34\",\n  \"gender\": \"male\",\n  \"locale\": \"en\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/me",
-              "host": ["{{base_url}}"],
-              "path": ["me"]
+            "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
+          }
+        },
+        {
+          "name": "Update Profile (FormData with Avatar)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "John Doe", "type": "text" },
+                { "key": "phone", "value": "9876543210", "type": "text" },
+                { "key": "country", "value": "India", "type": "text" },
+                { "key": "state", "value": "Gujarat", "type": "text" },
+                { "key": "city", "value": "Ahmedabad", "type": "text" },
+                { "key": "age_group", "value": "25-34", "type": "text" },
+                { "key": "gender", "value": "male", "type": "text" },
+                { "key": "locale", "value": "en", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
             },
-            "description": "Update profile fields via JSON body."
+            "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
+          }
+        },
+        {
+          "name": "Select Language",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"locale\": \"hi\"\n}" },
+            "url": { "raw": "{{base_url}}/user/select-language", "host": ["{{base_url}}"], "path": ["user", "select-language"] }
+          }
+        },
+        {
+          "name": "Request Phone Update",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"9876500000\"\n}" },
+            "url": { "raw": "{{base_url}}/user/update-phone", "host": ["{{base_url}}"], "path": ["user", "update-phone"] }
+          }
+        },
+        {
+          "name": "Verify Phone Update",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"9876500000\",\n  \"otp\": \"123456\"\n}" },
+            "url": { "raw": "{{base_url}}/user/update-phone/verify", "host": ["{{base_url}}"], "path": ["user", "update-phone", "verify"] }
+          }
+        },
+        {
+          "name": "Get Notification Settings",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/user/notifications/settings", "host": ["{{base_url}}"], "path": ["user", "notifications", "settings"] }
+          }
+        },
+        {
+          "name": "Update Notification Settings",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_episodes\": true,\n  \"promotions\": true,\n  \"recommendations\": true,\n  \"account_activity\": false\n}"
+            },
+            "url": { "raw": "{{base_url}}/user/notifications/settings", "host": ["{{base_url}}"], "path": ["user", "notifications", "settings"] }
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/user/delete-account", "host": ["{{base_url}}"], "path": ["user", "delete-account"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "item": [
+        {
+          "name": "Get All Categories (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "Get User Preferences",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/user/categories", "host": ["{{base_url}}"], "path": ["user", "categories"] }
+          }
+        },
+        {
+          "name": "Update User Preferences (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"category_ids\": [1, 2, 3]\n}" },
+            "url": { "raw": "{{base_url}}/user/categories", "host": ["{{base_url}}"], "path": ["user", "categories"] }
+          }
+        },
+        {
+          "name": "Update User Preferences (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"category_ids\": [1, 2, 3]\n}" },
+            "url": { "raw": "{{base_url}}/user/categories", "host": ["{{base_url}}"], "path": ["user", "categories"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Home & Feed",
+      "item": [
+        {
+          "name": "Get Home Feed",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/home", "host": ["{{base_url}}"], "path": ["home"] }
+          }
+        },
+        {
+          "name": "Search Home Feed",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/home?search=mystery", "host": ["{{base_url}}"], "path": ["home"], "query": [{ "key": "search", "value": "mystery" }] }
+          }
+        },
+        {
+          "name": "Get Banners",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/banners", "host": ["{{base_url}}"], "path": ["banners"] }
+          }
+        },
+        {
+          "name": "Section Trending",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/sections/trending", "host": ["{{base_url}}"], "path": ["sections", "trending"] }
+          }
+        },
+        {
+          "name": "Section Popular",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/sections/popular", "host": ["{{base_url}}"], "path": ["sections", "popular"] }
+          }
+        },
+        {
+          "name": "Section Top Rated",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/sections/top-rated", "host": ["{{base_url}}"], "path": ["sections", "top-rated"] }
+          }
+        },
+        {
+          "name": "Section Top Picks",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/sections/top-picks", "host": ["{{base_url}}"], "path": ["sections", "top-picks"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stories & Episodes",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "item": [
+        {
+          "name": "List Stories",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/stories?category_id=1&search=&language=hi&sort=popular", "host": ["{{base_url}}"], "path": ["stories"], "query": [{ "key": "category_id", "value": "1" }, { "key": "search", "value": "" }, { "key": "language", "value": "hi" }, { "key": "sort", "value": "popular" }] }
+          }
+        },
+        {
+          "name": "Get Story Details",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/stories/1", "host": ["{{base_url}}"], "path": ["stories", "1"] }
+          }
+        },
+        {
+          "name": "Create Story",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Secret Listener\",\n  \"description\": \"An exciting audio mystery drama story.\",\n  \"category_id\": 1,\n  \"language\": \"hi\",\n  \"cover_image\": \"covers/sample_cover.jpg\",\n  \"banner_image\": \"banners/sample_banner.jpg\",\n  \"is_premium\": 0,\n  \"status\": \"ongoing\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/stories", "host": ["{{base_url}}"], "path": ["stories"] },
+            "description": "Create a new story with full body parameters (status: ongoing or completed)."
+          }
+        },
+        {
+          "name": "Edit Story (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Secret Listener (Updated)\",\n  \"description\": \"Updated story description and plot line.\",\n  \"category_id\": 1,\n  \"language\": \"hi\",\n  \"cover_image\": \"covers/updated_cover.jpg\",\n  \"banner_image\": \"banners/updated_banner.jpg\",\n  \"is_premium\": 1,\n  \"status\": \"completed\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/stories/1", "host": ["{{base_url}}"], "path": ["stories", "1"] },
+            "description": "Edit existing story details via PUT (status: ongoing or completed)."
+          }
+        },
+        {
+          "name": "Edit Story (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Secret Listener (Updated via POST)\",\n  \"description\": \"Updated story description.\",\n  \"is_premium\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/stories/1", "host": ["{{base_url}}"], "path": ["stories", "1"] },
+            "description": "Edit existing story details via POST."
+          }
+        },
+        {
+          "name": "Toggle Story Like",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/stories/1/like", "host": ["{{base_url}}"], "path": ["stories", "1", "like"] }
+          }
+        },
+        {
+          "name": "Create Episode",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"story_id\": 1,\n  \"title\": \"Episode 1: The Mysterious Discovery\",\n  \"episode_number\": 1,\n  \"description\": \"In this episode, the secret journey begins.\",\n  \"publish_as\": \"publish_now\",\n  \"schedule_date_time\": \"2026-08-30 10:00:00\",\n  \"tags\": \"mystery, thriller, audio drama\",\n  \"audio_title\": \"Episode 1 Full Track\",\n  \"audio_file\": \"episodes/audio_sample_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"duration_seconds\": 300,\n  \"duration_minutes\": 5.0\n}"
+            },
+            "url": { "raw": "{{base_url}}/episodes", "host": ["{{base_url}}"], "path": ["episodes"] },
+            "description": "Create a new episode with all parameters (title, episode_number, description, story_id, publish_as, schedule_date_time, tags, audio_file, audio_title, coins [default 25], duration)."
+          }
+        },
+        {
+          "name": "Edit Episode (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Episode 1: The Mysterious Discovery (Updated)\",\n  \"episode_number\": 1,\n  \"description\": \"Updated episode summary.\",\n  \"publish_as\": \"schedule_for_later\",\n  \"schedule_date_time\": \"2026-09-01 18:00:00\",\n  \"tags\": \"mystery, suspense\",\n  \"audio_title\": \"Episode 1 Remastered Track\",\n  \"audio_file\": \"episodes/updated_audio_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"duration_seconds\": 360,\n  \"duration_minutes\": 6.0\n}"
+            },
+            "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] },
+            "description": "Edit existing episode details via PUT."
+          }
+        },
+        {
+          "name": "Edit Episode (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Episode 1: Updated Title\",\n  \"coins\": 25,\n  \"is_premium\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] },
+            "description": "Edit existing episode details via POST."
+          }
+        },
+        {
+          "name": "Get Episode Details",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] }
+          }
+        },
+        {
+          "name": "Unlock Episode",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/episodes/1/unlock", "host": ["{{base_url}}"], "path": ["episodes", "1", "unlock"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews & Comments",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "item": [
+        {
+          "name": "Get Story Reviews",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/stories/1/reviews", "host": ["{{base_url}}"], "path": ["stories", "1", "reviews"] }
+          }
+        },
+        {
+          "name": "Submit Story Review",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"review\": \"Amazing audio story! Highly recommended.\"\n}" },
+            "url": { "raw": "{{base_url}}/stories/1/reviews", "host": ["{{base_url}}"], "path": ["stories", "1", "reviews"] },
+            "description": "Submit rating (1-5) and review text for a story."
+          }
+        },
+        {
+          "name": "Get User Reviews",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/user/reviews", "host": ["{{base_url}}"], "path": ["user", "reviews"] }
+          }
+        },
+        {
+          "name": "Get Story Comments",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/stories/1/comments", "host": ["{{base_url}}"], "path": ["stories", "1", "comments"] }
+          }
+        },
+        {
+          "name": "Post Story Comment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"comment\": \"Great narration in this episode!\",\n  \"parent_id\": null\n}" },
+            "url": { "raw": "{{base_url}}/stories/1/comments", "host": ["{{base_url}}"], "path": ["stories", "1", "comments"] },
+            "description": "Post a top-level comment or a reply to parent_id."
+          }
+        },
+        {
+          "name": "Get Comment Replies",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/comments/1/replies", "host": ["{{base_url}}"], "path": ["comments", "1", "replies"] }
+          }
+        },
+        {
+          "name": "Toggle Comment Like",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/comments/1/like", "host": ["{{base_url}}"], "path": ["comments", "1", "like"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bookmarks & Watch History",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "item": [
+        {
+          "name": "Get User Bookmarks",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/bookmarks", "host": ["{{base_url}}"], "path": ["bookmarks"] }
+          }
+        },
+        {
+          "name": "Toggle Story Bookmark",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/stories/1/bookmark", "host": ["{{base_url}}"], "path": ["stories", "1", "bookmark"] }
+          }
+        },
+        {
+          "name": "Get Watch History",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/watch-history", "host": ["{{base_url}}"], "path": ["watch-history"] }
+          }
+        },
+        {
+          "name": "Clear All Watch History",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/watch-history", "host": ["{{base_url}}"], "path": ["watch-history"] }
+          }
+        },
+        {
+          "name": "Remove Story From Watch History",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/watch-history/1", "host": ["{{base_url}}"], "path": ["watch-history", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet, Payments & Subscriptions",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "item": [
+        {
+          "name": "Get Wallet Details",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/wallet", "host": ["{{base_url}}"], "path": ["wallet"] }
+          }
+        },
+        {
+          "name": "Get Plans",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/plans", "host": ["{{base_url}}"], "path": ["plans"] }
+          }
+        },
+        {
+          "name": "Get Coin Packs",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/coin-packs", "host": ["{{base_url}}"], "path": ["coin-packs"] }
+          }
+        },
+        {
+          "name": "Purchase Coins",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}" },
+            "url": { "raw": "{{base_url}}/wallet/purchase-coins", "host": ["{{base_url}}"], "path": ["wallet", "purchase-coins"] },
+            "description": "Credit coins to user wallet via plan_id or coin_pack_id."
+          }
+        },
+        {
+          "name": "Daily Claim Status",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/wallet/daily-claim", "host": ["{{base_url}}"], "path": ["wallet", "daily-claim"] }
+          }
+        },
+        {
+          "name": "Claim Daily Reward",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/wallet/daily-claim", "host": ["{{base_url}}"], "path": ["wallet", "daily-claim"] }
+          }
+        },
+        {
+          "name": "Get Wallet Transactions",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/wallet/transactions", "host": ["{{base_url}}"], "path": ["wallet", "transactions"] }
+          }
+        },
+        {
+          "name": "Create Razorpay Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"amount\": 99,\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}" },
+            "url": { "raw": "{{base_url}}/payments/razorpay/order", "host": ["{{base_url}}"], "path": ["payments", "razorpay", "order"] }
+          }
+        },
+        {
+          "name": "Verify Razorpay Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"razorpay_order_id\": \"order_mock123\",\n  \"razorpay_payment_id\": \"pay_mock123\",\n  \"razorpay_signature\": \"mock_signature_123\",\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}" },
+            "url": { "raw": "{{base_url}}/payments/razorpay/verify", "host": ["{{base_url}}"], "path": ["payments", "razorpay", "verify"] }
+          }
+        },
+        {
+          "name": "Get Active Subscription",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/subscriptions", "host": ["{{base_url}}"], "path": ["subscriptions"] }
+          }
+        },
+        {
+          "name": "Activate Subscription",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"plan_id\": 1,\n  \"duration_days\": 30\n}" },
+            "url": { "raw": "{{base_url}}/subscriptions", "host": ["{{base_url}}"], "path": ["subscriptions"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "System & Legal",
+      "item": [
+        {
+          "name": "Get Config",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/config", "host": ["{{base_url}}"], "path": ["config"] }
+          }
+        },
+        {
+          "name": "Get Languages",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/languages", "host": ["{{base_url}}"], "path": ["languages"] }
+          }
+        },
+        {
+          "name": "Get FAQs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/faqs", "host": ["{{base_url}}"], "path": ["faqs"] }
+          }
+        },
+        {
+          "name": "Get Support FAQs",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/support-faqs", "host": ["{{base_url}}"], "path": ["support-faqs"] }
+          }
+        },
+        {
+          "name": "Copyright Policy",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/legal/copyright", "host": ["{{base_url}}"], "path": ["legal", "copyright"] }
+          }
+        },
+        {
+          "name": "Privacy Policy",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/legal/privacy", "host": ["{{base_url}}"], "path": ["legal", "privacy"] }
+          }
+        },
+        {
+          "name": "Terms of Service",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/legal/terms", "host": ["{{base_url}}"], "path": ["legal", "terms"] }
+          }
+        },
+        {
+          "name": "Security Advice",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/legal/security-advice", "host": ["{{base_url}}"], "path": ["legal", "security-advice"] }
           }
         }
       ]
