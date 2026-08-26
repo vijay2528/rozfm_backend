@@ -1,0 +1,381 @@
+{
+  "info": {
+    "_postman_id": "rozfm-admin-api-collection",
+    "name": "RozFM Admin Panel API Collection",
+    "description": "Complete standalone Postman collection for RozFM Admin Panel APIs including Dashboard, User Management, Content Management (Stories/Episodes), Categories, Banners, Monetization, Content Moderation, Push Notifications, and System Settings.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000/api/v1" },
+    { "key": "admin_token", "value": "YOUR_ADMIN_BEARER_TOKEN" }
+  ],
+  "item": [
+    {
+      "name": "1. Admin Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Statistics",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/dashboard", "host": ["{{base_url}}"], "path": ["admin", "dashboard"] },
+            "description": "Fetch overall metrics (total users, active stories, episodes, play counts, revenue, recent registrations, and top stories)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. User Management",
+      "item": [
+        {
+          "name": "List Users (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/users?search=&role=&is_blocked=&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "role", "value": "" },
+                { "key": "is_blocked", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/1", "host": ["{{base_url}}"], "path": ["admin", "users", "1"] }
+          }
+        },
+        {
+          "name": "Update User Profile & Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe (Updated)\",\n  \"email\": \"john@rozfm.com\",\n  \"subscription_type\": \"admin\",\n  \"is_blocked\": 0\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/users/1", "host": ["{{base_url}}"], "path": ["admin", "users", "1"] }
+          }
+        },
+        {
+          "name": "Credit or Debit User Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"coins\": 100,\n  \"type\": \"credit\",\n  \"description\": \"Admin promotional top-up\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/users/1/wallet", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "wallet"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Content Management (Stories & Episodes)",
+      "item": [
+        {
+          "name": "List All Stories (All Statuses)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/stories?status=&category_id=&language=&search=&page=1", "host": ["{{base_url}}"], "path": ["admin", "stories"] }
+          }
+        },
+        {
+          "name": "Update Story Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"published\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/stories/1/status", "host": ["{{base_url}}"], "path": ["admin", "stories", "1", "status"] }
+          }
+        },
+        {
+          "name": "Delete Story",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/stories/1", "host": ["{{base_url}}"], "path": ["admin", "stories", "1"] }
+          }
+        },
+        {
+          "name": "List All Episodes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/episodes?story_id=&search=&page=1", "host": ["{{base_url}}"], "path": ["admin", "episodes"] }
+          }
+        },
+        {
+          "name": "Delete Episode",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/episodes/1", "host": ["{{base_url}}"], "path": ["admin", "episodes", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Categories & Banners Management",
+      "item": [
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/categories", "host": ["{{base_url}}"], "path": ["admin", "categories"] }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category_name", "value": "Sci-Fi & Thriller", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/admin/categories", "host": ["{{base_url}}"], "path": ["admin", "categories"] }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "category_name", "value": "Sci-Fi & Thriller (Updated)", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/admin/categories/1", "host": ["{{base_url}}"], "path": ["admin", "categories", "1"] }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/categories/1", "host": ["{{base_url}}"], "path": ["admin", "categories", "1"] }
+          }
+        },
+        {
+          "name": "List Banners",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/banners", "host": ["{{base_url}}"], "path": ["admin", "banners"] }
+          }
+        },
+        {
+          "name": "Create Banner",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Featured Audio Series", "type": "text" },
+                { "key": "action_type", "value": "story", "type": "text" },
+                { "key": "action_value", "value": "1", "type": "text" },
+                { "key": "position", "value": "1", "type": "text" },
+                { "key": "is_active", "value": "1", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/admin/banners", "host": ["{{base_url}}"], "path": ["admin", "banners"] }
+          }
+        },
+        {
+          "name": "Delete Banner",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/banners/1", "host": ["{{base_url}}"], "path": ["admin", "banners", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Monetization & Financials",
+      "item": [
+        {
+          "name": "List Subscription Plans",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/plans", "host": ["{{base_url}}"], "path": ["admin", "plans"] }
+          }
+        },
+        {
+          "name": "Create Subscription Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"VIP Monthly Pass\",\n  \"coins\": 500,\n  \"bonus_coins\": 100,\n  \"price\": 199.00,\n  \"currency\": \"INR\",\n  \"badge_text\": \"BEST VALUE\",\n  \"is_popular\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/plans", "host": ["{{base_url}}"], "path": ["admin", "plans"] }
+          }
+        },
+        {
+          "name": "List Coin Packs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/coin-packs", "host": ["{{base_url}}"], "path": ["admin", "coin-packs"] }
+          }
+        },
+        {
+          "name": "Create Coin Pack",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pack_name\": \"Starter Coin Pack\",\n  \"coins\": 100,\n  \"amount\": 49.00,\n  \"is_best_value\": 0,\n  \"status\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/coin-packs", "host": ["{{base_url}}"], "path": ["admin", "coin-packs"] }
+          }
+        },
+        {
+          "name": "Get Transaction Logs",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/transactions?type=&search=&page=1", "host": ["{{base_url}}"], "path": ["admin", "transactions"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Content Moderation",
+      "item": [
+        {
+          "name": "List Story Reviews",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/reviews", "host": ["{{base_url}}"], "path": ["admin", "reviews"] }
+          }
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/reviews/1", "host": ["{{base_url}}"], "path": ["admin", "reviews", "1"] }
+          }
+        },
+        {
+          "name": "List User Comments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/comments", "host": ["{{base_url}}"], "path": ["admin", "comments"] }
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/comments/1", "host": ["{{base_url}}"], "path": ["admin", "comments", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Notifications & System Settings",
+      "item": [
+        {
+          "name": "Get System Settings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/settings", "host": ["{{base_url}}"], "path": ["admin", "settings"] }
+          }
+        },
+        {
+          "name": "Update System Settings",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"site_title\": \"ROZ FM Admin Panel\",\n  \"app_version\": \"1.0.0\",\n  \"maintenance_mode\": \"false\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/settings", "host": ["{{base_url}}"], "path": ["admin", "settings"] }
+          }
+        },
+        {
+          "name": "Broadcast Push Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"🔥 New Episode Out Now!\",\n  \"body\": \"Listen to the latest episode of Ishq Ka Farinda on RozFM.\",\n  \"action_type\": \"story\",\n  \"action_value\": \"1\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/notifications/send", "host": ["{{base_url}}"], "path": ["admin", "notifications", "send"] }
+          }
+        },
+        {
+          "name": "Create FAQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"How do I purchase coins?\",\n  \"answer\": \"Navigate to Wallet and tap Purchase Coins to buy a coin pack.\",\n  \"position\": 1,\n  \"status\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/faqs", "host": ["{{base_url}}"], "path": ["admin", "faqs"] }
+          }
+        }
+      ]
+    }
+  ]
+}

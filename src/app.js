@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 
 const apiV1Routes = require('./routes/apiV1Routes');
+const adminRoutes = require('./routes/adminRoutes');
 const ApiResponse = require('./utils/apiResponse');
 
 const app = express();
@@ -27,6 +28,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes (v1)
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1', apiV1Routes);
 
 // 404 Route Handler
