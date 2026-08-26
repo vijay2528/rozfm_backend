@@ -146,11 +146,100 @@ class StoryController {
         unlocks.forEach((u) => userUnlockedEpisodeIds.add(u.episode_id));
       }
 
+      // Calculate completion rate, avg listening time, and performance metrics dynamically from DB
+      let completionRate = 0;
+      let avgListeningTime = 0;
+      let performanceObj = null;
+
+      try {
+        const [watchStats] = await pool.query(
+          `SELECT 
+             COUNT(id) as total_histories,
+             SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_count,
+             AVG(progress_seconds) as avg_progress,
+             SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN 1 ELSE 0 END) as cur_plays,
+             SUM(CASE WHEN created_at >= DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m-01 00:00:00') 
+                       AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN 1 ELSE 0 END) as prev_plays,
+             COUNT(DISTINCT user_id) as total_listeners,
+             COUNT(DISTINCT CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN user_id END) as cur_listeners,
+             COUNT(DISTINCT CASE WHEN created_at >= DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m-01 00:00:00') 
+                                 AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN user_id END) as prev_listeners
+           FROM watch_histories WHERE story_id = ?`,
+          [storyId]
+        );
+
+        const [likeStats] = await pool.query(
+          `SELECT 
+             COUNT(*) as total_likes,
+             SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN 1 ELSE 0 END) as cur_likes,
+             SUM(CASE WHEN created_at >= DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m-01 00:00:00') 
+                       AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN 1 ELSE 0 END) as prev_likes
+           FROM story_likes WHERE story_id = ?`,
+          [storyId]
+        );
+
+        const ws = watchStats[0] || {};
+        const ls = likeStats[0] || {};
+
+        const totalHistories = Number(ws.total_histories || 0);
+        const completedCount = Number(ws.completed_count || 0);
+
+        if (totalHistories > 0) {
+          completionRate = Math.round((completedCount / totalHistories) * 100);
+        }
+        if (ws.avg_progress) {
+          avgListeningTime = Math.round(ws.avg_progress);
+        }
+
+        const calcGrowth = (cur, prev) => {
+          const c = Number(cur) || 0;
+          const p = Number(prev) || 0;
+          if (p === 0) return c > 0 ? '+100%' : '0%';
+          const pct = Number((((c - p) / p) * 100).toFixed(1));
+          return pct >= 0 ? `+${pct}%` : `${pct}%`;
+        };
+
+        const totalPlays = Math.max(Number(story.total_views || 0), totalHistories);
+        const totalListeners = Math.max(Number(story.listeners_count || 0), Number(ws.total_listeners || 0));
+        const totalLikes = Number(ls.total_likes || 0);
+        const totalShares = Number(story.shares_count || 0);
+
+        const { formatNumber } = require('../utils/storyPresenter');
+
+        performanceObj = {
+          plays: {
+            count: totalPlays,
+            formatted: formatNumber(totalPlays),
+            growth: calcGrowth(ws.cur_plays, ws.prev_plays),
+          },
+          listeners: {
+            count: totalListeners,
+            formatted: formatNumber(totalListeners),
+            growth: calcGrowth(ws.cur_listeners, ws.prev_listeners),
+          },
+          likes: {
+            count: totalLikes,
+            formatted: formatNumber(totalLikes),
+            growth: calcGrowth(ls.cur_likes, ls.prev_likes),
+          },
+          shares: {
+            count: totalShares,
+            formatted: formatNumber(totalShares),
+            growth: '0%',
+          },
+        };
+      } catch (err) {
+        console.error('Calculate Story Performance Error:', err);
+      }
+
       const result = toStoryFieldsArray(story, {
         isLiked,
         isBookmarked,
         episodes,
         userUnlockedEpisodeIds,
+        performance: performanceObj,
+        completionRate,
+        avgListeningTime,
       });
 
       return ApiResponse.success(res, { story: result });
@@ -166,7 +255,7 @@ class StoryController {
    */
   static async store(req, res) {
     try {
-      const { title, description, category_id, language, is_premium, status } = req.body;
+      const { title, description, category_id, language, tags, is_premium, status } = req.body;
       const userId = req.user ? req.user.id : null;
 
       if (!title || title.trim() === '') {
@@ -248,8 +337,8 @@ class StoryController {
       const categoryIdVal = isNaN(parsedCatId) ? null : parsedCatId;
 
       const [result] = await pool.query(
-        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, is_premium, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           title.trim(),
@@ -258,6 +347,7 @@ class StoryController {
           coverImagePath,
           bannerImagePath,
           language || 'en',
+          tags || null,
           isPremiumBool ? 1 : 0,
           storyStatus,
         ]
@@ -297,7 +387,7 @@ class StoryController {
         return ApiResponse.error(res, 'Story not found.', 444);
       }
 
-      const { title, description, category_id, language, is_premium, status } = req.body;
+      const { title, description, category_id, language, tags, is_premium, status } = req.body;
       const updateFields = [];
       const queryParams = [];
 
@@ -317,6 +407,10 @@ class StoryController {
       if (language !== undefined) {
         updateFields.push('`language` = ?');
         queryParams.push(language);
+      }
+      if (tags !== undefined) {
+        updateFields.push('`tags` = ?');
+        queryParams.push(tags);
       }
       if (is_premium !== undefined) {
         updateFields.push('`is_premium` = ?');
@@ -469,6 +563,24 @@ class StoryController {
     } catch (error) {
       console.error('Toggle Story Like Error:', error);
       return ApiResponse.error(res, 'Failed to update story like status.', 500);
+    }
+  }
+
+  /**
+   * POST /api/v1/stories/:id/share
+   * Increment story shares count
+   */
+  static async share(req, res) {
+    try {
+      const storyId = req.params.id || req.params.story;
+      await pool.query('UPDATE stories SET shares_count = shares_count + 1 WHERE id = ?', [storyId]);
+      const [rows] = await pool.query('SELECT shares_count FROM stories WHERE id = ? LIMIT 1', [storyId]);
+      const sharesCount = rows.length > 0 ? rows[0].shares_count : 0;
+
+      return ApiResponse.success(res, { shares_count: sharesCount }, 'Story share count updated.');
+    } catch (error) {
+      console.error('Share Story Error:', error);
+      return ApiResponse.error(res, 'Failed to update story share count.', 500);
     }
   }
 }

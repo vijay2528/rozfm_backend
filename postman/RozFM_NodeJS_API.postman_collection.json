@@ -386,6 +386,7 @@
                 { "key": "description", "value": "An exciting audio mystery drama story.", "type": "text" },
                 { "key": "category_id", "value": "1", "type": "text" },
                 { "key": "language", "value": "hi", "type": "text" },
+                { "key": "tags", "value": "mystery, thriller, audio drama", "type": "text" },
                 { "key": "is_premium", "value": "0", "type": "text" },
                 { "key": "status", "value": "ongoing", "type": "text" },
                 { "key": "cover_image", "type": "file", "src": [] },
@@ -410,6 +411,7 @@
                 { "key": "description", "value": "Updated story description and plot line.", "type": "text" },
                 { "key": "category_id", "value": "1", "type": "text" },
                 { "key": "language", "value": "hi", "type": "text" },
+                { "key": "tags", "value": "mystery, suspense", "type": "text" },
                 { "key": "is_premium", "value": "1", "type": "text" },
                 { "key": "status", "value": "completed", "type": "text" },
                 { "key": "cover_image", "type": "file", "src": [] },
@@ -428,16 +430,23 @@
           }
         },
         {
+          "name": "Share Story",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/stories/1/share", "host": ["{{base_url}}"], "path": ["stories", "1", "share"] }
+          }
+        },
+        {
           "name": "Create Episode",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"story_id\": 1,\n  \"title\": \"Episode 1: The Mysterious Discovery\",\n  \"episode_number\": 1,\n  \"description\": \"In this episode, the secret journey begins.\",\n  \"publish_as\": \"publish_now\",\n  \"schedule_date_time\": \"2026-08-30 10:00:00\",\n  \"tags\": \"mystery, thriller, audio drama\",\n  \"audio_title\": \"Episode 1 Full Track\",\n  \"audio_file\": \"episodes/audio_sample_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"duration_seconds\": 300,\n  \"duration_minutes\": 5.0\n}"
+              "raw": "{\n  \"story_id\": 1,\n  \"title\": \"Episode 1: The Mysterious Discovery\",\n  \"episode_number\": 1,\n  \"description\": \"In this episode, the secret journey begins.\",\n  \"publish_as\": \"publish_now\",\n  \"schedule_date_time\": \"2026-08-30 10:00:00\",\n  \"audio_title\": \"Episode 1 Full Track\",\n  \"audio_file\": \"episodes/audio_sample_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"duration_seconds\": 300,\n  \"duration_minutes\": 5.0\n}"
             },
             "url": { "raw": "{{base_url}}/episodes", "host": ["{{base_url}}"], "path": ["episodes"] },
-            "description": "Create a new episode with all parameters (title, episode_number, description, story_id, publish_as, schedule_date_time, tags, audio_file, audio_title, coins [default 25], duration)."
+            "description": "Create a new episode with all parameters (title, episode_number, description, story_id, publish_as, schedule_date_time, audio_file, audio_title, coins [default 25], duration)."
           }
         },
         {
@@ -447,7 +456,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Episode 1: The Mysterious Discovery (Updated)\",\n  \"episode_number\": 1,\n  \"description\": \"Updated episode summary.\",\n  \"publish_as\": \"schedule_for_later\",\n  \"schedule_date_time\": \"2026-09-01 18:00:00\",\n  \"tags\": \"mystery, suspense\",\n  \"audio_title\": \"Episode 1 Remastered Track\",\n  \"audio_file\": \"episodes/updated_audio_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"duration_seconds\": 360,\n  \"duration_minutes\": 6.0\n}"
+              "raw": "{\n  \"title\": \"Episode 1: The Mysterious Discovery (Updated)\",\n  \"episode_number\": 1,\n  \"description\": \"Updated episode summary.\",\n  \"publish_as\": \"schedule_for_later\",\n  \"schedule_date_time\": \"2026-09-01 18:00:00\",\n  \"audio_title\": \"Episode 1 Remastered Track\",\n  \"audio_file\": \"episodes/updated_audio_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"duration_seconds\": 360,\n  \"duration_minutes\": 6.0\n}"
             },
             "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] },
             "description": "Edit existing episode details via PUT."

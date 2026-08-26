@@ -104,6 +104,7 @@ router.post('/episodes/:id', EpisodeController.update);
 router.post('/stories/:id/reviews', ReviewController.store);
 router.post('/stories/:id/comments', CommentController.store);
 router.post('/stories/:id/like', StoryController.toggleLike);
+router.post('/stories/:id/share', StoryController.share);
 router.post('/comments/:id/like', CommentController.toggleLike);
 router.post('/stories/:id/bookmark', BookmarkController.toggle);
 router.get('/bookmarks', BookmarkController.index);

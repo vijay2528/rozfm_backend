@@ -106,10 +106,12 @@ async function runMigrations() {
         \`cover_image_path\` VARCHAR(512) NULL,
         \`banner_image_path\` VARCHAR(512) NULL,
         \`language\` VARCHAR(50) DEFAULT 'en',
+        \`tags\` VARCHAR(512) NULL,
         \`status\` VARCHAR(50) DEFAULT 'published',
         \`episodes_count\` INT DEFAULT 0,
         \`listeners_count\` INT DEFAULT 0,
         \`total_views\` INT DEFAULT 0,
+        \`shares_count\` INT DEFAULT 0,
         \`rating\` DECIMAL(3, 1) DEFAULT 0.0,
         \`is_premium\` TINYINT(1) DEFAULT 0,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -148,6 +150,8 @@ async function runMigrations() {
 
     // Safe Alter Table for existing installations
     const alterQueries = [
+      "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `tags` VARCHAR(512) NULL",
+      "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `shares_count` INT DEFAULT 0",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `created_by` INT NULL",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `description` TEXT NULL",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `publish_as` VARCHAR(50) DEFAULT 'publish_now'",

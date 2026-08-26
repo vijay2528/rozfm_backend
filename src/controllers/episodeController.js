@@ -67,7 +67,6 @@ class EpisodeController {
         publish_as,
         scheduled_at,
         schedule_date_time,
-        tags,
         audio_title,
         coins,
         is_premium,
@@ -119,9 +118,9 @@ class EpisodeController {
       const [result] = await pool.query(
         `INSERT INTO episodes (
           story_id, created_by, title, position, description, publish_as, scheduled_at,
-          tags, audio_title, duration_seconds, duration_minutes, is_premium,
+          audio_title, duration_seconds, duration_minutes, is_premium,
           coins, audio_path, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           targetStoryId,
           createdById,
@@ -130,7 +129,6 @@ class EpisodeController {
           description || null,
           publishAsMode,
           scheduledDateTime,
-          tags || null,
           audio_title || title.trim(),
           duration_seconds ? parseInt(duration_seconds, 10) : 0,
           duration_minutes ? parseFloat(duration_minutes) : null,
@@ -182,7 +180,6 @@ class EpisodeController {
         publish_as,
         scheduled_at,
         schedule_date_time,
-        tags,
         audio_title,
         duration_seconds,
         duration_minutes,
@@ -216,10 +213,6 @@ class EpisodeController {
       if (schedTime !== undefined) {
         updateFields.push('`scheduled_at` = ?');
         queryParams.push(schedTime);
-      }
-      if (tags !== undefined) {
-        updateFields.push('`tags` = ?');
-        queryParams.push(tags);
       }
       if (audio_title !== undefined) {
         updateFields.push('`audio_title` = ?');
