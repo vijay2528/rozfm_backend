@@ -92,9 +92,8 @@ router.post('/user/categories', CategoryController.updateUserPreferences);
 router.get('/user/reviews', ReviewController.userReviews);
 
 // Story & Episode Creation / Edit (Authenticated)
-router.post('/stories', StoryController.store);
-router.put('/stories/:id', StoryController.update);
-router.post('/stories/:id', StoryController.update);
+router.post('/stories', upload.storyMedia, StoryController.store);
+router.post('/stories/:id', upload.storyMedia, StoryController.update);
 
 router.post('/episodes', EpisodeController.store);
 router.post('/stories/:storyId/episodes', EpisodeController.store);

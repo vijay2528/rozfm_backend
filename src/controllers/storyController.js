@@ -161,8 +161,8 @@ class StoryController {
   }
 
   /**
-   * POST /api/v1/stories
-   * Create a new story
+   * POST /api/v1/stories & POST /api/v1/stories/upload
+   * Create a new story (supports multipart/form-data & application/json)
    */
   static async store(req, res) {
     try {
@@ -173,16 +173,65 @@ class StoryController {
         return ApiResponse.error(res, 'Story title is required.', 422);
       }
 
-      let coverImagePath = req.body.cover_image || null;
-      let bannerImagePath = req.body.banner_image || null;
+      let coverImagePath = req.body.cover_image || req.body.image || req.body.cover || null;
+      let bannerImagePath = req.body.banner_image || req.body.banner || null;
 
-      // Check uploaded files if multer/req.files present
+      // Extract uploaded files from multer (supports upload.any() Array & upload.fields() Object)
       if (req.files) {
-        if (req.files.cover_image && req.files.cover_image[0]) {
-          coverImagePath = await uploadToR2(req.files.cover_image[0], 'covers');
+        if (Array.isArray(req.files)) {
+          const coverFile = req.files.find((f) => ['cover_image', 'image', 'cover'].includes(f.fieldname));
+          if (coverFile) {
+            try {
+              coverImagePath = await uploadToR2(coverFile, 'covers');
+            } catch (uploadErr) {
+              console.error('Failed to upload cover image:', uploadErr.message);
+            }
+          }
+
+          const bannerFile = req.files.find((f) => ['banner_image', 'banner'].includes(f.fieldname));
+          if (bannerFile) {
+            try {
+              bannerImagePath = await uploadToR2(bannerFile, 'banners');
+            } catch (uploadErr) {
+              console.error('Failed to upload banner image:', uploadErr.message);
+            }
+          }
+        } else {
+          const coverFile = (req.files.cover_image && req.files.cover_image[0]) ||
+            (req.files.image && req.files.image[0]) ||
+            (req.files.cover && req.files.cover[0]);
+          if (coverFile) {
+            try {
+              coverImagePath = await uploadToR2(coverFile, 'covers');
+            } catch (uploadErr) {
+              console.error('Failed to upload cover image:', uploadErr.message);
+            }
+          }
+
+          const bannerFile = (req.files.banner_image && req.files.banner_image[0]) ||
+            (req.files.banner && req.files.banner[0]);
+          if (bannerFile) {
+            try {
+              bannerImagePath = await uploadToR2(bannerFile, 'banners');
+            } catch (uploadErr) {
+              console.error('Failed to upload banner image:', uploadErr.message);
+            }
+          }
         }
-        if (req.files.banner_image && req.files.banner_image[0]) {
-          bannerImagePath = await uploadToR2(req.files.banner_image[0], 'banners');
+      } else if (req.file) {
+        const field = req.file.fieldname;
+        if (['cover_image', 'image', 'cover'].includes(field)) {
+          try {
+            coverImagePath = await uploadToR2(req.file, 'covers');
+          } catch (uploadErr) {
+            console.error('Failed to upload cover file:', uploadErr.message);
+          }
+        } else if (['banner_image', 'banner'].includes(field)) {
+          try {
+            bannerImagePath = await uploadToR2(req.file, 'banners');
+          } catch (uploadErr) {
+            console.error('Failed to upload banner file:', uploadErr.message);
+          }
         }
       }
 
@@ -191,6 +240,13 @@ class StoryController {
         ? status.toLowerCase()
         : 'ongoing';
 
+      const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
+
+      const parsedCatId = (category_id !== undefined && category_id !== null && category_id !== '')
+        ? parseInt(category_id, 10)
+        : null;
+      const categoryIdVal = isNaN(parsedCatId) ? null : parsedCatId;
+
       const [result] = await pool.query(
         `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, is_premium, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -198,11 +254,11 @@ class StoryController {
           userId,
           title.trim(),
           description || null,
-          category_id ? parseInt(category_id, 10) : null,
+          categoryIdVal,
           coverImagePath,
           bannerImagePath,
           language || 'en',
-          is_premium ? 1 : 0,
+          isPremiumBool ? 1 : 0,
           storyStatus,
         ]
       );
@@ -229,8 +285,8 @@ class StoryController {
   }
 
   /**
-   * PUT / POST /api/v1/stories/:id/update
-   * Edit / Update an existing story
+   * PUT / POST /api/v1/stories/:id
+   * Edit / Update an existing story (supports multipart/form-data & application/json)
    */
   static async update(req, res) {
     try {
@@ -245,7 +301,7 @@ class StoryController {
       const updateFields = [];
       const queryParams = [];
 
-      if (title !== undefined) {
+      if (title !== undefined && title !== null && title.trim() !== '') {
         updateFields.push('`title` = ?');
         queryParams.push(title.trim());
       }
@@ -253,9 +309,10 @@ class StoryController {
         updateFields.push('`description` = ?');
         queryParams.push(description);
       }
-      if (category_id !== undefined) {
+      if (category_id !== undefined && category_id !== null && category_id !== '') {
         updateFields.push('`category_id` = ?');
-        queryParams.push(category_id ? parseInt(category_id, 10) : null);
+        const parsedCat = parseInt(category_id, 10);
+        queryParams.push(isNaN(parsedCat) ? null : parsedCat);
       }
       if (language !== undefined) {
         updateFields.push('`language` = ?');
@@ -263,33 +320,89 @@ class StoryController {
       }
       if (is_premium !== undefined) {
         updateFields.push('`is_premium` = ?');
-        queryParams.push(is_premium ? 1 : 0);
+        const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
+        queryParams.push(isPremiumBool ? 1 : 0);
       }
       if (status !== undefined) {
         updateFields.push('`status` = ?');
         queryParams.push(status);
       }
 
+      let coverImagePath = null;
+      let bannerImagePath = null;
+
       if (req.files) {
-        if (req.files.cover_image && req.files.cover_image[0]) {
-          const coverUrl = await uploadToR2(req.files.cover_image[0], 'covers');
-          updateFields.push('`cover_image_path` = ?');
-          queryParams.push(coverUrl);
+        if (Array.isArray(req.files)) {
+          const coverFile = req.files.find((f) => ['cover_image', 'image', 'cover'].includes(f.fieldname));
+          if (coverFile) {
+            try {
+              coverImagePath = await uploadToR2(coverFile, 'covers');
+            } catch (err) {
+              console.error('Cover image update upload error:', err.message);
+            }
+          }
+
+          const bannerFile = req.files.find((f) => ['banner_image', 'banner'].includes(f.fieldname));
+          if (bannerFile) {
+            try {
+              bannerImagePath = await uploadToR2(bannerFile, 'banners');
+            } catch (err) {
+              console.error('Banner image update upload error:', err.message);
+            }
+          }
+        } else {
+          const coverFile = (req.files.cover_image && req.files.cover_image[0]) ||
+            (req.files.image && req.files.image[0]) ||
+            (req.files.cover && req.files.cover[0]);
+          if (coverFile) {
+            try {
+              coverImagePath = await uploadToR2(coverFile, 'covers');
+            } catch (err) {
+              console.error('Cover image update upload error:', err.message);
+            }
+          }
+
+          const bannerFile = (req.files.banner_image && req.files.banner_image[0]) ||
+            (req.files.banner && req.files.banner[0]);
+          if (bannerFile) {
+            try {
+              bannerImagePath = await uploadToR2(bannerFile, 'banners');
+            } catch (err) {
+              console.error('Banner image update upload error:', err.message);
+            }
+          }
         }
-        if (req.files.banner_image && req.files.banner_image[0]) {
-          const bannerUrl = await uploadToR2(req.files.banner_image[0], 'banners');
-          updateFields.push('`banner_image_path` = ?');
-          queryParams.push(bannerUrl);
+      } else if (req.file) {
+        const field = req.file.fieldname;
+        if (['cover_image', 'image', 'cover'].includes(field)) {
+          try {
+            coverImagePath = await uploadToR2(req.file, 'covers');
+          } catch (err) {
+            console.error('Cover file update upload error:', err.message);
+          }
+        } else if (['banner_image', 'banner'].includes(field)) {
+          try {
+            bannerImagePath = await uploadToR2(req.file, 'banners');
+          } catch (err) {
+            console.error('Banner file update upload error:', err.message);
+          }
         }
-      } else {
-        if (req.body.cover_image) {
-          updateFields.push('`cover_image_path` = ?');
-          queryParams.push(req.body.cover_image);
-        }
-        if (req.body.banner_image) {
-          updateFields.push('`banner_image_path` = ?');
-          queryParams.push(req.body.banner_image);
-        }
+      }
+
+      if (coverImagePath) {
+        updateFields.push('`cover_image_path` = ?');
+        queryParams.push(coverImagePath);
+      } else if (req.body.cover_image || req.body.image || req.body.cover) {
+        updateFields.push('`cover_image_path` = ?');
+        queryParams.push(req.body.cover_image || req.body.image || req.body.cover);
+      }
+
+      if (bannerImagePath) {
+        updateFields.push('`banner_image_path` = ?');
+        queryParams.push(bannerImagePath);
+      } else if (req.body.banner_image || req.body.banner) {
+        updateFields.push('`banner_image_path` = ?');
+        queryParams.push(req.body.banner_image || req.body.banner);
       }
 
       if (updateFields.length > 0) {

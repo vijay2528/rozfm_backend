@@ -376,39 +376,48 @@
           "name": "Create Story",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"The Secret Listener\",\n  \"description\": \"An exciting audio mystery drama story.\",\n  \"category_id\": 1,\n  \"language\": \"hi\",\n  \"cover_image\": \"covers/sample_cover.jpg\",\n  \"banner_image\": \"banners/sample_banner.jpg\",\n  \"is_premium\": 0,\n  \"status\": \"ongoing\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "The Secret Listener", "type": "text" },
+                { "key": "description", "value": "An exciting audio mystery drama story.", "type": "text" },
+                { "key": "category_id", "value": "1", "type": "text" },
+                { "key": "language", "value": "hi", "type": "text" },
+                { "key": "is_premium", "value": "0", "type": "text" },
+                { "key": "status", "value": "ongoing", "type": "text" },
+                { "key": "cover_image", "type": "file", "src": [] },
+                { "key": "banner_image", "type": "file", "src": [] }
+              ]
             },
             "url": { "raw": "{{base_url}}/stories", "host": ["{{base_url}}"], "path": ["stories"] },
-            "description": "Create a new story with full body parameters (status: ongoing or completed)."
+            "description": "Create a new story using multipart/form-data API with all parameters and image file uploads."
           }
         },
         {
-          "name": "Edit Story (PUT)",
-          "request": {
-            "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"The Secret Listener (Updated)\",\n  \"description\": \"Updated story description and plot line.\",\n  \"category_id\": 1,\n  \"language\": \"hi\",\n  \"cover_image\": \"covers/updated_cover.jpg\",\n  \"banner_image\": \"banners/updated_banner.jpg\",\n  \"is_premium\": 1,\n  \"status\": \"completed\"\n}"
-            },
-            "url": { "raw": "{{base_url}}/stories/1", "host": ["{{base_url}}"], "path": ["stories", "1"] },
-            "description": "Edit existing story details via PUT (status: ongoing or completed)."
-          }
-        },
-        {
-          "name": "Edit Story (POST)",
+          "name": "Update Story",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"The Secret Listener (Updated via POST)\",\n  \"description\": \"Updated story description.\",\n  \"is_premium\": 1\n}"
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "The Secret Listener (Updated)", "type": "text" },
+                { "key": "description", "value": "Updated story description and plot line.", "type": "text" },
+                { "key": "category_id", "value": "1", "type": "text" },
+                { "key": "language", "value": "hi", "type": "text" },
+                { "key": "is_premium", "value": "1", "type": "text" },
+                { "key": "status", "value": "completed", "type": "text" },
+                { "key": "cover_image", "type": "file", "src": [] },
+                { "key": "banner_image", "type": "file", "src": [] }
+              ]
             },
             "url": { "raw": "{{base_url}}/stories/1", "host": ["{{base_url}}"], "path": ["stories", "1"] },
-            "description": "Edit existing story details via POST."
+            "description": "Update an existing story using multipart/form-data API via POST with all parameters."
           }
         },
         {
