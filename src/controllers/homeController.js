@@ -23,7 +23,7 @@ class HomeController {
         );
 
         const results = searchResults.map((s) => toStoryFieldsArray(s));
-        return ApiResponse.success(res, { 'Top Results': results, top_results: results });
+        return ApiResponse.success(res, { 'Top Results': results });
       }
 
       // Fetch user liked & bookmarked story IDs if authenticated
@@ -267,7 +267,7 @@ class HomeController {
       );
       const freeStories = freeRows.map(mapStory);
 
-      // Construct final response payload supporting both Title Case & snake_case keys
+      // Construct final response payload using Title Case section names
       return ApiResponse.success(res, {
         'Continue Listening': continueListening,
         'Recommended for You': recommendedForYou,
@@ -278,17 +278,6 @@ class HomeController {
         'Because You Listened': becauseYouListened,
         'Popular': popular,
         'Free Stories': freeStories,
-
-        // snake_case aliases for API client convenience
-        continue_listening: continueListening,
-        recommended_for_you: recommendedForYou,
-        trending: trending,
-        new_releases: newReleases,
-        top_10: top10,
-        updated_today: updatedToday,
-        because_you_listened: becauseYouListened,
-        popular: popular,
-        free_stories: freeStories,
         because_you_listened_title: baseStoryTitle,
       });
     } catch (error) {
