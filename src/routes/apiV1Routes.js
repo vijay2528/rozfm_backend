@@ -95,10 +95,10 @@ router.get('/user/reviews', ReviewController.userReviews);
 router.post('/stories', upload.storyMedia, StoryController.store);
 router.post('/stories/:id', upload.storyMedia, StoryController.update);
 
-router.post('/episodes', EpisodeController.store);
-router.post('/stories/:storyId/episodes', EpisodeController.store);
-router.put('/episodes/:id', EpisodeController.update);
-router.post('/episodes/:id', EpisodeController.update);
+router.post('/episodes', upload.episodeMedia, EpisodeController.store);
+router.post('/stories/:storyId/episodes', upload.episodeMedia, EpisodeController.store);
+router.put('/episodes/:id', upload.episodeMedia, EpisodeController.update);
+router.post('/episodes/:id', upload.episodeMedia, EpisodeController.update);
 
 // Interactions & Engagement
 router.post('/stories/:id/reviews', ReviewController.store);
