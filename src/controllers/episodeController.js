@@ -67,7 +67,6 @@ class EpisodeController {
         publish_as,
         scheduled_at,
         schedule_date_time,
-        tags,
         audio_title,
         coins,
         is_premium,
@@ -75,11 +74,11 @@ class EpisodeController {
         duration_minutes,
         audio_file,
         audio_path,
-      } = req.body;
+      } = req.body || {};
 
       const targetStoryId = req.params.storyId || story_id;
 
-      if (!targetStoryId || !title || title.trim() === '') {
+      if (!targetStoryId || !title || String(title).trim() === '') {
         return ApiResponse.error(res, 'Story ID and episode title are required.', 422);
       }
 
@@ -108,33 +107,35 @@ class EpisodeController {
         publishedAt = new Date(scheduledDateTime);
       }
 
-      let audioFilePath = audio_file || audio_path || null;
-      if (req.file) {
+      let audioFilePath = typeof audio_file === 'string' ? audio_file : (audio_path || null);
+      const uploadedFile = req.file || (req.files && req.files.length > 0 ? (req.files.find(f => f.fieldname === 'audio_file' || f.fieldname === 'audio') || req.files[0]) : null);
+      if (uploadedFile) {
         const { uploadToR2 } = require('../services/r2StorageService');
-        audioFilePath = await uploadToR2(req.file, 'episodes');
+        audioFilePath = await uploadToR2(uploadedFile, 'episodes');
       }
 
       const createdById = req.user ? req.user.id : null;
+      const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
+      const finalAudioTitle = audio_title && String(audio_title).trim() !== '' ? String(audio_title).trim() : String(title).trim();
 
       const [result] = await pool.query(
         `INSERT INTO episodes (
           story_id, created_by, title, position, description, publish_as, scheduled_at,
-          tags, audio_title, duration_seconds, duration_minutes, is_premium,
+          audio_title, duration_seconds, duration_minutes, is_premium,
           coins, audio_path, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           targetStoryId,
           createdById,
-          title.trim(),
+          String(title).trim(),
           epPosition,
           description || null,
           publishAsMode,
           scheduledDateTime,
-          tags || null,
-          audio_title || title.trim(),
+          finalAudioTitle,
           duration_seconds ? parseInt(duration_seconds, 10) : 0,
           duration_minutes ? parseFloat(duration_minutes) : null,
-          is_premium ? 1 : 0,
+          isPremiumVal,
           coinCost,
           audioFilePath,
           publishedAt,
@@ -182,7 +183,6 @@ class EpisodeController {
         publish_as,
         scheduled_at,
         schedule_date_time,
-        tags,
         audio_title,
         duration_seconds,
         duration_minutes,
@@ -190,14 +190,14 @@ class EpisodeController {
         coins,
         audio_file,
         audio_path,
-      } = req.body;
+      } = req.body || {};
 
       const updateFields = [];
       const queryParams = [];
 
       if (title !== undefined) {
         updateFields.push('`title` = ?');
-        queryParams.push(title.trim());
+        queryParams.push(String(title).trim());
       }
       const epPos = episode_number || episode_no || position;
       if (epPos !== undefined) {
@@ -217,10 +217,6 @@ class EpisodeController {
         updateFields.push('`scheduled_at` = ?');
         queryParams.push(schedTime);
       }
-      if (tags !== undefined) {
-        updateFields.push('`tags` = ?');
-        queryParams.push(tags);
-      }
       if (audio_title !== undefined) {
         updateFields.push('`audio_title` = ?');
         queryParams.push(audio_title);
@@ -234,20 +230,22 @@ class EpisodeController {
         queryParams.push(parseFloat(duration_minutes));
       }
       if (is_premium !== undefined) {
+        const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
         updateFields.push('`is_premium` = ?');
-        queryParams.push(is_premium ? 1 : 0);
+        queryParams.push(isPremiumVal);
       }
       if (coins !== undefined) {
         updateFields.push('`coins` = ?');
         queryParams.push(parseInt(coins, 10));
       }
 
-      if (req.file) {
+      const uploadedFile = req.file || (req.files && req.files.length > 0 ? (req.files.find(f => f.fieldname === 'audio_file' || f.fieldname === 'audio') || req.files[0]) : null);
+      if (uploadedFile) {
         const { uploadToR2 } = require('../services/r2StorageService');
-        const r2AudioUrl = await uploadToR2(req.file, 'episodes');
+        const r2AudioUrl = await uploadToR2(uploadedFile, 'episodes');
         updateFields.push('`audio_path` = ?');
         queryParams.push(r2AudioUrl);
-      } else if (audio_file !== undefined || audio_path !== undefined) {
+      } else if (typeof audio_file === 'string' || audio_path !== undefined) {
         updateFields.push('`audio_path` = ?');
         queryParams.push(audio_file || audio_path);
       }

@@ -92,19 +92,19 @@ router.post('/user/categories', CategoryController.updateUserPreferences);
 router.get('/user/reviews', ReviewController.userReviews);
 
 // Story & Episode Creation / Edit (Authenticated)
-router.post('/stories', StoryController.store);
-router.put('/stories/:id', StoryController.update);
-router.post('/stories/:id', StoryController.update);
+router.post('/stories', upload.storyMedia, StoryController.store);
+router.post('/stories/:id', upload.storyMedia, StoryController.update);
 
-router.post('/episodes', EpisodeController.store);
-router.post('/stories/:storyId/episodes', EpisodeController.store);
-router.put('/episodes/:id', EpisodeController.update);
-router.post('/episodes/:id', EpisodeController.update);
+router.post('/episodes', upload.episodeMedia, EpisodeController.store);
+router.post('/stories/:storyId/episodes', upload.episodeMedia, EpisodeController.store);
+router.put('/episodes/:id', upload.episodeMedia, EpisodeController.update);
+router.post('/episodes/:id', upload.episodeMedia, EpisodeController.update);
 
 // Interactions & Engagement
 router.post('/stories/:id/reviews', ReviewController.store);
 router.post('/stories/:id/comments', CommentController.store);
 router.post('/stories/:id/like', StoryController.toggleLike);
+router.post('/stories/:id/share', StoryController.share);
 router.post('/comments/:id/like', CommentController.toggleLike);
 router.post('/stories/:id/bookmark', BookmarkController.toggle);
 router.get('/bookmarks', BookmarkController.index);
