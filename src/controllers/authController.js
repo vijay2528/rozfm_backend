@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
-const { toProfileFieldsArray } = require('../utils/userPresenter');
+const { toProfileFieldsArray, checkIsProfileComplete, checkIsCategorySelected } = require('../utils/userPresenter');
 
 const DEMO_OTP = '123456';
 const OTP_TTL_MINUTES = 10;
@@ -59,12 +59,16 @@ class AuthController {
       const user = userRows[0];
 
       const token = generateToken(userId);
+      const isProfileComplete = checkIsProfileComplete(user);
+      const isCategorySelected = await checkIsCategorySelected(user.id);
 
       return ApiResponse.success(
         res,
         {
           token: token,
-          user: toProfileFieldsArray(user),
+          isProfileComplete,
+          isCategorySelected,
+          user: toProfileFieldsArray(user, { isProfileComplete, isCategorySelected }),
         },
         'Registration successful.',
         201
@@ -77,10 +81,11 @@ class AuthController {
 
   static async login(req, res) {
     try {
-      const { device_token, device_type, phone, email } = req.body;
+      const { device_token, device_type, phone, email, name } = req.body;
 
       const phoneStr = phone ? normalizePhone(phone) : '';
       const emailStr = email ? email.toLowerCase().trim() : '';
+      const nameStr = name && typeof name === 'string' && name.trim() !== '' ? name.trim() : null;
 
       if (!device_token || !device_type) {
         return ApiResponse.error(res, 'Device token and device type are required.', 422);
@@ -103,7 +108,7 @@ class AuthController {
         if (isNewUser) {
           const placeholderEmail = `phone_${phoneStr.replace(/\D/g, '') || Date.now()}@app.local`;
           const dummyPassword = await bcrypt.hash(Math.random().toString(36), 10);
-          const userName = `User ${phoneStr.slice(-4)}`;
+          const userName = nameStr || `User ${phoneStr.slice(-4)}`;
 
           const [insertRes] = await pool.query(
             `INSERT INTO users (name, email, phone, password, platform, device_token, device_type, subscription_type, wallet_balance, login_method)
@@ -118,10 +123,17 @@ class AuthController {
           }
           userId = user.id;
 
-          await pool.query(
-            'UPDATE users SET platform = ?, device_token = ?, device_type = ? WHERE id = ?',
-            [device_type, device_token, device_type, userId]
-          );
+          if (nameStr) {
+            await pool.query(
+              'UPDATE users SET name = ?, platform = ?, device_token = ?, device_type = ? WHERE id = ?',
+              [nameStr, device_type, device_token, device_type, userId]
+            );
+          } else {
+            await pool.query(
+              'UPDATE users SET platform = ?, device_token = ?, device_type = ? WHERE id = ?',
+              [device_type, device_token, device_type, userId]
+            );
+          }
         }
 
         // Delete previous unverified OTPs for this phone
@@ -155,13 +167,13 @@ class AuthController {
         let user;
 
         if (isNewUser) {
-          const nameFromEmail = emailStr.split('@')[0] || 'User';
+          const userName = nameStr; // Only save name if user passed it, otherwise null
           const dummyPassword = await bcrypt.hash(Math.random().toString(36), 10);
 
           const [insertRes] = await pool.query(
             `INSERT INTO users (name, email, password, platform, device_token, device_type, subscription_type, wallet_balance, login_method, last_login_at)
              VALUES (?, ?, ?, ?, ?, ?, 'free', 0.00, 'email_otp', NOW())`,
-            [nameFromEmail, emailStr, dummyPassword, device_type, device_token, device_type]
+            [userName, emailStr, dummyPassword, device_type, device_token, device_type]
           );
 
           const [newUserRows] = await pool.query('SELECT * FROM users WHERE id = ?', [insertRes.insertId]);
@@ -172,16 +184,25 @@ class AuthController {
             return ApiResponse.error(res, 'Your account has been suspended. Contact an administrator.', 403);
           }
 
-          await pool.query(
-            'UPDATE users SET platform = ?, device_token = ?, device_type = ?, last_login_at = NOW() WHERE id = ?',
-            [device_type, device_token, device_type, user.id]
-          );
+          if (nameStr) {
+            await pool.query(
+              'UPDATE users SET name = ?, platform = ?, device_token = ?, device_type = ?, last_login_at = NOW() WHERE id = ?',
+              [nameStr, device_type, device_token, device_type, user.id]
+            );
+          } else {
+            await pool.query(
+              'UPDATE users SET platform = ?, device_token = ?, device_type = ?, last_login_at = NOW() WHERE id = ?',
+              [device_type, device_token, device_type, user.id]
+            );
+          }
 
           const [updatedUserRows] = await pool.query('SELECT * FROM users WHERE id = ?', [user.id]);
           user = updatedUserRows[0];
         }
 
         const token = generateToken(user.id);
+        const isProfileComplete = checkIsProfileComplete(user);
+        const isCategorySelected = await checkIsCategorySelected(user.id);
 
         return ApiResponse.success(
           res,
@@ -189,7 +210,9 @@ class AuthController {
             login_type: 'email',
             is_new_user: isNewUser,
             token: token,
-            user: toProfileFieldsArray(user),
+            isProfileComplete,
+            isCategorySelected,
+            user: toProfileFieldsArray(user, { isProfileComplete, isCategorySelected }),
           },
           'Login successful.'
         );
@@ -256,12 +279,16 @@ class AuthController {
       user = updatedUserRows[0];
 
       const token = generateToken(user.id);
+      const isProfileComplete = checkIsProfileComplete(user);
+      const isCategorySelected = await checkIsCategorySelected(user.id);
 
       return ApiResponse.success(
         res,
         {
           token: token,
-          user: toProfileFieldsArray(user),
+          isProfileComplete,
+          isCategorySelected,
+          user: toProfileFieldsArray(user, { isProfileComplete, isCategorySelected }),
         },
         'Login successful.'
       );
