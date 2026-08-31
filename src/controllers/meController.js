@@ -1,14 +1,18 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
-const { toProfileFieldsArray } = require('../utils/userPresenter');
+const { toProfileFieldsArray, checkIsProfileComplete, checkIsCategorySelected } = require('../utils/userPresenter');
 const { uploadToR2, deleteFromR2 } = require('../services/r2StorageService');
 
 class MeController {
   static async show(req, res) {
     try {
       const user = req.user;
+      const isProfileComplete = checkIsProfileComplete(user);
+      const isCategorySelected = await checkIsCategorySelected(user.id);
       return ApiResponse.success(res, {
-        user: toProfileFieldsArray(user),
+        isProfileComplete,
+        isCategorySelected,
+        user: toProfileFieldsArray(user, { isProfileComplete, isCategorySelected }),
       });
     } catch (error) {
       console.error('Get Profile Error:', error);
@@ -69,10 +73,15 @@ class MeController {
       const [userRows] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
       const updatedUser = userRows[0];
 
+      const isProfileComplete = checkIsProfileComplete(updatedUser);
+      const isCategorySelected = await checkIsCategorySelected(updatedUser.id);
+
       return ApiResponse.success(
         res,
         {
-          user: toProfileFieldsArray(updatedUser),
+          isProfileComplete,
+          isCategorySelected,
+          user: toProfileFieldsArray(updatedUser, { isProfileComplete, isCategorySelected }),
         },
         'Profile updated.'
       );
