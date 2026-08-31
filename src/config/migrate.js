@@ -65,6 +65,21 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Seed default categories if empty
+    const [catCount] = await connection.query('SELECT COUNT(*) AS count FROM categories');
+    if (catCount[0].count === 0) {
+      await connection.query(`
+        INSERT INTO categories (id, category_name) VALUES
+        (1, 'Romance'),
+        (2, 'Drama'),
+        (3, 'Thriller'),
+        (4, 'Horror'),
+        (5, 'Fantasy'),
+        (6, 'Mystery')
+      `);
+      console.log('🌱 Default categories seeded!');
+    }
+
     // 4. User Categories pivot table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS \`user_categories\` (
