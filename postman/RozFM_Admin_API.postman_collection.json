@@ -11,6 +11,66 @@
   ],
   "item": [
     {
+      "name": "0. Admin Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@rozfm.com\",\n  \"password\": \"adminpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/login",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "login"]
+            },
+            "description": "Authenticate an administrator user using email and password to receive a JWT access token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.status && jsonData.data && jsonData.data.token) {",
+                  "    pm.collectionVariables.set('admin_token', jsonData.data.token);",
+                  "    console.log('admin_token updated:', jsonData.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/logout",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "logout"]
+            },
+            "description": "Logout the currently authenticated administrator user."
+          }
+        }
+      ]
+    },
+    {
       "name": "1. Admin Dashboard",
       "item": [
         {
@@ -43,15 +103,87 @@
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "20" }
               ]
-            }
+            },
+            "description": "Fetch paginated users with optional filters by search term, role (Listener/Creator/Admin), or block status."
           }
         },
         {
-          "name": "Get User Details",
+          "name": "Get Master User Details",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-            "url": { "raw": "{{base_url}}/admin/users/1", "host": ["{{base_url}}"], "path": ["admin", "users", "1"] }
+            "url": { "raw": "{{base_url}}/admin/users/1", "host": ["{{base_url}}"], "path": ["admin", "users", "1"] },
+            "description": "Fetch complete profile of a single user along with overview metrics, wallet transactions, listening history, premium status, devices, and reports."
+          }
+        },
+        {
+          "name": "Section 1: User Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/1/overview", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "overview"] },
+            "description": "Fetch User Overview tab metrics (Coin balance, total listening hours, completed stories, lifetime spend, extended profile info)."
+          }
+        },
+        {
+          "name": "Section 2: Wallet & Coins Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/1/wallet-transactions", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "wallet-transactions"] },
+            "description": "Fetch User Wallet & Coins tab transactions list."
+          }
+        },
+        {
+          "name": "Section 3: Listening History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/1/listening-history", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "listening-history"] },
+            "description": "Fetch User Listening History tab data (stories played, genre, episodes played, last played timestamp)."
+          }
+        },
+        {
+          "name": "Section 4: Premium Status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/1/premium-status", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "premium-status"] },
+            "description": "Fetch User Premium Status tab data (active membership plan, renewal date, remaining billing days)."
+          }
+        },
+        {
+          "name": "Section 5: Devices & Logins",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/1/devices", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "devices"] },
+            "description": "Fetch User Devices & Logins tab data (device name, OS version, login location, last login time)."
+          }
+        },
+        {
+          "name": "Section 6: Moderation Reports",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/1/reports", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "reports"] },
+            "description": "Fetch User Moderation Reports tab data."
+          }
+        },
+        {
+          "name": "Create New User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@rozfm.com\",\n  \"phone\": \"+91 9876543210\",\n  \"password\": \"Password123!\",\n  \"subscription_type\": \"Gold\",\n  \"locale\": \"en-US\",\n  \"role\": \"Listener\",\n  \"status\": \"Active\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/users", "host": ["{{base_url}}"], "path": ["admin", "users"] },
+            "description": "Create a new user account from the Admin Panel with role, plan, and initial status."
           }
         },
         {
@@ -64,9 +196,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe (Updated)\",\n  \"email\": \"john@rozfm.com\",\n  \"subscription_type\": \"admin\",\n  \"is_blocked\": 0\n}"
+              "raw": "{\n  \"name\": \"Jane Doe (Updated)\",\n  \"email\": \"jane.doe@rozfm.com\",\n  \"phone\": \"+91 9876543210\",\n  \"subscription_type\": \"Gold\",\n  \"locale\": \"en-US\",\n  \"role\": \"Creator\",\n  \"status\": \"Active\",\n  \"is_blocked\": 0\n}"
             },
-            "url": { "raw": "{{base_url}}/admin/users/1", "host": ["{{base_url}}"], "path": ["admin", "users", "1"] }
+            "url": { "raw": "{{base_url}}/admin/users/1", "host": ["{{base_url}}"], "path": ["admin", "users", "1"] },
+            "description": "Update user details, subscription plan, locale, role, password (optional), or suspend/ban status."
+          }
+        },
+        {
+          "name": "Delete User Account",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/users/1", "host": ["{{base_url}}"], "path": ["admin", "users", "1"] },
+            "description": "Permanently delete a user account by ID."
           }
         },
         {
@@ -79,9 +221,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"coins\": 100,\n  \"type\": \"credit\",\n  \"description\": \"Admin promotional top-up\"\n}"
+              "raw": "{\n  \"coins\": 100,\n  \"type\": \"credit\",\n  \"action\": \"credit\",\n  \"description\": \"Admin promotional reward\"\n}"
             },
-            "url": { "raw": "{{base_url}}/admin/users/1/wallet", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "wallet"] }
+            "url": { "raw": "{{base_url}}/admin/users/1/wallet", "host": ["{{base_url}}"], "path": ["admin", "users", "1", "wallet"] },
+            "description": "Credit (+) or Debit (-) coin balance in a user's wallet with a custom description/reason."
           }
         }
       ]
@@ -373,6 +516,51 @@
               "raw": "{\n  \"question\": \"How do I purchase coins?\",\n  \"answer\": \"Navigate to Wallet and tap Purchase Coins to buy a coin pack.\",\n  \"position\": 1,\n  \"status\": 1\n}"
             },
             "url": { "raw": "{{base_url}}/admin/faqs", "host": ["{{base_url}}"], "path": ["admin", "faqs"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Language Management",
+      "item": [
+        {
+          "name": "List Languages (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/languages?search=&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "languages"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. User Roles Management",
+      "item": [
+        {
+          "name": "List User Roles (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/roles?search=&status=&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "roles"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
           }
         }
       ]

@@ -26,20 +26,21 @@ class ConfigController {
 
   static async languages(req, res) {
     try {
-      const [rows] = await pool.query('SELECT * FROM languages ORDER BY name ASC');
+      const [rows] = await pool.query('SELECT id, name, code, created_at, updated_at FROM languages ORDER BY id ASC');
       let languages = rows.map((l) => ({
         id: Number(l.id),
         name: l.name,
         code: l.code,
-        is_default: Boolean(l.is_default),
+        created_at: l.created_at,
+        updated_at: l.updated_at,
       }));
 
       if (languages.length === 0) {
         languages = [
-          { id: 1, name: 'Hindi', code: 'hi', is_default: true },
-          { id: 2, name: 'English', code: 'en', is_default: false },
-          { id: 3, name: 'Tamil', code: 'ta', is_default: false },
-          { id: 4, name: 'Telugu', code: 'te', is_default: false },
+          { id: 1, name: 'Hindi', code: 'hi' },
+          { id: 2, name: 'English', code: 'en' },
+          { id: 3, name: 'Tamil', code: 'ta' },
+          { id: 4, name: 'Telugu', code: 'te' },
         ];
       }
 

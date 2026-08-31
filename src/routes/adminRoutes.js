@@ -9,14 +9,25 @@ const AdminBannerController = require('../controllers/admin/bannerController');
 const AdminMonetizationController = require('../controllers/admin/monetizationController');
 const AdminModerationController = require('../controllers/admin/moderationController');
 const AdminSettingsController = require('../controllers/admin/settingsController');
+const AdminLanguageController = require('../controllers/admin/languageController');
+const AdminRoleController = require('../controllers/admin/roleController');
+const AdminAuthController = require('../controllers/admin/authController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// Protect all admin routes with authentication & admin privilege check
+// ── 0. Public Admin Auth Endpoints ───────────────────────────────────────────
+router.post('/login', AdminAuthController.login);
+router.post('/auth/login', AdminAuthController.login);
+
+// Protect subsequent admin routes with authentication & admin privilege check
 router.use(authMiddleware);
 router.use(adminMiddleware);
+
+// ── Protected Admin Auth Endpoints ──────────────────────────────────────────
+router.post('/logout', AdminAuthController.logout);
+router.post('/auth/logout', AdminAuthController.logout);
 
 // ── 1. Admin Dashboard ────────────────────────────────────────────────────────
 router.get('/dashboard', AdminDashboardController.index);
@@ -24,8 +35,16 @@ router.get('/dashboard', AdminDashboardController.index);
 // ── 2. User Management ────────────────────────────────────────────────────────
 router.get('/users', AdminUserController.index);
 router.get('/users/:id', AdminUserController.show);
+router.get('/users/:id/overview', AdminUserController.getOverview);
+router.get('/users/:id/wallet-transactions', AdminUserController.getWalletTransactions);
+router.get('/users/:id/listening-history', AdminUserController.getListeningHistory);
+router.get('/users/:id/premium-status', AdminUserController.getPremiumStatus);
+router.get('/users/:id/devices', AdminUserController.getDevices);
+router.get('/users/:id/reports', AdminUserController.getReports);
+router.post('/users', AdminUserController.store);
 router.put('/users/:id', AdminUserController.update);
 router.post('/users/:id', AdminUserController.update);
+router.delete('/users/:id', AdminUserController.destroy);
 router.post('/users/:id/wallet', AdminUserController.updateWallet);
 
 // ── 3. Content Management (Stories & Episodes) ───────────────────────────────
@@ -77,5 +96,11 @@ router.post('/notifications/send', AdminSettingsController.sendNotification);
 router.post('/faqs', AdminSettingsController.storeFaq);
 router.put('/faqs/:id', AdminSettingsController.updateFaq);
 router.delete('/faqs/:id', AdminSettingsController.deleteFaq);
+
+// ── 9. Language Management ───────────────────────────────────────────────────
+router.get('/languages', AdminLanguageController.index);
+
+// ── 10. User Roles & Permissions Management ──────────────────────────────────
+router.get('/roles', AdminRoleController.index);
 
 module.exports = router;

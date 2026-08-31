@@ -159,6 +159,9 @@ async function runMigrations() {
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `tags` VARCHAR(512) NULL",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `audio_title` VARCHAR(255) NULL",
       "ALTER TABLE `episodes` ALTER COLUMN `coins` SET DEFAULT 25",
+      "ALTER TABLE `languages` ADD COLUMN IF NOT EXISTS `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+      "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `role_id` INT NULL",
+      "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `role` VARCHAR(50) DEFAULT 'user'",
     ];
 
     for (const alterSql of alterQueries) {
@@ -362,12 +365,27 @@ async function runMigrations() {
         \`id\` INT AUTO_INCREMENT PRIMARY KEY,
         \`name\` VARCHAR(100) NOT NULL,
         \`code\` VARCHAR(10) NOT NULL UNIQUE,
-        \`is_default\` TINYINT(1) DEFAULT 0,
-        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // 22. FAQs table
+    // 22. Roles table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`roles\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`name\` VARCHAR(100) NOT NULL UNIQUE,
+        \`display_name\` VARCHAR(100) NOT NULL,
+        \`description\` TEXT NULL,
+        \`permissions\` JSON NULL,
+        \`is_system\` TINYINT(1) DEFAULT 0,
+        \`status\` TINYINT(1) DEFAULT 1,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 23. FAQs table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS \`faqs\` (
         \`id\` INT AUTO_INCREMENT PRIMARY KEY,
@@ -380,7 +398,7 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // 23. Support FAQ Menus table
+    // 24. Support FAQ Menus table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS \`support_faq_menus\` (
         \`id\` INT AUTO_INCREMENT PRIMARY KEY,
@@ -390,7 +408,7 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // 24. Support FAQ Questions table
+    // 25. Support FAQ Questions table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS \`support_faq_questions\` (
         \`id\` INT AUTO_INCREMENT PRIMARY KEY,
@@ -402,6 +420,74 @@ async function runMigrations() {
         CONSTRAINT \`fk_support_faq_menu\` FOREIGN KEY (\`menu_id\`) REFERENCES \`support_faq_menus\` (\`id\`) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Seed default roles if empty
+    const [[{ roleCount }]] = await connection.query('SELECT COUNT(*) as roleCount FROM \`roles\`');
+    if (roleCount === 0) {
+      const defaultRoles = [
+        {
+          name: 'admin',
+          display_name: 'Administrator',
+          description: 'Full administrative access to all backend resources and system settings.',
+          permissions: JSON.stringify(['*']),
+          is_system: 1,
+          status: 1
+        },
+        {
+          name: 'moderator',
+          display_name: 'Content Moderator',
+          description: 'Access to moderate user reviews, comments, and reported content.',
+          permissions: JSON.stringify(['content.read', 'moderation.read', 'moderation.manage', 'users.read']),
+          is_system: 1,
+          status: 1
+        },
+        {
+          name: 'creator',
+          display_name: 'Content Creator',
+          description: 'Access to upload and manage audio stories and episodes.',
+          permissions: JSON.stringify(['content.read', 'content.manage']),
+          is_system: 1,
+          status: 1
+        },
+        {
+          name: 'user',
+          display_name: 'Standard User',
+          description: 'Regular app end-user role.',
+          permissions: JSON.stringify([]),
+          is_system: 1,
+          status: 1
+        }
+      ];
+
+      for (const r of defaultRoles) {
+        await connection.query(
+          `INSERT INTO \`roles\` (\`name\`, \`display_name\`, \`description\`, \`permissions\`, \`is_system\`, \`status\`) VALUES (?, ?, ?, ?, ?, ?)`,
+          [r.name, r.display_name, r.description, r.permissions, r.is_system, r.status]
+        );
+      }
+    }
+
+    // Seed default languages if empty
+    const [[{ langCount }]] = await connection.query('SELECT COUNT(*) as langCount FROM \`languages\`');
+    if (langCount === 0) {
+      const defaultLanguages = [
+        { name: 'Hindi', code: 'hi' },
+        { name: 'English', code: 'en' },
+        { name: 'Tamil', code: 'ta' },
+        { name: 'Telugu', code: 'te' },
+        { name: 'Kannada', code: 'kn' },
+        { name: 'Malayalam', code: 'ml' },
+        { name: 'Bengali', code: 'bn' },
+        { name: 'Marathi', code: 'mr' }
+      ];
+
+      for (const l of defaultLanguages) {
+        await connection.query(
+          `INSERT INTO \`languages\` (\`name\`, \`code\`) VALUES (?, ?)`,
+          [l.name, l.code]
+        );
+      }
+    }
 
     console.log('✅ Database migrations completed successfully!');
   } catch (error) {
