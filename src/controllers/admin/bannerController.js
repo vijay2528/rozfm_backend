@@ -38,6 +38,21 @@ function normalizePosition(val) {
   return str;
 }
 
+/**
+ * Safely parse date input string into YYYY-MM-DD HH:mm:ss or null for MySQL
+ */
+function parseDateTime(val) {
+  if (!val || val === 'null' || val === 'undefined' || String(val).trim() === '') return null;
+  const str = String(val).trim();
+  const isoStr = str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str;
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) {
+    return /^\d{4}-\d{2}-\d{2}/.test(str) ? str : null;
+  }
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 class BannerController {
   /**
    * GET /api/v1/admin/banners
@@ -73,7 +88,7 @@ class BannerController {
       return ApiResponse.success(res, { banners: result });
     } catch (error) {
       console.error('Admin List Banners Error:', error);
-      return ApiResponse.error(res, 'Failed to fetch banners.', 500);
+      return ApiResponse.error(res, error.message || 'Failed to fetch banners.', 500);
     }
   }
 
@@ -93,7 +108,7 @@ class BannerController {
       return ApiResponse.success(res, { banner: formatBanner(banners[0]) });
     } catch (error) {
       console.error('Admin Show Banner Error:', error);
-      return ApiResponse.error(res, 'Failed to fetch banner details.', 500);
+      return ApiResponse.error(res, error.message || 'Failed to fetch banner details.', 500);
     }
   }
 
@@ -127,8 +142,8 @@ class BannerController {
       const activeVal = is_active === undefined || is_active === '1' || is_active === 1 || is_active === true || is_active === 'true' ? 1 : 0;
       const posVal = normalizePosition(position);
       const sortVal = sort_order !== undefined && sort_order !== null ? parseInt(sort_order, 10) || 0 : 0;
-      const startsAtVal = starts_at && starts_at !== 'null' ? new Date(starts_at) : null;
-      const endsAtVal = ends_at && ends_at !== 'null' ? new Date(ends_at) : null;
+      const startsAtVal = parseDateTime(starts_at);
+      const endsAtVal = parseDateTime(ends_at);
 
       const [result] = await pool.query(
         `INSERT INTO banners 
@@ -158,7 +173,7 @@ class BannerController {
       );
     } catch (error) {
       console.error('Admin Create Banner Error:', error);
-      return ApiResponse.error(res, 'Failed to create banner.', 500);
+      return ApiResponse.error(res, error.message || 'Failed to create banner.', 500);
     }
   }
 
@@ -214,11 +229,11 @@ class BannerController {
       }
       if (starts_at !== undefined) {
         updateFields.push('`starts_at` = ?');
-        queryParams.push(starts_at && starts_at !== 'null' ? new Date(starts_at) : null);
+        queryParams.push(parseDateTime(starts_at));
       }
       if (ends_at !== undefined) {
         updateFields.push('`ends_at` = ?');
-        queryParams.push(ends_at && ends_at !== 'null' ? new Date(ends_at) : null);
+        queryParams.push(parseDateTime(ends_at));
       }
       if (is_active !== undefined) {
         const activeVal = is_active === '1' || is_active === 1 || is_active === true || is_active === 'true' ? 1 : 0;
@@ -252,7 +267,7 @@ class BannerController {
       );
     } catch (error) {
       console.error('Admin Update Banner Error:', error);
-      return ApiResponse.error(res, 'Failed to update banner.', 500);
+      return ApiResponse.error(res, error.message || 'Failed to update banner.', 500);
     }
   }
 
@@ -274,7 +289,7 @@ class BannerController {
       return ApiResponse.success(res, { banner_id: Number(bannerId) }, 'Banner deleted successfully.');
     } catch (error) {
       console.error('Admin Delete Banner Error:', error);
-      return ApiResponse.error(res, 'Failed to delete banner.', 500);
+      return ApiResponse.error(res, error.message || 'Failed to delete banner.', 500);
     }
   }
 }

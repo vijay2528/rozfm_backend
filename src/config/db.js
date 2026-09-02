@@ -13,6 +13,26 @@ const pool = mysql.createPool({
 });
 
 /**
+ * Auto-ensure banners schema on startup
+ */
+async function ensureBannerColumns() {
+  try {
+    const alterQueries = [
+      "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `link_action` VARCHAR(512) NULL",
+      "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `starts_at` DATETIME NULL",
+      "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `ends_at` DATETIME NULL",
+      "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `sort_order` INT DEFAULT 0",
+      "ALTER TABLE `banners` MODIFY COLUMN `position` VARCHAR(50) DEFAULT 'Home'",
+    ];
+    for (const sql of alterQueries) {
+      await pool.query(sql).catch(() => {});
+    }
+  } catch (err) {
+    console.warn('Banner schema sync warning:', err.message);
+  }
+}
+
+/**
  * Verify database connectivity on server startup
  */
 async function checkConnection() {
@@ -22,7 +42,10 @@ async function checkConnection() {
     connection.release();
     console.log('✅ Connected to MySQL database successfully.');
 
-    // Run table migrations automatically only if explicitly enabled in .env (e.g. RUN_MIGRATIONS=true)
+    // Ensure banner table columns exist automatically
+    await ensureBannerColumns();
+
+    // Run full table migrations automatically if explicitly enabled in .env (e.g. RUN_MIGRATIONS=true)
     if (process.env.RUN_MIGRATIONS === 'true') {
       const runMigrations = require('./migrate');
       await runMigrations();

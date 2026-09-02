@@ -517,7 +517,9 @@ async function runMigrations() {
     process.exit(1);
   } finally {
     if (connection) connection.release();
-    await pool.end();
+    if (require.main === module) {
+      await pool.end();
+    }
   }
 }
 
