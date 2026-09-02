@@ -27,23 +27,42 @@ class ReviewController {
       const userId = req.user.id;
       const { rating, review } = req.body;
 
-      if (!rating || rating < 1 || rating > 5) {
+      const numericRating = Number(rating);
+      if (!rating || isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
         return ApiResponse.error(res, 'Rating must be between 1 and 5 stars.', 422);
       }
 
-      await pool.query(
-        `INSERT INTO reviews (user_id, story_id, rating, review)
-         VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE rating = VALUES(rating), review = VALUES(review), updated_at = NOW()`,
-        [userId, storyId, rating, review || null]
+      // Check if story exists
+      const [stories] = await pool.query('SELECT id FROM stories WHERE id = ? LIMIT 1', [storyId]);
+      if (stories.length === 0) {
+        return ApiResponse.error(res, 'Story not found.', 404);
+      }
+
+      // Check if review already exists for this user and story
+      const [existing] = await pool.query(
+        'SELECT id FROM reviews WHERE user_id = ? AND story_id = ? LIMIT 1',
+        [userId, storyId]
       );
+
+      if (existing.length > 0) {
+        await pool.query(
+          'UPDATE reviews SET rating = ?, review = ?, updated_at = NOW() WHERE user_id = ? AND story_id = ?',
+          [numericRating, review || null, userId, storyId]
+        );
+      } else {
+        await pool.query(
+          'INSERT INTO reviews (user_id, story_id, rating, review) VALUES (?, ?, ?, ?)',
+          [userId, storyId, numericRating, review || null]
+        );
+      }
 
       // Recalculate story rating
       const [avgRow] = await pool.query(
         'SELECT AVG(rating) as avg_rating FROM reviews WHERE story_id = ?',
         [storyId]
       );
-      const newRating = Number((avgRow[0].avg_rating || 0).toFixed(1));
+      const rawAvg = parseFloat(avgRow[0].avg_rating) || 0;
+      const newRating = Number(rawAvg.toFixed(1));
       await pool.query('UPDATE stories SET rating = ? WHERE id = ?', [newRating, storyId]);
 
       return ApiResponse.success(res, { rating: newRating }, 'Review submitted successfully.');

@@ -13,7 +13,7 @@ class EpisodeController {
       const userId = req.user ? req.user.id : null;
 
       const [rows] = await pool.query(
-        `SELECT e.*, s.title as story_title
+        `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path
          FROM episodes e
          JOIN stories s ON e.story_id = s.id
          WHERE e.id = ? LIMIT 1`,
@@ -148,7 +148,10 @@ class EpisodeController {
       const [epCount] = await pool.query('SELECT COUNT(*) as cnt FROM episodes WHERE story_id = ?', [targetStoryId]);
       await pool.query('UPDATE stories SET episodes_count = ? WHERE id = ?', [epCount[0].cnt, targetStoryId]);
 
-      const [newEp] = await pool.query('SELECT * FROM episodes WHERE id = ? LIMIT 1', [episodeId]);
+      const [newEp] = await pool.query(
+        'SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path FROM episodes e JOIN stories s ON e.story_id = s.id WHERE e.id = ? LIMIT 1',
+        [episodeId]
+      );
       return ApiResponse.success(
         res,
         { episode: toEpisodeFieldsArray(newEp[0], storyRows[0].title, true) },
@@ -259,7 +262,7 @@ class EpisodeController {
       }
 
       const [updatedRows] = await pool.query(
-        `SELECT e.*, s.title as story_title FROM episodes e JOIN stories s ON e.story_id = s.id WHERE e.id = ? LIMIT 1`,
+        `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path FROM episodes e JOIN stories s ON e.story_id = s.id WHERE e.id = ? LIMIT 1`,
         [episodeId]
       );
 

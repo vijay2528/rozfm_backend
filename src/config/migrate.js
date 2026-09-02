@@ -203,6 +203,7 @@ async function runMigrations() {
         \`review\` TEXT NULL,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
         \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY \`user_story_review_unique\` (\`user_id\`,\`story_id\`),
         CONSTRAINT \`fk_reviews_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
         CONSTRAINT \`fk_reviews_story\` FOREIGN KEY (\`story_id\`) REFERENCES \`stories\` (\`id\`) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
