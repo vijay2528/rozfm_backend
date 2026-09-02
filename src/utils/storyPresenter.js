@@ -42,12 +42,16 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true) {
   const hasAudio = Boolean(episode.audio_path);
   const audioUrl = isUnlocked || !episode.is_premium ? resolveUrl(episode.audio_path) : null;
   const coinVal = episode.coins !== null && episode.coins !== undefined ? Number(episode.coins) : 25;
+  const storyImageUrl = resolveUrl(episode.story_cover_image_path || episode.cover_image_path || episode.story_image || episode.cover_image);
 
   return {
     episode_id: Number(episode.id),
     story_id: Number(episode.story_id),
     created_by: episode.created_by ? Number(episode.created_by) : null,
     story_title: storyTitle || episode.story_title || null,
+    story_image: storyImageUrl,
+    story_cover_image: storyImageUrl,
+    cover_image: storyImageUrl,
     episode_no: Number(episode.position || 1),
     title: episode.title,
     audio_title: episode.audio_title || episode.title,
