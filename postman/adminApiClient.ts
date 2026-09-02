@@ -61,7 +61,10 @@ export const deleteAdminCategory = (id: string | number) =>
   adminClient.delete(`/categories/${id}`).then((res) => res.data);
 
 // 5. Promotional Banners
-export const getAdminBanners = () => adminClient.get('/banners').then((res) => res.data);
+export const getAdminBanners = (params?: { position?: string; is_active?: number | string }) =>
+  adminClient.get('/banners', { params }).then((res) => res.data);
+export const getAdminBannerById = (id: string | number) =>
+  adminClient.get(`/banners/${id}`).then((res) => res.data);
 export const createAdminBanner = (formData: FormData) =>
   adminClient.post('/banners', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then((res) => res.data);
 export const updateAdminBanner = (id: string | number, formData: FormData) =>

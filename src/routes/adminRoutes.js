@@ -64,6 +64,7 @@ router.delete('/categories/:id', AdminCategoryController.destroy);
 
 // ── 5. Banners Management ────────────────────────────────────────────────────
 router.get('/banners', AdminBannerController.index);
+router.get('/banners/:id', AdminBannerController.show);
 router.post('/banners', upload.single('image'), AdminBannerController.store);
 router.put('/banners/:id', upload.single('image'), AdminBannerController.update);
 router.post('/banners/:id', upload.single('image'), AdminBannerController.update);

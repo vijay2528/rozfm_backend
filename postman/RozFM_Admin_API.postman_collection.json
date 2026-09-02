@@ -334,7 +334,23 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-            "url": { "raw": "{{base_url}}/admin/banners", "host": ["{{base_url}}"], "path": ["admin", "banners"] }
+            "url": {
+              "raw": "{{base_url}}/admin/banners?position=Home&is_active=1",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "banners"],
+              "query": [
+                { "key": "position", "value": "Home", "description": "Filter by Home, Explore, or Player" },
+                { "key": "is_active", "value": "1", "description": "Filter by 1 or 0" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Banner",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/banners/1", "host": ["{{base_url}}"], "path": ["admin", "banners", "1"] }
           }
         },
         {
@@ -346,14 +362,37 @@
               "mode": "formdata",
               "formdata": [
                 { "key": "title", "value": "Featured Audio Series", "type": "text" },
-                { "key": "action_type", "value": "story", "type": "text" },
-                { "key": "action_value", "value": "1", "type": "text" },
-                { "key": "position", "value": "1", "type": "text" },
+                { "key": "link_action", "value": "https://rozfm.com/story/1", "type": "text" },
+                { "key": "position", "value": "Home", "type": "text", "description": "Home, Explore, or Player" },
+                { "key": "starts_at", "value": "2026-06-01 00:00:00", "type": "text" },
+                { "key": "ends_at", "value": "2026-12-31 23:59:59", "type": "text" },
                 { "key": "is_active", "value": "1", "type": "text" },
+                { "key": "sort_order", "value": "0", "type": "text" },
                 { "key": "image", "type": "file", "src": [] }
               ]
             },
             "url": { "raw": "{{base_url}}/admin/banners", "host": ["{{base_url}}"], "path": ["admin", "banners"] }
+          }
+        },
+        {
+          "name": "Update Banner",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "Updated Featured Series", "type": "text" },
+                { "key": "link_action", "value": "https://rozfm.com/story/1", "type": "text" },
+                { "key": "position", "value": "Explore", "type": "text", "description": "Home, Explore, or Player" },
+                { "key": "starts_at", "value": "2026-06-01 00:00:00", "type": "text" },
+                { "key": "ends_at", "value": "2026-12-31 23:59:59", "type": "text" },
+                { "key": "is_active", "value": "1", "type": "text" },
+                { "key": "sort_order", "value": "1", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/admin/banners/1", "host": ["{{base_url}}"], "path": ["admin", "banners", "1"] }
           }
         },
         {
