@@ -40,7 +40,7 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true) {
     : (episode.duration_seconds ? Number((episode.duration_seconds / 60).toFixed(2)) : null);
 
   const hasAudio = Boolean(episode.audio_path);
-  const audioUrl = isUnlocked || !episode.is_premium ? resolveUrl(episode.audio_path) : null;
+  const audioUrl = resolveUrl(episode.audio_path);
   const coinVal = episode.coins !== null && episode.coins !== undefined ? Number(episode.coins) : 25;
   const storyImageUrl = resolveUrl(episode.story_cover_image_path || episode.cover_image_path || episode.story_image || episode.cover_image);
 
