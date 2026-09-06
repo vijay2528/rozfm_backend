@@ -511,6 +511,18 @@ async function runMigrations() {
       }
     }
 
+    // Seed default admin user if empty
+    const [adminCheck] = await connection.query('SELECT COUNT(*) as adminCount FROM `users` WHERE `role` = "admin" OR `email` = "admin@gmail.com"');
+    if (adminCheck[0].adminCount === 0) {
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash('123456', 10);
+      await connection.query(`
+        INSERT INTO \`users\` (\`name\`, \`email\`, \`phone\`, \`password\`, \`role\`, \`subscription_type\`, \`login_method\`)
+        VALUES ('Admin', 'admin@gmail.com', '9876543210', ?, 'admin', 'premium', 'email')
+      `, [hashedPassword]);
+      console.log('🌱 Default admin user seeded (admin@gmail.com / 123456)');
+    }
+
     console.log('✅ Database migrations completed successfully!');
   } catch (error) {
     console.error('❌ Migration failed:', error);

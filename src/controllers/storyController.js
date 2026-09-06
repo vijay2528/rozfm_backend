@@ -535,6 +535,11 @@ class StoryController {
       const storyId = req.params.id || req.params.story;
       const userId = req.user.id;
 
+      const [story] = await pool.query('SELECT id FROM stories WHERE id = ? LIMIT 1', [storyId]);
+      if (story.length === 0) {
+        return ApiResponse.error(res, 'Story not found.', 404);
+      }
+
       const [existing] = await pool.query(
         'SELECT id FROM story_likes WHERE user_id = ? AND story_id = ? LIMIT 1',
         [userId, storyId]

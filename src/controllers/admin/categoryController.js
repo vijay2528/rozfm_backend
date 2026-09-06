@@ -11,10 +11,10 @@ class CategoryController {
   static async index(req, res) {
     try {
       const [categories] = await pool.query(
-        `SELECT c.*, COUNT(s.id) as stories_count
+        `SELECT c.id, c.category_name, c.category_image_path, c.created_at, c.updated_at, COUNT(s.id) as stories_count
          FROM categories c
          LEFT JOIN stories s ON s.category_id = c.id
-         GROUP BY c.id
+         GROUP BY c.id, c.category_name, c.category_image_path, c.created_at, c.updated_at
          ORDER BY c.category_name ASC`
       );
 
@@ -29,7 +29,7 @@ class CategoryController {
       return ApiResponse.success(res, { categories: result });
     } catch (error) {
       console.error('Admin List Categories Error:', error);
-      return ApiResponse.error(res, 'Failed to fetch categories.', 500);
+      return ApiResponse.error(res, error.message || 'Failed to fetch categories.', 500);
     }
   }
 

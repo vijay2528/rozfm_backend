@@ -56,6 +56,11 @@ class CommentController {
         return ApiResponse.error(res, 'Comment text is required.', 422);
       }
 
+      const [story] = await pool.query('SELECT id FROM stories WHERE id = ? LIMIT 1', [storyId]);
+      if (story.length === 0) {
+        return ApiResponse.error(res, 'Story not found.', 404);
+      }
+
       const [result] = await pool.query(
         'INSERT INTO comments (user_id, story_id, parent_id, comment) VALUES (?, ?, ?, ?)',
         [userId, storyId, parent_id || null, comment.trim()]
