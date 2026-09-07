@@ -12,6 +12,7 @@ const AdminSettingsController = require('../controllers/admin/settingsController
 const AdminLanguageController = require('../controllers/admin/languageController');
 const AdminRoleController = require('../controllers/admin/roleController');
 const AdminAuthController = require('../controllers/admin/authController');
+const AdminLocationController = require('../controllers/admin/locationController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -103,5 +104,21 @@ router.get('/languages', AdminLanguageController.index);
 
 // ── 10. User Roles & Permissions Management ──────────────────────────────────
 router.get('/roles', AdminRoleController.index);
+
+// ── 11. Location Management (Countries, States, Cities) ──────────────────────
+router.get('/countries', AdminLocationController.listCountries);
+router.post('/countries', AdminLocationController.storeCountry);
+router.put('/countries/:id', AdminLocationController.updateCountry);
+router.delete('/countries/:id', AdminLocationController.deleteCountry);
+
+router.get('/states', AdminLocationController.listStates);
+router.post('/states', AdminLocationController.storeState);
+router.put('/states/:id', AdminLocationController.updateState);
+router.delete('/states/:id', AdminLocationController.deleteState);
+
+router.get('/cities', AdminLocationController.listCities);
+router.post('/cities', AdminLocationController.storeCity);
+router.put('/cities/:id', AdminLocationController.updateCity);
+router.delete('/cities/:id', AdminLocationController.deleteCity);
 
 module.exports = router;

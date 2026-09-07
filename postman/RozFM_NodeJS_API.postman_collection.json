@@ -751,6 +751,119 @@
           }
         }
       ]
+    },
+    {
+      "name": "Location (Country, State, City)",
+      "item": [
+        {
+          "name": "Get All Countries",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/countries?search=", "host": ["{{base_url}}"], "path": ["countries"], "query": [{ "key": "search", "value": "" }] },
+            "description": "Fetch all active countries. Optional search query `?search=...`"
+          }
+        },
+        {
+          "name": "Get Country By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/countries/1", "host": ["{{base_url}}"], "path": ["countries", "1"] },
+            "description": "Fetch details of a specific country by ID."
+          }
+        },
+        {
+          "name": "Get All States",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/states", "host": ["{{base_url}}"], "path": ["states"] },
+            "description": "Fetch all states."
+          }
+        },
+        {
+          "name": "Get States (Filtered by Country ID - Query)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/states?country_id=1", "host": ["{{base_url}}"], "path": ["states"], "query": [{ "key": "country_id", "value": "1" }] },
+            "description": "Fetch states filtered by country_id query parameter."
+          }
+        },
+        {
+          "name": "Get States (Filtered by Country ID - Path)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/countries/1/states", "host": ["{{base_url}}"], "path": ["countries", "1", "states"] },
+            "description": "Fetch states for country ID 1."
+          }
+        },
+        {
+          "name": "Get State By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/states/1", "host": ["{{base_url}}"], "path": ["states", "1"] },
+            "description": "Fetch state details by ID."
+          }
+        },
+        {
+          "name": "Get All Cities",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/cities", "host": ["{{base_url}}"], "path": ["cities"] },
+            "description": "Fetch all cities."
+          }
+        },
+        {
+          "name": "Get Cities (Filtered by State ID - Query)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/cities?state_id=1", "host": ["{{base_url}}"], "path": ["cities"], "query": [{ "key": "state_id", "value": "1" }] },
+            "description": "Fetch cities filtered by state_id query parameter."
+          }
+        },
+        {
+          "name": "Get Cities (Filtered by State ID - Path)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/states/1/cities", "host": ["{{base_url}}"], "path": ["states", "1", "cities"] },
+            "description": "Fetch cities for state ID 1."
+          }
+        },
+        {
+          "name": "Get Cities (Filtered by Country ID - Query)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/cities?country_id=1", "host": ["{{base_url}}"], "path": ["cities"], "query": [{ "key": "country_id", "value": "1" }] },
+            "description": "Fetch cities filtered by country_id query parameter."
+          }
+        },
+        {
+          "name": "Get Cities (Filtered by Country ID - Path)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/countries/1/cities", "host": ["{{base_url}}"], "path": ["countries", "1", "cities"] },
+            "description": "Fetch cities for country ID 1."
+          }
+        },
+        {
+          "name": "Get City By ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/cities/1", "host": ["{{base_url}}"], "path": ["cities", "1"] },
+            "description": "Fetch city details by ID."
+          }
+        }
+      ]
     }
   ]
 }

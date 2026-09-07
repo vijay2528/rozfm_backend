@@ -603,6 +603,182 @@
           }
         }
       ]
+    },
+    {
+      "name": "11. Location Management",
+      "item": [
+        {
+          "name": "List Countries (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/countries?search=&status=&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "countries"],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Country",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Japan\",\n  \"code\": \"JP\",\n  \"status\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/countries", "host": ["{{base_url}}"], "path": ["admin", "countries"] }
+          }
+        },
+        {
+          "name": "Update Country",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Japan Updated\",\n  \"code\": \"JP\",\n  \"status\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/countries/1", "host": ["{{base_url}}"], "path": ["admin", "countries", "1"] }
+          }
+        },
+        {
+          "name": "Delete Country",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/countries/1", "host": ["{{base_url}}"], "path": ["admin", "countries", "1"] }
+          }
+        },
+        {
+          "name": "List States (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/states?country_id=1&search=&status=&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "states"],
+              "query": [
+                { "key": "country_id", "value": "1" },
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create State",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"country_id\": 1,\n  \"name\": \"Tokyo\",\n  \"status\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/states", "host": ["{{base_url}}"], "path": ["admin", "states"] }
+          }
+        },
+        {
+          "name": "Update State",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"country_id\": 1,\n  \"name\": \"Tokyo Region\",\n  \"status\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/states/1", "host": ["{{base_url}}"], "path": ["admin", "states", "1"] }
+          }
+        },
+        {
+          "name": "Delete State",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/states/1", "host": ["{{base_url}}"], "path": ["admin", "states", "1"] }
+          }
+        },
+        {
+          "name": "List Cities (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": {
+              "raw": "{{base_url}}/admin/cities?state_id=1&country_id=1&search=&status=&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "cities"],
+              "query": [
+                { "key": "state_id", "value": "1" },
+                { "key": "country_id", "value": "1" },
+                { "key": "search", "value": "" },
+                { "key": "status", "value": "" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create City",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state_id\": 1,\n  \"name\": \"Shinjuku\",\n  \"status\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/cities", "host": ["{{base_url}}"], "path": ["admin", "cities"] }
+          }
+        },
+        {
+          "name": "Update City",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state_id\": 1,\n  \"name\": \"Shinjuku Ward\",\n  \"status\": 1\n}"
+            },
+            "url": { "raw": "{{base_url}}/admin/cities/1", "host": ["{{base_url}}"], "path": ["admin", "cities", "1"] }
+          }
+        },
+        {
+          "name": "Delete City",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/cities/1", "host": ["{{base_url}}"], "path": ["admin", "cities", "1"] }
+          }
+        }
+      ]
     }
   ]
 }

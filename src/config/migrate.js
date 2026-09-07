@@ -523,6 +523,150 @@ async function runMigrations() {
       console.log('🌱 Default admin user seeded (admin@gmail.com / 123456)');
     }
 
+    // 26. Countries table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`countries\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`name\` VARCHAR(100) NOT NULL,
+        \`code\` VARCHAR(10) NULL,
+        \`status\` TINYINT(1) DEFAULT 1,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 27. States table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`states\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`country_id\` INT NOT NULL,
+        \`name\` VARCHAR(100) NOT NULL,
+        \`status\` TINYINT(1) DEFAULT 1,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT \`fk_states_country\` FOREIGN KEY (\`country_id\`) REFERENCES \`countries\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 28. Cities table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`cities\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`state_id\` INT NOT NULL,
+        \`name\` VARCHAR(100) NOT NULL,
+        \`status\` TINYINT(1) DEFAULT 1,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT \`fk_cities_state\` FOREIGN KEY (\`state_id\`) REFERENCES \`states\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Seed default Countries, States, Cities if countries table is empty
+    const [[{ countryCount }]] = await connection.query('SELECT COUNT(*) as countryCount FROM `countries`');
+    if (countryCount === 0) {
+      const defaultCountries = [
+        { name: 'India', code: 'IN' },
+        { name: 'United States', code: 'US' },
+        { name: 'United Kingdom', code: 'GB' },
+        { name: 'Canada', code: 'CA' },
+        { name: 'Australia', code: 'AU' },
+        { name: 'United Arab Emirates', code: 'AE' },
+      ];
+
+      for (const c of defaultCountries) {
+        await connection.query('INSERT INTO `countries` (`name`, `code`, `status`) VALUES (?, ?, 1)', [c.name, c.code]);
+      }
+      console.log('🌱 Default countries seeded');
+
+      // Fetch inserted country IDs
+      const [countryRows] = await connection.query('SELECT id, code FROM `countries`');
+      const countryMap = {};
+      countryRows.forEach(r => { countryMap[r.code] = r.id; });
+
+      if (countryMap['IN']) {
+        const indiaStates = [
+          { name: 'Maharashtra', code: 'MH' },
+          { name: 'Gujarat', code: 'GJ' },
+          { name: 'Delhi', code: 'DL' },
+          { name: 'Karnataka', code: 'KA' },
+          { name: 'Tamil Nadu', code: 'TN' },
+          { name: 'Uttar Pradesh', code: 'UP' },
+          { name: 'Rajasthan', code: 'RJ' },
+          { name: 'West Bengal', code: 'WB' },
+          { name: 'Telangana', code: 'TS' },
+          { name: 'Kerala', code: 'KL' },
+        ];
+
+        for (const s of indiaStates) {
+          await connection.query('INSERT INTO `states` (`country_id`, `name`, `status`) VALUES (?, ?, 1)', [countryMap['IN'], s.name]);
+        }
+      }
+
+      if (countryMap['US']) {
+        const usStates = [
+          { name: 'California', code: 'CA' },
+          { name: 'New York', code: 'NY' },
+          { name: 'Texas', code: 'TX' },
+          { name: 'Florida', code: 'FL' },
+          { name: 'Illinois', code: 'IL' },
+        ];
+
+        for (const s of usStates) {
+          await connection.query('INSERT INTO `states` (`country_id`, `name`, `status`) VALUES (?, ?, 1)', [countryMap['US'], s.name]);
+        }
+      }
+      console.log('🌱 Default states seeded');
+
+      // Fetch inserted state IDs
+      const [stateRows] = await connection.query('SELECT id, name FROM `states`');
+      const stateMap = {};
+      stateRows.forEach(r => { stateMap[r.name] = r.id; });
+
+      const defaultCities = [
+        // Maharashtra
+        { state: 'Maharashtra', name: 'Mumbai' },
+        { state: 'Maharashtra', name: 'Pune' },
+        { state: 'Maharashtra', name: 'Nagpur' },
+        { state: 'Maharashtra', name: 'Nashik' },
+        { state: 'Maharashtra', name: 'Thane' },
+        // Gujarat
+        { state: 'Gujarat', name: 'Ahmedabad' },
+        { state: 'Gujarat', name: 'Surat' },
+        { state: 'Gujarat', name: 'Vadodara' },
+        { state: 'Gujarat', name: 'Rajkot' },
+        // Delhi
+        { state: 'Delhi', name: 'New Delhi' },
+        // Karnataka
+        { state: 'Karnataka', name: 'Bengaluru' },
+        { state: 'Karnataka', name: 'Mysuru' },
+        { state: 'Karnataka', name: 'Mangaluru' },
+        // Tamil Nadu
+        { state: 'Tamil Nadu', name: 'Chennai' },
+        { state: 'Tamil Nadu', name: 'Coimbatore' },
+        { state: 'Tamil Nadu', name: 'Madurai' },
+        // Uttar Pradesh
+        { state: 'Uttar Pradesh', name: 'Lucknow' },
+        { state: 'Uttar Pradesh', name: 'Noida' },
+        { state: 'Uttar Pradesh', name: 'Kanpur' },
+        // California
+        { state: 'California', name: 'Los Angeles' },
+        { state: 'California', name: 'San Francisco' },
+        { state: 'California', name: 'San Diego' },
+        { state: 'California', name: 'San Jose' },
+        // New York
+        { state: 'New York', name: 'New York City' },
+        { state: 'New York', name: 'Buffalo' },
+        { state: 'New York', name: 'Rochester' },
+      ];
+
+      for (const city of defaultCities) {
+        if (stateMap[city.state]) {
+          await connection.query('INSERT INTO `cities` (`state_id`, `name`, `status`) VALUES (?, ?, 1)', [stateMap[city.state], city.name]);
+        }
+      }
+      console.log('🌱 Default cities seeded');
+    }
+
     console.log('✅ Database migrations completed successfully!');
   } catch (error) {
     console.error('❌ Migration failed:', error);

@@ -104,3 +104,32 @@ export const sendAdminNotification = (data: { title: string; body: string; user_
 export const createAdminFaq = (data: any) => adminClient.post('/faqs', data).then((res) => res.data);
 export const updateAdminFaq = (id: string | number, data: any) => adminClient.put(`/faqs/${id}`, data).then((res) => res.data);
 export const deleteAdminFaq = (id: string | number) => adminClient.delete(`/faqs/${id}`).then((res) => res.data);
+
+// 9. Location Management (Countries, States, Cities)
+export const getAdminCountries = (params?: { search?: string; status?: number | string; page?: number; limit?: number }) =>
+  adminClient.get('/countries', { params }).then((res) => res.data);
+export const createAdminCountry = (data: { name: string; code?: string; status?: number }) =>
+  adminClient.post('/countries', data).then((res) => res.data);
+export const updateAdminCountry = (id: string | number, data: { name?: string; code?: string; status?: number }) =>
+  adminClient.put(`/countries/${id}`, data).then((res) => res.data);
+export const deleteAdminCountry = (id: string | number) =>
+  adminClient.delete(`/countries/${id}`).then((res) => res.data);
+
+export const getAdminStates = (params?: { country_id?: number | string; search?: string; status?: number | string; page?: number; limit?: number }) =>
+  adminClient.get('/states', { params }).then((res) => res.data);
+export const createAdminState = (data: { country_id: number; name: string; status?: number }) =>
+  adminClient.post('/states', data).then((res) => res.data);
+export const updateAdminState = (id: string | number, data: { country_id?: number; name?: string; status?: number }) =>
+  adminClient.put(`/states/${id}`, data).then((res) => res.data);
+export const deleteAdminState = (id: string | number) =>
+  adminClient.delete(`/states/${id}`).then((res) => res.data);
+
+export const getAdminCities = (params?: { state_id?: number | string; country_id?: number | string; search?: string; status?: number | string; page?: number; limit?: number }) =>
+  adminClient.get('/cities', { params }).then((res) => res.data);
+export const createAdminCity = (data: { state_id: number; name: string; status?: number }) =>
+  adminClient.post('/cities', data).then((res) => res.data);
+export const updateAdminCity = (id: string | number, data: { state_id?: number; name?: string; status?: number }) =>
+  adminClient.put(`/cities/${id}`, data).then((res) => res.data);
+export const deleteAdminCity = (id: string | number) =>
+  adminClient.delete(`/cities/${id}`).then((res) => res.data);
+

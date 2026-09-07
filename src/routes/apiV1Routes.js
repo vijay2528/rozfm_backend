@@ -19,6 +19,7 @@ const CoinPackController = require('../controllers/coinPackController');
 const WalletController = require('../controllers/walletController');
 const RazorpayController = require('../controllers/razorpayController');
 const SubscriptionController = require('../controllers/subscriptionController');
+const LocationController = require('../controllers/locationController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -41,6 +42,17 @@ router.get('/legal/copyright', ConfigController.legalCopyright);
 router.get('/legal/privacy', ConfigController.legalPrivacy);
 router.get('/legal/terms', ConfigController.legalTerms);
 router.get('/legal/security-advice', ConfigController.legalSecurityAdvice);
+
+// Location (Country, State, City)
+router.get('/countries', LocationController.getCountries);
+router.get('/countries/:id', LocationController.getCountryById);
+router.get('/countries/:countryId/states', LocationController.getStates);
+router.get('/countries/:countryId/cities', LocationController.getCities);
+router.get('/states', LocationController.getStates);
+router.get('/states/:id', LocationController.getStateById);
+router.get('/states/:stateId/cities', LocationController.getCities);
+router.get('/cities', LocationController.getCities);
+router.get('/cities/:id', LocationController.getCityById);
 
 // Home, Banners, Plans & Categories
 router.get('/home', HomeController.index);
