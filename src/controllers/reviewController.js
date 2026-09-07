@@ -10,10 +10,18 @@ class ReviewController {
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
       const offset = (pageNum - 1) * limitNum;
 
-      const [[{ count }]] = await pool.query(
-        'SELECT COUNT(*) as count FROM reviews WHERE story_id = ?',
+      const [[statsRow]] = await pool.query(
+        `SELECT 
+           COUNT(*) as total_ratings,
+           COALESCE(AVG(rating), 0) as average_rating,
+           SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_star_count
+         FROM reviews WHERE story_id = ?`,
         [storyId]
       );
+
+      const totalRatings = Number(statsRow ? statsRow.total_ratings : 0);
+      const avgRating = parseFloat(Number(statsRow ? statsRow.average_rating : 0).toFixed(1));
+      const fiveStarCount = Number(statsRow ? statsRow.five_star_count : 0);
 
       const [reviews] = await pool.query(
         `SELECT r.*, u.name as user_name, u.avatar_path as user_avatar
@@ -25,18 +33,48 @@ class ReviewController {
         [storyId, limitNum, offset]
       );
 
+      const PUBLIC_BASE_URL = process.env.R2_PUBLIC_URL || 'https://files.rozfm.com';
+
+      const formattedReviews = reviews.map((r) => {
+        let avatarUrl = null;
+        if (r.user_avatar) {
+          if (r.user_avatar.startsWith('http://') || r.user_avatar.startsWith('https://')) {
+            avatarUrl = r.user_avatar;
+          } else {
+            avatarUrl = `${PUBLIC_BASE_URL.replace(/\/$/, '')}/${r.user_avatar.replace(/^\//, '')}`;
+          }
+        }
+        return {
+          id: Number(r.id),
+          user_id: Number(r.user_id),
+          story_id: Number(r.story_id),
+          rating: Number(r.rating),
+          review: r.review,
+          user_name: r.user_name || null,
+          user_avatar: avatarUrl,
+          user_image: avatarUrl,
+          user_profile_image: avatarUrl,
+          profile_image: avatarUrl,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+        };
+      });
+
       return ApiResponse.success(res, {
-        reviews,
-        total: count,
-        total_number: count,
+        reviews: formattedReviews,
+        total_ratings: totalRatings,
+        average_rating: avgRating,
+        five_star_count: fiveStarCount,
+        total: totalRatings,
+        total_number: totalRatings,
         page: pageNum,
         limit: limitNum,
-        total_pages: Math.ceil(count / limitNum),
+        total_pages: Math.ceil(totalRatings / limitNum),
         pagination: {
-          total: count,
+          total: totalRatings,
           page: pageNum,
           limit: limitNum,
-          total_pages: Math.ceil(count / limitNum),
+          total_pages: Math.ceil(totalRatings / limitNum),
         },
       });
     } catch (error) {
@@ -110,17 +148,46 @@ class ReviewController {
       );
 
       const [reviews] = await pool.query(
-        `SELECT r.*, s.title as story_title
+        `SELECT r.*, s.title as story_title, u.name as user_name, u.avatar_path as user_avatar
          FROM reviews r
          JOIN stories s ON r.story_id = s.id
+         JOIN users u ON r.user_id = u.id
          WHERE r.user_id = ?
          ORDER BY r.created_at DESC
          LIMIT ? OFFSET ?`,
         [userId, limitNum, offset]
       );
 
+      const PUBLIC_BASE_URL = process.env.R2_PUBLIC_URL || 'https://files.rozfm.com';
+
+      const formattedReviews = reviews.map((r) => {
+        let avatarUrl = null;
+        if (r.user_avatar) {
+          if (r.user_avatar.startsWith('http://') || r.user_avatar.startsWith('https://')) {
+            avatarUrl = r.user_avatar;
+          } else {
+            avatarUrl = `${PUBLIC_BASE_URL.replace(/\/$/, '')}/${r.user_avatar.replace(/^\//, '')}`;
+          }
+        }
+        return {
+          id: Number(r.id),
+          user_id: Number(r.user_id),
+          story_id: Number(r.story_id),
+          story_title: r.story_title,
+          rating: Number(r.rating),
+          review: r.review,
+          user_name: r.user_name || null,
+          user_avatar: avatarUrl,
+          user_image: avatarUrl,
+          user_profile_image: avatarUrl,
+          profile_image: avatarUrl,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+        };
+      });
+
       return ApiResponse.success(res, {
-        reviews,
+        reviews: formattedReviews,
         total: count,
         total_number: count,
         page: pageNum,
