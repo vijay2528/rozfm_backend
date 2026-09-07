@@ -73,6 +73,7 @@ class UserController {
 
       const [userRows] = await pool.query(
         `SELECT id, name, email, phone, country, state, city, age_group, gender, avatar_path,
+                instagram_link, youtube_link, facebook_link,
                 subscription_type, wallet_balance, wallet_balance as coins, platform, device_type,
                 role, locale, is_blocked, blocked_at, last_login_at, created_at, updated_at
          FROM users WHERE id = ? LIMIT 1`,

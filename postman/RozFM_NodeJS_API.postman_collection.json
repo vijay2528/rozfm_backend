@@ -177,7 +177,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"app.user@example.com\",\n  \"phone\": \"9876543210\",\n  \"country\": \"India\",\n  \"state\": \"Gujarat\",\n  \"city\": \"Ahmedabad\",\n  \"age_group\": \"25-34\",\n  \"gender\": \"male\",\n  \"locale\": \"en\"\n}"
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"app.user@example.com\",\n  \"phone\": \"9876543210\",\n  \"country\": \"India\",\n  \"state\": \"Gujarat\",\n  \"city\": \"Ahmedabad\",\n  \"age_group\": \"25-34\",\n  \"gender\": \"male\",\n  \"locale\": \"en\",\n  \"instagram_link\": \"https://instagram.com/johndoe\",\n  \"youtube_link\": \"https://youtube.com/@johndoe\",\n  \"facebook_link\": \"https://facebook.com/johndoe\"\n}"
             },
             "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
           }
@@ -198,6 +198,9 @@
                 { "key": "age_group", "value": "25-34", "type": "text" },
                 { "key": "gender", "value": "male", "type": "text" },
                 { "key": "locale", "value": "en", "type": "text" },
+                { "key": "instagram_link", "value": "https://instagram.com/johndoe", "type": "text" },
+                { "key": "youtube_link", "value": "https://youtube.com/@johndoe", "type": "text" },
+                { "key": "facebook_link", "value": "https://facebook.com/johndoe", "type": "text" },
                 { "key": "image", "type": "file", "src": [] }
               ]
             },

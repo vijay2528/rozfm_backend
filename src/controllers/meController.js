@@ -26,7 +26,7 @@ class MeController {
       const currentUser = req.user;
       const data = req.body;
 
-      const allowedFields = ['name', 'phone', 'country', 'state', 'city', 'age_group', 'gender', 'email', 'locale'];
+      const allowedFields = ['name', 'phone', 'country', 'state', 'city', 'age_group', 'gender', 'email', 'locale', 'instagram_link', 'youtube_link', 'facebook_link'];
       const updateFields = [];
       const queryParams = [];
 
