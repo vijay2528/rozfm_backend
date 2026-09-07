@@ -6,6 +6,15 @@ class CommentController {
     try {
       const storyId = req.params.id || req.params.story;
       const userId = req.user ? req.user.id : null;
+      const { page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
+
+      const [[{ count }]] = await pool.query(
+        'SELECT COUNT(*) as count FROM comments WHERE story_id = ? AND parent_id IS NULL',
+        [storyId]
+      );
 
       const [comments] = await pool.query(
         `SELECT c.*, u.name as user_name, u.avatar_path as user_avatar,
@@ -13,8 +22,9 @@ class CommentController {
          FROM comments c
          JOIN users u ON c.user_id = u.id
          WHERE c.story_id = ? AND c.parent_id IS NULL
-         ORDER BY c.created_at DESC`,
-        [storyId]
+         ORDER BY c.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [storyId, limitNum, offset]
       );
 
       let userLikedIds = new Set();
@@ -39,7 +49,20 @@ class CommentController {
         created_at: c.created_at,
       }));
 
-      return ApiResponse.success(res, { comments: result });
+      return ApiResponse.success(res, {
+        comments: result,
+        total: count,
+        total_number: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil(count / limitNum),
+        },
+      });
     } catch (error) {
       console.error('List Comments Error:', error);
       return ApiResponse.error(res, 'Failed to fetch comments.', 500);
@@ -80,16 +103,40 @@ class CommentController {
   static async replies(req, res) {
     try {
       const commentId = req.params.id || req.params.comment;
+      const { page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
+
+      const [[{ count }]] = await pool.query(
+        'SELECT COUNT(*) as count FROM comments WHERE parent_id = ?',
+        [commentId]
+      );
+
       const [replies] = await pool.query(
         `SELECT c.*, u.name as user_name, u.avatar_path as user_avatar
          FROM comments c
          JOIN users u ON c.user_id = u.id
          WHERE c.parent_id = ?
-         ORDER BY c.created_at ASC`,
-        [commentId]
+         ORDER BY c.created_at ASC
+         LIMIT ? OFFSET ?`,
+        [commentId, limitNum, offset]
       );
 
-      return ApiResponse.success(res, { replies });
+      return ApiResponse.success(res, {
+        replies,
+        total: count,
+        total_number: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil(count / limitNum),
+        },
+      });
     } catch (error) {
       console.error('List Replies Error:', error);
       return ApiResponse.error(res, 'Failed to fetch replies.', 500);

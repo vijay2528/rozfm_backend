@@ -4,6 +4,81 @@ const { toEpisodeFieldsArray } = require('../utils/storyPresenter');
 
 class EpisodeController {
   /**
+   * GET /api/v1/episodes or GET /api/v1/stories/:storyId/episodes
+   * Fetch paginated list of episodes with total count
+   */
+  static async index(req, res) {
+    try {
+      const storyId = req.params.storyId || req.params.id || req.query.story_id;
+      const { search, page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
+      const userId = req.user ? req.user.id : null;
+
+      let whereClauses = ['1=1'];
+      let queryParams = [];
+
+      if (storyId) {
+        whereClauses.push('e.story_id = ?');
+        queryParams.push(storyId);
+      }
+
+      if (search) {
+        whereClauses.push('(e.title LIKE ? OR e.description LIKE ?)');
+        queryParams.push(`%${search}%`, `%${search}%`);
+      }
+
+      const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
+
+      const [[{ count }]] = await pool.query(`SELECT COUNT(*) as count FROM episodes e ${whereSql}`, queryParams);
+
+      const [episodes] = await pool.query(
+        `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path
+         FROM episodes e
+         LEFT JOIN stories s ON e.story_id = s.id
+         ${whereSql}
+         ORDER BY e.position ASC, e.id ASC
+         LIMIT ? OFFSET ?`,
+        [...queryParams, limitNum, offset]
+      );
+
+      let userUnlockedEpisodeIds = new Set();
+      if (userId && episodes.length > 0) {
+        const episodeIds = episodes.map((ep) => ep.id);
+        const [unlocks] = await pool.query(
+          'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ? AND episode_id IN (?)',
+          [userId, episodeIds]
+        );
+        unlocks.forEach((u) => userUnlockedEpisodeIds.add(u.episode_id));
+      }
+
+      const result = episodes.map((ep) => {
+        const isUnlocked = !ep.is_premium || (userId && userUnlockedEpisodeIds.has(ep.id));
+        return toEpisodeFieldsArray(ep, ep.story_title, isUnlocked);
+      });
+
+      return ApiResponse.success(res, {
+        episodes: result,
+        total: count,
+        total_number: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil(count / limitNum),
+        },
+      });
+    } catch (error) {
+      console.error('List Episodes Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch episodes list.', 500);
+    }
+  }
+
+  /**
    * GET /api/v1/episodes/:id
    * Fetch single episode details
    */

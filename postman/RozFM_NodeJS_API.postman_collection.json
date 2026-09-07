@@ -364,7 +364,7 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/stories?category_id=1&search=&language=hi&sort=popular", "host": ["{{base_url}}"], "path": ["stories"], "query": [{ "key": "category_id", "value": "1" }, { "key": "search", "value": "" }, { "key": "language", "value": "hi" }, { "key": "sort", "value": "popular" }] }
+            "url": { "raw": "{{base_url}}/stories?category_id=1&search=&language=hi&sort=popular&page=1&limit=10", "host": ["{{base_url}}"], "path": ["stories"], "query": [{ "key": "category_id", "value": "1" }, { "key": "search", "value": "" }, { "key": "language", "value": "hi" }, { "key": "sort", "value": "popular" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
           }
         },
         {
@@ -504,7 +504,7 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/stories/1/reviews", "host": ["{{base_url}}"], "path": ["stories", "1", "reviews"] }
+            "url": { "raw": "{{base_url}}/stories/1/reviews?page=1&limit=10", "host": ["{{base_url}}"], "path": ["stories", "1", "reviews"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
           }
         },
         {
@@ -521,7 +521,7 @@
           "name": "Get User Reviews",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/user/reviews", "host": ["{{base_url}}"], "path": ["user", "reviews"] }
+            "url": { "raw": "{{base_url}}/user/reviews?page=1&limit=10", "host": ["{{base_url}}"], "path": ["user", "reviews"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
           }
         },
         {
@@ -529,7 +529,7 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/stories/1/comments", "host": ["{{base_url}}"], "path": ["stories", "1", "comments"] }
+            "url": { "raw": "{{base_url}}/stories/1/comments?page=1&limit=10", "host": ["{{base_url}}"], "path": ["stories", "1", "comments"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
           }
         },
         {
@@ -547,7 +547,7 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/comments/1/replies", "host": ["{{base_url}}"], "path": ["comments", "1", "replies"] }
+            "url": { "raw": "{{base_url}}/comments/1/replies?page=1&limit=10", "host": ["{{base_url}}"], "path": ["comments", "1", "replies"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
           }
         },
         {

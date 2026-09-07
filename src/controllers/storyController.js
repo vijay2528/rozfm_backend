@@ -10,9 +10,10 @@ class StoryController {
    */
   static async index(req, res) {
     try {
-      const { category_id, search, language, sort, page = 1, limit = 20 } = req.query;
-      const offset = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+      const { category_id, search, language, sort, page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
 
       let whereClauses = ["s.status IN ('ongoing', 'completed', 'published')"];
       let queryParams = [];
@@ -42,6 +43,11 @@ class StoryController {
       }
 
       const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+      const [[{ count }]] = await pool.query(
+        `SELECT COUNT(*) as count FROM stories s ${whereSql}`,
+        queryParams
+      );
 
       const [stories] = await pool.query(
         `SELECT s.*, c.category_name, u.name as author_name,
@@ -81,7 +87,20 @@ class StoryController {
         })
       );
 
-      return ApiResponse.success(res, { stories: result });
+      return ApiResponse.success(res, {
+        stories: result,
+        total: count,
+        total_number: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil(count / limitNum),
+        },
+      });
     } catch (error) {
       console.error('List Stories Error:', error);
       return ApiResponse.error(res, 'Failed to fetch stories.', 500);
@@ -498,6 +517,157 @@ class StoryController {
         updateFields.push('`banner_image_path` = ?');
         queryParams.push(req.body.banner_image || req.body.banner);
       }
+      if (updateFields.length > 0) {
+        queryParams.push(storyId);
+        await pool.query(
+          `UPDATE stories SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = ?`,
+          queryParams
+        );
+      }
+
+      const [updatedRows] = await pool.query(
+        `SELECT s.*, c.category_name, u.name as author_name FROM stories s
+         LEFT JOIN categories c ON s.category_id = c.id
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE s.id = ? LIMIT 1`,
+        [storyId]
+      );
+
+      return ApiResponse.success(
+        res,
+        { story: toStoryFieldsArray(updatedRows[0]) },
+        'Story updated successfully.'
+      );
+    } catch (error) {
+      console.error('Update Story Error:', error);
+      return ApiResponse.error(res, 'Failed to update story.', 500);
+    }
+  }
+
+  /**
+   * PUT / POST /api/v1/stories/:id
+   * Edit / Update an existing story (supports multipart/form-data & application/json)
+   */
+  static async update(req, res) {
+    try {
+      const storyId = req.params.id || req.params.story;
+      const [storyRows] = await pool.query('SELECT * FROM stories WHERE id = ? LIMIT 1', [storyId]);
+
+      if (storyRows.length === 0) {
+        return ApiResponse.error(res, 'Story not found.', 444);
+      }
+
+      const { title, description, category_id, language, tags, is_premium, status } = req.body;
+      const updateFields = [];
+      const queryParams = [];
+
+      if (title !== undefined && title !== null && title.trim() !== '') {
+        updateFields.push('`title` = ?');
+        queryParams.push(title.trim());
+      }
+      if (description !== undefined) {
+        updateFields.push('`description` = ?');
+        queryParams.push(description);
+      }
+      if (category_id !== undefined && category_id !== null && category_id !== '') {
+        updateFields.push('`category_id` = ?');
+        const parsedCat = parseInt(category_id, 10);
+        queryParams.push(isNaN(parsedCat) ? null : parsedCat);
+      }
+      if (language !== undefined) {
+        updateFields.push('`language` = ?');
+        queryParams.push(language);
+      }
+      if (tags !== undefined) {
+        updateFields.push('`tags` = ?');
+        queryParams.push(tags);
+      }
+      if (is_premium !== undefined) {
+        updateFields.push('`is_premium` = ?');
+        const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
+        queryParams.push(isPremiumBool ? 1 : 0);
+      }
+      if (status !== undefined) {
+        updateFields.push('`status` = ?');
+        queryParams.push(status);
+      }
+
+      let coverImagePath = null;
+      let bannerImagePath = null;
+
+      if (req.files) {
+        if (Array.isArray(req.files)) {
+          const coverFile = req.files.find((f) => ['cover_image', 'image', 'cover'].includes(f.fieldname));
+          if (coverFile) {
+            try {
+              coverImagePath = await uploadToR2(coverFile, 'covers');
+            } catch (err) {
+              console.error('Cover image update upload error:', err.message);
+            }
+          }
+
+          const bannerFile = req.files.find((f) => ['banner_image', 'banner'].includes(f.fieldname));
+          if (bannerFile) {
+            try {
+              bannerImagePath = await uploadToR2(bannerFile, 'banners');
+            } catch (err) {
+              console.error('Banner image update upload error:', err.message);
+            }
+          }
+        } else {
+          const coverFile = (req.files.cover_image && req.files.cover_image[0]) ||
+            (req.files.image && req.files.image[0]) ||
+            (req.files.cover && req.files.cover[0]);
+          if (coverFile) {
+            try {
+              coverImagePath = await uploadToR2(coverFile, 'covers');
+            } catch (err) {
+              console.error('Cover image update upload error:', err.message);
+            }
+          }
+
+          const bannerFile = (req.files.banner_image && req.files.banner_image[0]) ||
+            (req.files.banner && req.files.banner[0]);
+          if (bannerFile) {
+            try {
+              bannerImagePath = await uploadToR2(bannerFile, 'banners');
+            } catch (err) {
+              console.error('Banner image update upload error:', err.message);
+            }
+          }
+        }
+      } else if (req.file) {
+        const field = req.file.fieldname;
+        if (['cover_image', 'image', 'cover'].includes(field)) {
+          try {
+            coverImagePath = await uploadToR2(req.file, 'covers');
+          } catch (err) {
+            console.error('Cover file update upload error:', err.message);
+          }
+        } else if (['banner_image', 'banner'].includes(field)) {
+          try {
+            bannerImagePath = await uploadToR2(req.file, 'banners');
+          } catch (err) {
+            console.error('Banner file update upload error:', err.message);
+          }
+        }
+      }
+
+      if (coverImagePath) {
+        updateFields.push('`cover_image_path` = ?');
+        queryParams.push(coverImagePath);
+      } else if (req.body.cover_image || req.body.image || req.body.cover) {
+        updateFields.push('`cover_image_path` = ?');
+        queryParams.push(req.body.cover_image || req.body.image || req.body.cover);
+      }
+
+      if (bannerImagePath) {
+        updateFields.push('`banner_image_path` = ?');
+        queryParams.push(bannerImagePath);
+      } else if (req.body.banner_image || req.body.banner) {
+        updateFields.push('`banner_image_path` = ?');
+        queryParams.push(req.body.banner_image || req.body.banner);
+      }
 
       if (updateFields.length > 0) {
         queryParams.push(storyId);
@@ -585,7 +755,74 @@ class StoryController {
       return ApiResponse.success(res, { shares_count: sharesCount }, 'Story share count updated.');
     } catch (error) {
       console.error('Share Story Error:', error);
-      return ApiResponse.error(res, 'Failed to update story share count.', 500);
+      return ApiResponse.error(res, 'Failed to share story.', 500);
+    }
+  }
+
+  /**
+   * GET /api/v1/user/liked-stories
+   * List stories liked by authenticated user with pagination limit and total count
+   */
+  static async likedStories(req, res) {
+    try {
+      const userId = req.user.id;
+      const { page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
+
+      const [[{ count }]] = await pool.query(
+        'SELECT COUNT(*) as count FROM story_likes WHERE user_id = ?',
+        [userId]
+      );
+
+      const [stories] = await pool.query(
+        `SELECT s.*, c.category_name, u.name as author_name,
+                (SELECT COUNT(*) FROM story_likes sl2 WHERE sl2.story_id = s.id) as likes_count
+         FROM story_likes sl
+         JOIN stories s ON sl.story_id = s.id
+         LEFT JOIN categories c ON s.category_id = c.id
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE sl.user_id = ?
+         ORDER BY sl.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [userId, limitNum, offset]
+      );
+
+      let userBookmarkedIds = new Set();
+      if (stories.length > 0) {
+        const storyIds = stories.map((s) => s.id);
+        const [bookmarks] = await pool.query(
+          'SELECT story_id FROM bookmarks WHERE user_id = ? AND story_id IN (?)',
+          [userId, storyIds]
+        );
+        bookmarks.forEach((b) => userBookmarkedIds.add(b.story_id));
+      }
+
+      const result = stories.map((s) =>
+        toStoryFieldsArray(s, {
+          isLiked: true,
+          isBookmarked: userBookmarkedIds.has(s.id),
+        })
+      );
+
+      return ApiResponse.success(res, {
+        stories: result,
+        total: count,
+        total_number: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil(count / limitNum),
+        },
+      });
+    } catch (error) {
+      console.error('List Liked Stories Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch liked stories.', 500);
     }
   }
 }

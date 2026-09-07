@@ -70,6 +70,8 @@ router.get('/sections/top-picks', SectionController.topPicks);
 // Stories & Episodes Details (Public)
 router.get('/stories', StoryController.index);
 router.get('/stories/:id', StoryController.show);
+router.get('/stories/:storyId/episodes', EpisodeController.index);
+router.get('/episodes', EpisodeController.index);
 router.get('/stories/:id/reviews', ReviewController.index);
 router.get('/stories/:id/comments', CommentController.index);
 router.get('/comments/:id/replies', CommentController.replies);
@@ -97,11 +99,13 @@ router.post('/user/update-phone/verify', MeController.verifyPhoneUpdate);
 router.get('/user/notifications/settings', MeController.getNotificationSettings);
 router.post('/user/notifications/settings', MeController.updateNotificationSettings);
 
-// User Category Preferences & Reviews
+// User Category Preferences, Reviews & Liked Content
 router.get('/user/categories', CategoryController.userPreferences);
 router.put('/user/categories', CategoryController.updateUserPreferences);
 router.post('/user/categories', CategoryController.updateUserPreferences);
 router.get('/user/reviews', ReviewController.userReviews);
+router.get('/user/liked-stories', StoryController.likedStories);
+router.get('/stories/liked', StoryController.likedStories);
 
 // Story & Episode Creation / Edit (Authenticated)
 router.post('/stories', upload.storyMedia, StoryController.store);

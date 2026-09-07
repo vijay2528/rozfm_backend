@@ -5,16 +5,40 @@ class ReviewController {
   static async index(req, res) {
     try {
       const storyId = req.params.id || req.params.story;
+      const { page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
+
+      const [[{ count }]] = await pool.query(
+        'SELECT COUNT(*) as count FROM reviews WHERE story_id = ?',
+        [storyId]
+      );
+
       const [reviews] = await pool.query(
         `SELECT r.*, u.name as user_name, u.avatar_path as user_avatar
          FROM reviews r
          JOIN users u ON r.user_id = u.id
          WHERE r.story_id = ?
-         ORDER BY r.created_at DESC`,
-        [storyId]
+         ORDER BY r.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [storyId, limitNum, offset]
       );
 
-      return ApiResponse.success(res, { reviews });
+      return ApiResponse.success(res, {
+        reviews,
+        total: count,
+        total_number: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil(count / limitNum),
+        },
+      });
     } catch (error) {
       console.error('List Reviews Error:', error);
       return ApiResponse.error(res, 'Failed to fetch reviews.', 500);
@@ -75,16 +99,40 @@ class ReviewController {
   static async userReviews(req, res) {
     try {
       const userId = req.user.id;
+      const { page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
+
+      const [[{ count }]] = await pool.query(
+        'SELECT COUNT(*) as count FROM reviews WHERE user_id = ?',
+        [userId]
+      );
+
       const [reviews] = await pool.query(
         `SELECT r.*, s.title as story_title
          FROM reviews r
          JOIN stories s ON r.story_id = s.id
          WHERE r.user_id = ?
-         ORDER BY r.created_at DESC`,
-        [userId]
+         ORDER BY r.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [userId, limitNum, offset]
       );
 
-      return ApiResponse.success(res, { reviews });
+      return ApiResponse.success(res, {
+        reviews,
+        total: count,
+        total_number: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+        pagination: {
+          total: count,
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil(count / limitNum),
+        },
+      });
     } catch (error) {
       console.error('User Reviews Error:', error);
       return ApiResponse.error(res, 'Failed to fetch user reviews.', 500);
