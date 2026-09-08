@@ -16,9 +16,15 @@ class CommentController {
         [storyId]
       );
 
+      const [[{ totalCommentsCount }]] = await pool.query(
+        'SELECT COUNT(*) as totalCommentsCount FROM comments WHERE story_id = ?',
+        [storyId]
+      );
+
       const [comments] = await pool.query(
         `SELECT c.*, u.name as user_name, u.avatar_path as user_avatar,
-                (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count
+                (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count,
+                (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as replies_count
          FROM comments c
          JOIN users u ON c.user_id = u.id
          WHERE c.story_id = ? AND c.parent_id IS NULL
@@ -45,12 +51,18 @@ class CommentController {
         user_avatar: c.user_avatar || null,
         comment: c.comment,
         likes_count: Number(c.likes_count || 0),
+        replies_count: Number(c.replies_count || 0),
         is_liked: userLikedIds.has(c.id),
         created_at: c.created_at,
       }));
 
+      const totalAll = Number(totalCommentsCount || 0);
+
       return ApiResponse.success(res, {
         comments: result,
+        total_comments_count: totalAll,
+        total_comments: totalAll,
+        comments_count: totalAll,
         total: count,
         total_number: count,
         page: pageNum,
@@ -58,6 +70,7 @@ class CommentController {
         total_pages: Math.ceil(count / limitNum),
         pagination: {
           total: count,
+          total_comments_count: totalAll,
           page: pageNum,
           limit: limitNum,
           total_pages: Math.ceil(count / limitNum),

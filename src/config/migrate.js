@@ -197,6 +197,10 @@ async function runMigrations() {
       "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `ends_at` DATETIME NULL",
       "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `sort_order` INT DEFAULT 0",
       "ALTER TABLE `banners` MODIFY COLUMN `position` VARCHAR(50) DEFAULT 'Home'",
+      "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `total_duration_seconds` INT DEFAULT 0",
+      "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `total_seconds_listened` INT DEFAULT 0",
+      "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `completion_percentage` DECIMAL(5, 2) DEFAULT 0.00",
+      "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `status` VARCHAR(50) DEFAULT 'playing'",
     ];
 
     for (const alterSql of alterQueries) {
@@ -286,10 +290,15 @@ async function runMigrations() {
         \`story_id\` INT NOT NULL,
         \`episode_id\` INT NULL,
         \`progress_seconds\` INT DEFAULT 0,
+        \`total_duration_seconds\` INT DEFAULT 0,
+        \`total_seconds_listened\` INT DEFAULT 0,
+        \`completion_percentage\` DECIMAL(5, 2) DEFAULT 0.00,
+        \`status\` VARCHAR(50) DEFAULT 'playing',
         \`completed\` TINYINT(1) DEFAULT 0,
         \`last_watched_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
         \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY \`watch_history_unique\` (\`user_id\`,\`story_id\`,\`episode_id\`),
         CONSTRAINT \`fk_watch_histories_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
         CONSTRAINT \`fk_watch_histories_story\` FOREIGN KEY (\`story_id\`) REFERENCES \`stories\` (\`id\`) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -691,6 +700,26 @@ async function runMigrations() {
         UNIQUE KEY \`user_follow_unique\` (\`follower_id\`,\`following_id\`),
         CONSTRAINT \`fk_follows_follower\` FOREIGN KEY (\`follower_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
         CONSTRAINT \`fk_follows_following\` FOREIGN KEY (\`following_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 30. User Bank Details table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`user_bank_details\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`account_holder_name\` VARCHAR(255) NOT NULL,
+        \`account_number\` VARCHAR(100) NOT NULL,
+        \`bank_name\` VARCHAR(255) NOT NULL,
+        \`ifsc_code\` VARCHAR(50) NOT NULL,
+        \`branch_name\` VARCHAR(255) NULL,
+        \`upi_id\` VARCHAR(255) NULL,
+        \`account_type\` VARCHAR(50) DEFAULT 'savings',
+        \`is_verified\` TINYINT(1) DEFAULT 0,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY \`user_bank_unique\` (\`user_id\`),
+        CONSTRAINT \`fk_bank_details_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 

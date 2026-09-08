@@ -21,6 +21,7 @@ const RazorpayController = require('../controllers/razorpayController');
 const SubscriptionController = require('../controllers/subscriptionController');
 const LocationController = require('../controllers/locationController');
 const UserController = require('../controllers/userController');
+const BankController = require('../controllers/bankController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -83,6 +84,8 @@ router.get('/users/:id', authMiddleware.optional, UserController.show);
 router.get('/users/:id/profile', authMiddleware.optional, UserController.show);
 router.get('/users/:id/stories', UserController.getUserStories);
 router.get('/users/:id/reviews', UserController.getUserReviews);
+router.get('/users/:id/followers', authMiddleware.optional, UserController.getFollowers);
+router.get('/users/:id/following', authMiddleware.optional, UserController.getFollowing);
 
 // ── Authenticated User Routes ──────────────────────────────────────────────────
 router.use(authMiddleware);
@@ -106,9 +109,21 @@ router.post('/user/update-phone/verify', MeController.verifyPhoneUpdate);
 router.get('/user/notifications/settings', MeController.getNotificationSettings);
 router.post('/user/notifications/settings', MeController.updateNotificationSettings);
 
+// User Followers / Following (Current Authenticated User)
+router.get('/user/followers', UserController.getFollowers);
+router.get('/user/following', UserController.getFollowing);
+
 // User Follow / Unfollow
-router.post('/users/:id/follow', UserController.toggleFollow);
-router.post('/user/:id/follow', UserController.toggleFollow);
+router.post('/users/:id/follow', UserController.follow);
+router.post('/user/:id/follow', UserController.follow);
+router.post('/users/:id/unfollow', UserController.unfollow);
+router.post('/user/:id/unfollow', UserController.unfollow);
+router.delete('/users/:id/follow', UserController.unfollow);
+router.delete('/user/:id/follow', UserController.unfollow);
+router.delete('/users/:id/unfollow', UserController.unfollow);
+router.delete('/user/:id/unfollow', UserController.unfollow);
+router.post('/users/:id/toggle-follow', UserController.toggleFollow);
+router.post('/user/:id/toggle-follow', UserController.toggleFollow);
 
 // User Category Preferences, Reviews & Liked Content
 router.get('/user/categories', CategoryController.userPreferences);
@@ -135,9 +150,19 @@ router.post('/stories/:id/share', StoryController.share);
 router.post('/comments/:id/like', CommentController.toggleLike);
 router.post('/stories/:id/bookmark', BookmarkController.toggle);
 router.get('/bookmarks', BookmarkController.index);
+
+// Watch History & Playback Progress Tracking
 router.get('/watch-history', WatchHistoryController.index);
+router.post('/watch-history/track', WatchHistoryController.trackProgress);
+router.post('/watch-history/track-progress', WatchHistoryController.trackProgress);
+router.post('/watch-history/track-minutes', WatchHistoryController.trackMinutes);
 router.delete('/watch-history', WatchHistoryController.clear);
 router.delete('/watch-history/:id', WatchHistoryController.destroy);
+
+router.post('/episodes/:id/track-progress', WatchHistoryController.trackProgress);
+router.get('/episodes/:id/progress', WatchHistoryController.getEpisodeProgress);
+router.get('/stories/:id/progress', WatchHistoryController.getStoryProgress);
+router.get('/user/listening-stats', WatchHistoryController.getUserListeningStats);
 router.post('/episodes/:id/unlock', EpisodeController.unlock);
 
 // Wallet & Monetization
@@ -146,6 +171,16 @@ router.post('/wallet/purchase-coins', WalletController.purchase);
 router.get('/wallet/daily-claim', WalletController.dailyClaimStatus);
 router.post('/wallet/daily-claim', WalletController.dailyClaim);
 router.get('/wallet/transactions', WalletController.transactions);
+
+// Bank Details
+router.get('/user/bank-details', BankController.show);
+router.get('/bank-details', BankController.show);
+router.post('/user/bank-details', BankController.store);
+router.put('/user/bank-details', BankController.store);
+router.post('/bank-details', BankController.store);
+router.put('/bank-details', BankController.store);
+router.delete('/user/bank-details', BankController.destroy);
+router.delete('/bank-details', BankController.destroy);
 
 // Payments & Subscriptions
 router.post('/payments/razorpay/order', RazorpayController.createOrder);

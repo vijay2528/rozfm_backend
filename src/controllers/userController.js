@@ -102,7 +102,7 @@ class UserController {
 
   /**
    * POST /api/v1/users/:id/follow
-   * Follow or unfollow a user
+   * Follow or unfollow a user (toggle)
    */
   static async toggleFollow(req, res) {
     try {
@@ -149,6 +149,219 @@ class UserController {
     } catch (error) {
       console.error('Toggle Follow Error:', error);
       return ApiResponse.error(res, 'Failed to toggle follow.', 500);
+    }
+  }
+
+  /**
+   * POST /api/v1/users/:id/follow
+   * Explicitly follow a user
+   */
+  static async follow(req, res) {
+    try {
+      const targetUserId = req.params.id || req.params.userId;
+      const currentUserId = req.user.id;
+
+      if (Number(currentUserId) === Number(targetUserId)) {
+        return ApiResponse.error(res, 'You cannot follow yourself.', 422);
+      }
+
+      const [userRows] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [targetUserId]);
+      if (userRows.length === 0) {
+        return ApiResponse.error(res, 'User not found.', 404);
+      }
+
+      const [existing] = await pool.query(
+        'SELECT id FROM user_follows WHERE follower_id = ? AND following_id = ? LIMIT 1',
+        [currentUserId, targetUserId]
+      );
+
+      if (existing.length === 0) {
+        await pool.query('INSERT INTO user_follows (follower_id, following_id) VALUES (?, ?)', [currentUserId, targetUserId]);
+      }
+
+      const [[{ followersCount }]] = await pool.query(
+        'SELECT COUNT(*) AS followersCount FROM user_follows WHERE following_id = ?',
+        [targetUserId]
+      );
+
+      return ApiResponse.success(
+        res,
+        {
+          is_following: true,
+          followers_count: Number(followersCount),
+          followers_formatted: formatNumber(followersCount),
+        },
+        'User followed successfully.'
+      );
+    } catch (error) {
+      console.error('Follow User Error:', error);
+      return ApiResponse.error(res, 'Failed to follow user.', 500);
+    }
+  }
+
+  /**
+   * POST /api/v1/users/:id/unfollow or DELETE /api/v1/users/:id/follow
+   * Explicitly unfollow a user
+   */
+  static async unfollow(req, res) {
+    try {
+      const targetUserId = req.params.id || req.params.userId;
+      const currentUserId = req.user.id;
+
+      if (Number(currentUserId) === Number(targetUserId)) {
+        return ApiResponse.error(res, 'You cannot unfollow yourself.', 422);
+      }
+
+      const [userRows] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [targetUserId]);
+      if (userRows.length === 0) {
+        return ApiResponse.error(res, 'User not found.', 404);
+      }
+
+      await pool.query('DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?', [currentUserId, targetUserId]);
+
+      const [[{ followersCount }]] = await pool.query(
+        'SELECT COUNT(*) AS followersCount FROM user_follows WHERE following_id = ?',
+        [targetUserId]
+      );
+
+      return ApiResponse.success(
+        res,
+        {
+          is_following: false,
+          followers_count: Number(followersCount),
+          followers_formatted: formatNumber(followersCount),
+        },
+        'User unfollowed successfully.'
+      );
+    } catch (error) {
+      console.error('Unfollow User Error:', error);
+      return ApiResponse.error(res, 'Failed to unfollow user.', 500);
+    }
+  }
+
+  /**
+   * GET /api/v1/users/:id/followers or GET /api/v1/user/followers
+   * Fetch paginated list of followers for a user
+   */
+  static async getFollowers(req, res) {
+    try {
+      const targetUserId = req.params.id || req.params.userId || (req.user ? req.user.id : null);
+      if (!targetUserId) {
+        return ApiResponse.error(res, 'User ID is required.', 400);
+      }
+
+      const currentUserId = req.user ? req.user.id : null;
+      const { page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
+
+      const [[{ count }]] = await pool.query(
+        'SELECT COUNT(*) as count FROM user_follows WHERE following_id = ?',
+        [targetUserId]
+      );
+
+      const [rows] = await pool.query(
+        `SELECT u.*, uf.created_at as followed_at
+         FROM user_follows uf
+         JOIN users u ON uf.follower_id = u.id
+         WHERE uf.following_id = ?
+         ORDER BY uf.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [targetUserId, limitNum, offset]
+      );
+
+      const followers = await Promise.all(
+        rows.map(async (fUser) => {
+          let isFollowing = false;
+          if (currentUserId && Number(currentUserId) !== Number(fUser.id)) {
+            const [check] = await pool.query(
+              'SELECT id FROM user_follows WHERE follower_id = ? AND following_id = ? LIMIT 1',
+              [currentUserId, fUser.id]
+            );
+            isFollowing = check.length > 0;
+          }
+          const formatted = toProfileFieldsArray(fUser);
+          formatted.is_following = isFollowing;
+          formatted.followed_at = fUser.followed_at;
+          return formatted;
+        })
+      );
+
+      return ApiResponse.success(res, {
+        followers,
+        total: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+      });
+    } catch (error) {
+      console.error('Get Followers Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch followers.', 500);
+    }
+  }
+
+  /**
+   * GET /api/v1/users/:id/following or GET /api/v1/user/following
+   * Fetch paginated list of users that a user is following
+   */
+  static async getFollowing(req, res) {
+    try {
+      const targetUserId = req.params.id || req.params.userId || (req.user ? req.user.id : null);
+      if (!targetUserId) {
+        return ApiResponse.error(res, 'User ID is required.', 400);
+      }
+
+      const currentUserId = req.user ? req.user.id : null;
+      const { page = 1, limit = 10 } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const offset = (pageNum - 1) * limitNum;
+
+      const [[{ count }]] = await pool.query(
+        'SELECT COUNT(*) as count FROM user_follows WHERE follower_id = ?',
+        [targetUserId]
+      );
+
+      const [rows] = await pool.query(
+        `SELECT u.*, uf.created_at as followed_at
+         FROM user_follows uf
+         JOIN users u ON uf.following_id = u.id
+         WHERE uf.follower_id = ?
+         ORDER BY uf.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [targetUserId, limitNum, offset]
+      );
+
+      const following = await Promise.all(
+        rows.map(async (fUser) => {
+          let isFollowing = false;
+          if (currentUserId && Number(currentUserId) !== Number(fUser.id)) {
+            const [check] = await pool.query(
+              'SELECT id FROM user_follows WHERE follower_id = ? AND following_id = ? LIMIT 1',
+              [currentUserId, fUser.id]
+            );
+            isFollowing = check.length > 0;
+          } else if (Number(currentUserId) === Number(fUser.id)) {
+            isFollowing = true;
+          }
+          const formatted = toProfileFieldsArray(fUser);
+          formatted.is_following = isFollowing;
+          formatted.followed_at = fUser.followed_at;
+          return formatted;
+        })
+      );
+
+      return ApiResponse.success(res, {
+        following,
+        total: count,
+        page: pageNum,
+        limit: limitNum,
+        total_pages: Math.ceil(count / limitNum),
+      });
+    } catch (error) {
+      console.error('Get Following Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch following users.', 500);
     }
   }
 
@@ -299,6 +512,10 @@ module.exports = {
   UserController,
   show: UserController.show,
   toggleFollow: UserController.toggleFollow,
+  follow: UserController.follow,
+  unfollow: UserController.unfollow,
+  getFollowers: UserController.getFollowers,
+  getFollowing: UserController.getFollowing,
   getUserStories: UserController.getUserStories,
   getUserReviews: UserController.getUserReviews,
   getUsers: UserController.getUsers,
