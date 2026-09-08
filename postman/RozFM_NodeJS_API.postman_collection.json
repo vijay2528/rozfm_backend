@@ -1368,6 +1368,27 @@
             },
             "description": "Get total listening time (seconds, minutes, hours) and summary stats for authenticated user."
           }
+        },
+        {
+          "name": "Update Episode Play Duration",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"episode_id\": 1,\n  \"current_seconds\": 120,\n  \"total_duration_seconds\": 300\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/episodes/1/play-duration",
+              "host": ["{{base_url}}"],
+              "path": ["episodes", "1", "play-duration"]
+            },
+            "description": "Update current playback seconds out of total duration in integer for an episode for the logged in user."
+          }
         }
       ]
     }

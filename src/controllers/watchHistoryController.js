@@ -389,6 +389,107 @@ class WatchHistoryController {
   }
 
   /**
+   * POST /api/v1/episodes/:id/play-duration or POST /api/v1/episodes/play-duration
+   * Update episode play duration for current user (current seconds out of total duration in integer)
+   */
+  static async updatePlayDuration(req, res) {
+    try {
+      const userId = req.user ? req.user.id : null;
+      if (!userId) {
+        return ApiResponse.error(res, 'Unauthenticated user.', 401);
+      }
+
+      const episodeId = req.params.id || req.params.episodeId || req.body.episode_id || req.body.episodeId;
+      if (!episodeId) {
+        return ApiResponse.error(res, 'Episode ID is required.', 422);
+      }
+
+      // Parse current seconds and total duration seconds as integers
+      const rawCurrent = req.body.current_seconds ?? req.body.progress_seconds ?? req.body.played_seconds ?? req.body.current_duration ?? req.body.current_position ?? 0;
+      const rawTotal = req.body.total_duration_seconds ?? req.body.total_duration ?? req.body.duration ?? req.body.total_seconds ?? 0;
+
+      const currentSeconds = Math.max(0, parseInt(rawCurrent, 10) || 0);
+      let totalDurationSeconds = Math.max(0, parseInt(rawTotal, 10) || 0);
+
+      // Fetch episode details
+      const [epRows] = await pool.query(
+        'SELECT id, story_id, duration, episode_number, title FROM episodes WHERE id = ? LIMIT 1',
+        [episodeId]
+      );
+
+      if (epRows.length === 0) {
+        return ApiResponse.error(res, 'Episode not found.', 404);
+      }
+
+      const episode = epRows[0];
+      const storyId = episode.story_id;
+
+      if (totalDurationSeconds === 0 && episode.duration > 0) {
+        totalDurationSeconds = Number(episode.duration);
+      }
+
+      // Calculate completion percentage
+      let completionPercentage = 0.0;
+      if (totalDurationSeconds > 0) {
+        completionPercentage = parseFloat(((currentSeconds / totalDurationSeconds) * 100).toFixed(2));
+        if (completionPercentage > 100.0) completionPercentage = 100.0;
+      }
+
+      const isCompleted = completionPercentage >= 90.0 || req.body.completed === true || req.body.completed === 'true';
+      const status = isCompleted ? 'completed' : (req.body.status ? String(req.body.status).toLowerCase() : 'playing');
+
+      // Upsert into watch_histories
+      const [existing] = await pool.query(
+        'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND (episode_id = ? OR episode_id IS NULL) LIMIT 1',
+        [userId, storyId, episodeId]
+      );
+
+      let recordId;
+      if (existing.length > 0) {
+        recordId = existing[0].id;
+        await pool.query(
+          `UPDATE watch_histories 
+           SET episode_id = ?, progress_seconds = ?, total_duration_seconds = ?, completion_percentage = ?, status = ?, completed = ?, last_watched_at = NOW()
+           WHERE id = ?`,
+          [episodeId, currentSeconds, totalDurationSeconds, completionPercentage, status, isCompleted ? 1 : 0, recordId]
+        );
+      } else {
+        const [insertRes] = await pool.query(
+          `INSERT INTO watch_histories 
+           (user_id, story_id, episode_id, progress_seconds, total_duration_seconds, total_seconds_listened, completion_percentage, status, completed, last_watched_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          [userId, storyId, episodeId, currentSeconds, totalDurationSeconds, currentSeconds, completionPercentage, status, isCompleted ? 1 : 0]
+        );
+        recordId = insertRes.insertId;
+
+        // Increment episode play stats on initial track
+        await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episodeId]);
+        await pool.query('UPDATE stories SET total_views = total_views + 1, listeners_count = listeners_count + 1 WHERE id = ?', [storyId]);
+      }
+
+      return ApiResponse.success(res, {
+        watch_history_id: Number(recordId),
+        user_id: Number(userId),
+        story_id: Number(storyId),
+        episode_id: Number(episodeId),
+        episode_no: Number(episode.episode_number || 1),
+        title: episode.title,
+        current_seconds: currentSeconds,
+        progress_seconds: currentSeconds,
+        progress_formatted: formatTime(currentSeconds),
+        total_duration_seconds: totalDurationSeconds,
+        total_duration_formatted: formatTime(totalDurationSeconds),
+        completion_percentage: completionPercentage,
+        status: status,
+        completed: isCompleted,
+      }, 'Episode play duration updated successfully.');
+    } catch (error) {
+      console.error('Update Episode Play Duration Error:', error);
+      return ApiResponse.error(res, 'Failed to update episode play duration.', 500);
+    }
+  }
+
+  /**
    * DELETE /api/v1/watch-history
    * Clear all watch history
    */
