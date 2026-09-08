@@ -26,12 +26,19 @@ class MeController {
       const currentUser = req.user;
       const data = req.body;
 
-      const allowedFields = ['name', 'phone', 'country', 'state', 'city', 'age_group', 'gender', 'email', 'locale', 'instagram_link', 'youtube_link', 'facebook_link'];
+      const allowedFields = ['name', 'phone', 'username', 'bio', 'country', 'state', 'city', 'age_group', 'gender', 'email', 'locale', 'instagram_link', 'youtube_link', 'facebook_link'];
       const updateFields = [];
       const queryParams = [];
 
       for (const field of allowedFields) {
         if (Object.prototype.hasOwnProperty.call(data, field)) {
+          if (field === 'username' && data.username && data.username !== currentUser.username) {
+            const cleanUsername = String(data.username).trim().replace(/^@/, '');
+            const [existing] = await pool.query('SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1', [cleanUsername, userId]);
+            if (existing.length > 0) {
+              return ApiResponse.error(res, 'Username is already taken.', 422);
+            }
+          }
           if (field === 'phone' && data.phone && data.phone !== currentUser.phone) {
             const [existing] = await pool.query('SELECT id FROM users WHERE phone = ? AND id != ? LIMIT 1', [data.phone, userId]);
             if (existing.length > 0) {

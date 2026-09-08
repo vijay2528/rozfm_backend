@@ -44,6 +44,13 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true) {
   const coinVal = episode.coins !== null && episode.coins !== undefined ? Number(episode.coins) : 25;
   const storyImageUrl = resolveUrl(episode.story_cover_image_path || episode.cover_image_path || episode.story_image || episode.cover_image);
 
+  const isUnl = Boolean(isUnlocked || !episode.is_premium);
+  const isSched = episode.publish_as === 'schedule_for_later' || (episode.scheduled_at && new Date(episode.scheduled_at) > new Date());
+  const isDownAllowed = episode.is_downloadable !== undefined && episode.is_downloadable !== null
+    ? Boolean(Number(episode.is_downloadable))
+    : true;
+  const isDown = hasAudio && isDownAllowed && isUnl;
+
   return {
     episode_id: Number(episode.id),
     story_id: Number(episode.story_id),
@@ -63,7 +70,10 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true) {
     type: episode.is_premium ? 'premium' : 'free',
     coins: coinVal,
     is_premium: Boolean(episode.is_premium),
-    is_unlocked: Boolean(isUnlocked || !episode.is_premium),
+    is_locked: !isUnl,
+    is_unlocked: isUnl,
+    is_scheduled: Boolean(isSched),
+    is_downloadable: Boolean(isDown),
     audio_file: audioUrl,
     audio_status: hasAudio ? 'uploaded' : 'missing',
     published_date: episode.published_at || episode.created_at,

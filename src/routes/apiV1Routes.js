@@ -20,6 +20,7 @@ const WalletController = require('../controllers/walletController');
 const RazorpayController = require('../controllers/razorpayController');
 const SubscriptionController = require('../controllers/subscriptionController');
 const LocationController = require('../controllers/locationController');
+const UserController = require('../controllers/userController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -69,13 +70,19 @@ router.get('/sections/top-picks', SectionController.topPicks);
 
 // Stories & Episodes Details (Public)
 router.get('/stories', StoryController.index);
-router.get('/stories/:id', StoryController.show);
-router.get('/stories/:storyId/episodes', EpisodeController.index);
-router.get('/episodes', EpisodeController.index);
+router.get('/stories/:id', authMiddleware.optional, StoryController.show);
+router.get('/stories/:storyId/episodes', authMiddleware.optional, EpisodeController.index);
+router.get('/episodes', authMiddleware.optional, EpisodeController.index);
 router.get('/stories/:id/reviews', ReviewController.index);
 router.get('/stories/:id/comments', CommentController.index);
 router.get('/comments/:id/replies', CommentController.replies);
-router.get('/episodes/:id', EpisodeController.show);
+router.get('/episodes/:id', authMiddleware.optional, EpisodeController.show);
+
+// User Profile Details (Public / Optional Auth)
+router.get('/users/:id', authMiddleware.optional, UserController.show);
+router.get('/users/:id/profile', authMiddleware.optional, UserController.show);
+router.get('/users/:id/stories', UserController.getUserStories);
+router.get('/users/:id/reviews', UserController.getUserReviews);
 
 // ── Authenticated User Routes ──────────────────────────────────────────────────
 router.use(authMiddleware);
@@ -98,6 +105,10 @@ router.post('/user/update-phone', MeController.requestPhoneUpdate);
 router.post('/user/update-phone/verify', MeController.verifyPhoneUpdate);
 router.get('/user/notifications/settings', MeController.getNotificationSettings);
 router.post('/user/notifications/settings', MeController.updateNotificationSettings);
+
+// User Follow / Unfollow
+router.post('/users/:id/follow', UserController.toggleFollow);
+router.post('/user/:id/follow', UserController.toggleFollow);
 
 // User Category Preferences, Reviews & Liked Content
 router.get('/user/categories', CategoryController.userPreferences);

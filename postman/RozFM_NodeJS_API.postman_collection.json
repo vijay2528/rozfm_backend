@@ -440,16 +440,54 @@
           }
         },
         {
+          "name": "List Episodes (with Filters)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/episodes?story_id=1&filter=unlocked&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes"],
+              "query": [
+                { "key": "story_id", "value": "1" },
+                { "key": "filter", "value": "unlocked", "description": "Filter options: locked, unlocked, scheduled, downloadable (comma-separated or single)" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Fetch paginated episodes with optional filters (locked, unlocked, scheduled, downloadable)."
+          }
+        },
+        {
+          "name": "List Story Episodes (with Filters)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/stories/1/episodes?filter=locked&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["stories", "1", "episodes"],
+              "query": [
+                { "key": "filter", "value": "locked", "description": "Filter options: locked, unlocked, scheduled, downloadable" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Fetch paginated episodes for a specific story with optional filters (locked, unlocked, scheduled, downloadable)."
+          }
+        },
+        {
           "name": "Create Episode",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"story_id\": 1,\n  \"title\": \"Episode 1: The Mysterious Discovery\",\n  \"episode_number\": 1,\n  \"description\": \"In this episode, the secret journey begins.\",\n  \"publish_as\": \"publish_now\",\n  \"schedule_date_time\": \"2026-08-30 10:00:00\",\n  \"audio_title\": \"Episode 1 Full Track\",\n  \"audio_file\": \"episodes/audio_sample_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"duration_seconds\": 300,\n  \"duration_minutes\": 5.0\n}"
+              "raw": "{\n  \"story_id\": 1,\n  \"title\": \"Episode 1: The Mysterious Discovery\",\n  \"episode_number\": 1,\n  \"description\": \"In this episode, the secret journey begins.\",\n  \"publish_as\": \"publish_now\",\n  \"schedule_date_time\": \"2026-08-30 10:00:00\",\n  \"audio_title\": \"Episode 1 Full Track\",\n  \"audio_file\": \"episodes/audio_sample_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"is_downloadable\": 1,\n  \"duration_seconds\": 300,\n  \"duration_minutes\": 5.0\n}"
             },
             "url": { "raw": "{{base_url}}/episodes", "host": ["{{base_url}}"], "path": ["episodes"] },
-            "description": "Create a new episode with all parameters (title, episode_number, description, story_id, publish_as, schedule_date_time, audio_file, audio_title, coins [default 25], duration)."
+            "description": "Create a new episode with all parameters (title, episode_number, description, story_id, publish_as, schedule_date_time, audio_file, audio_title, coins [default 25], is_downloadable [default 1], duration)."
           }
         },
         {
@@ -459,7 +497,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Episode 1: The Mysterious Discovery (Updated)\",\n  \"episode_number\": 1,\n  \"description\": \"Updated episode summary.\",\n  \"publish_as\": \"schedule_for_later\",\n  \"schedule_date_time\": \"2026-09-01 18:00:00\",\n  \"audio_title\": \"Episode 1 Remastered Track\",\n  \"audio_file\": \"episodes/updated_audio_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"duration_seconds\": 360,\n  \"duration_minutes\": 6.0\n}"
+              "raw": "{\n  \"title\": \"Episode 1: The Mysterious Discovery (Updated)\",\n  \"episode_number\": 1,\n  \"description\": \"Updated episode summary.\",\n  \"publish_as\": \"schedule_for_later\",\n  \"schedule_date_time\": \"2026-09-01 18:00:00\",\n  \"audio_title\": \"Episode 1 Remastered Track\",\n  \"audio_file\": \"episodes/updated_audio_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"is_downloadable\": 1,\n  \"duration_seconds\": 360,\n  \"duration_minutes\": 6.0\n}"
             },
             "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] },
             "description": "Edit existing episode details via PUT."
@@ -472,7 +510,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Episode 1: Updated Title\",\n  \"coins\": 25,\n  \"is_premium\": 1\n}"
+              "raw": "{\n  \"title\": \"Episode 1: Updated Title\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"is_downloadable\": 1\n}"
             },
             "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] },
             "description": "Edit existing episode details via POST."
@@ -864,6 +902,256 @@
             "header": [{ "key": "Accept", "value": "application/json" }],
             "url": { "raw": "{{base_url}}/cities/1", "host": ["{{base_url}}"], "path": ["cities", "1"] },
             "description": "Fetch city details by ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Episodes (Filters)",
+      "item": [
+        {
+          "name": "List Episodes (All)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/episodes?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List all episodes with pagination."
+          }
+        },
+        {
+          "name": "List Episodes - Filter: locked",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes?filter=locked&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes"],
+              "query": [
+                { "key": "filter", "value": "locked" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List only locked (premium, not yet unlocked) episodes. Pass auth token to exclude user-unlocked episodes from results."
+          }
+        },
+        {
+          "name": "List Episodes - Filter: unlocked",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes?filter=unlocked&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes"],
+              "query": [
+                { "key": "filter", "value": "unlocked" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List only unlocked (free or user-unlocked) episodes."
+          }
+        },
+        {
+          "name": "List Episodes - Filter: scheduled",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/episodes?filter=scheduled&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes"],
+              "query": [
+                { "key": "filter", "value": "scheduled" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List only scheduled episodes (publish_as=schedule_for_later or scheduled_at in the future)."
+          }
+        },
+        {
+          "name": "List Episodes - Filter: downloadable",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/episodes?filter=downloadable&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes"],
+              "query": [
+                { "key": "filter", "value": "downloadable" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List only downloadable episodes (is_downloadable=1 and audio_path set)."
+          }
+        },
+        {
+          "name": "List Episodes - Multiple Filters (unlocked + downloadable)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes?filter=unlocked,downloadable&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes"],
+              "query": [
+                { "key": "filter", "value": "unlocked,downloadable" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Combine multiple filters using comma separation. Returns episodes that match ALL specified filters."
+          }
+        },
+        {
+          "name": "List Story Episodes (Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/stories/1/episodes?filter=locked&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["stories", "1", "episodes"],
+              "query": [
+                { "key": "filter", "value": "locked" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "List episodes for a specific story with filter applied."
+          }
+        },
+        {
+          "name": "List Episodes - Boolean params (is_locked=true)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes?is_locked=true&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes"],
+              "query": [
+                { "key": "is_locked", "value": "true" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Alternative filter using individual boolean query parameters: is_locked, is_unlocked, is_scheduled, is_downloadable."
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get User Profile by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Optional. Pass to get is_following state." }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/1",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1"]
+            },
+            "description": "Fetch public profile for a user by ID. Returns name, username, handle (@username), profile_image, bio, is_verified, stats (plays, followers, following), stories list, reviews list, and is_following flag (if authenticated)."
+          }
+        },
+        {
+          "name": "Get User Profile (profile alias)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Optional." }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/1/profile",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1", "profile"]
+            },
+            "description": "Alias endpoint for GET /users/:id — same response."
+          }
+        },
+        {
+          "name": "Get User Stories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/users/1/stories?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1", "stories"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Get paginated list of stories/series created by the user."
+          }
+        },
+        {
+          "name": "Get User Reviews",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/users/1/reviews?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1", "reviews"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Get paginated reviews written by or about the user's stories."
+          }
+        },
+        {
+          "name": "Follow / Unfollow User (Toggle)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/1/follow",
+              "host": ["{{base_url}}"],
+              "path": ["users", "1", "follow"]
+            },
+            "description": "Toggle follow/unfollow for a user. Returns is_following (bool), followers_count, and followers_formatted. Requires authentication."
           }
         }
       ]

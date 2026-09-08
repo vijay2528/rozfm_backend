@@ -25,6 +25,9 @@ async function runMigrations() {
         \`age_group\` VARCHAR(50) NULL,
         \`gender\` VARCHAR(50) NULL,
         \`avatar_path\` VARCHAR(512) NULL,
+        \`username\` VARCHAR(100) NULL UNIQUE,
+        \`bio\` TEXT NULL,
+        \`is_verified\` TINYINT(1) DEFAULT 0,
         \`instagram_link\` VARCHAR(512) NULL,
         \`youtube_link\` VARCHAR(512) NULL,
         \`facebook_link\` VARCHAR(512) NULL,
@@ -155,6 +158,7 @@ async function runMigrations() {
         \`audio_title\` VARCHAR(255) NULL,
         \`duration\` INT DEFAULT 0,
         \`is_free\` TINYINT(1) DEFAULT 0,
+        \`is_downloadable\` TINYINT(1) DEFAULT 1,
         \`coins\` INT DEFAULT 25,
         \`publish_as\` VARCHAR(50) DEFAULT 'publish_now',
         \`scheduled_at\` DATETIME NULL,
@@ -177,10 +181,14 @@ async function runMigrations() {
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `scheduled_at` DATETIME NULL",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `tags` VARCHAR(512) NULL",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `audio_title` VARCHAR(255) NULL",
+      "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `is_downloadable` TINYINT(1) DEFAULT 1",
       "ALTER TABLE `episodes` ALTER COLUMN `coins` SET DEFAULT 25",
       "ALTER TABLE `languages` ADD COLUMN IF NOT EXISTS `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `role_id` INT NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `role` VARCHAR(50) DEFAULT 'user'",
+      "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `username` VARCHAR(100) NULL",
+      "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `bio` TEXT NULL",
+      "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `is_verified` TINYINT(1) DEFAULT 0",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `instagram_link` VARCHAR(512) NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `youtube_link` VARCHAR(512) NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `facebook_link` VARCHAR(512) NULL",
@@ -672,6 +680,19 @@ async function runMigrations() {
       }
       console.log('🌱 Default cities seeded');
     }
+
+    // 29. User Follows table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`user_follows\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`follower_id\` INT NOT NULL,
+        \`following_id\` INT NOT NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY \`user_follow_unique\` (\`follower_id\`,\`following_id\`),
+        CONSTRAINT \`fk_follows_follower\` FOREIGN KEY (\`follower_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE,
+        CONSTRAINT \`fk_follows_following\` FOREIGN KEY (\`following_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
 
     console.log('✅ Database migrations completed successfully!');
   } catch (error) {

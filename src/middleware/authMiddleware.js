@@ -37,4 +37,32 @@ async function authMiddleware(req, res, next) {
   }
 }
 
+async function optionalAuth(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'rozfm_super_secret_jwt_key_2026');
+
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ? LIMIT 1', [decoded.id]);
+    if (rows.length > 0 && !rows[0].is_blocked) {
+      req.user = rows[0];
+      req.token = token;
+    }
+  } catch (error) {
+    // Silently continue for optional authentication
+  }
+  return next();
+}
+
+authMiddleware.optional = optionalAuth;
+
 module.exports = authMiddleware;
+

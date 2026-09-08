@@ -128,7 +128,7 @@ class ContentController {
    */
   static async listEpisodes(req, res) {
     try {
-      const { story_id, search, is_premium, page = 1, limit = 20 } = req.query;
+      const { story_id, search, is_premium, filter, status, is_locked, is_unlocked, is_scheduled, is_downloadable, page = 1, limit = 20 } = req.query;
       const offset = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
 
@@ -148,6 +148,39 @@ class ContentController {
       if (is_premium !== undefined && is_premium !== '') {
         whereClauses.push('e.is_premium = ?');
         queryParams.push(is_premium === '1' || is_premium === 'true' ? 1 : 0);
+      }
+
+      // Collect active filter flags
+      let activeFilters = new Set();
+      const rawFilter = filter || status;
+      if (rawFilter) {
+        const filterItems = Array.isArray(rawFilter) ? rawFilter : String(rawFilter).split(',');
+        filterItems.forEach((item) => {
+          const trimmed = String(item).trim().toLowerCase();
+          if (['locked', 'unlocked', 'scheduled', 'downloadable'].includes(trimmed)) {
+            activeFilters.add(trimmed);
+          }
+        });
+      }
+      if (is_locked === 'true' || is_locked === '1' || is_locked === 1 || is_locked === true) activeFilters.add('locked');
+      if (is_unlocked === 'true' || is_unlocked === '1' || is_unlocked === 1 || is_unlocked === true) activeFilters.add('unlocked');
+      if (is_scheduled === 'true' || is_scheduled === '1' || is_scheduled === 1 || is_scheduled === true) activeFilters.add('scheduled');
+      if (is_downloadable === 'true' || is_downloadable === '1' || is_downloadable === 1 || is_downloadable === true) activeFilters.add('downloadable');
+
+      if (activeFilters.has('locked')) {
+        whereClauses.push('e.is_premium = 1');
+      }
+
+      if (activeFilters.has('unlocked')) {
+        whereClauses.push('e.is_premium = 0');
+      }
+
+      if (activeFilters.has('scheduled')) {
+        whereClauses.push("(e.publish_as = 'schedule_for_later' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at > NOW()))");
+      }
+
+      if (activeFilters.has('downloadable')) {
+        whereClauses.push("(e.audio_path IS NOT NULL AND e.audio_path != '' AND (e.is_downloadable IS NULL OR e.is_downloadable = 1))");
       }
 
       const whereSql = `WHERE ${whereClauses.join(' AND ')}`;

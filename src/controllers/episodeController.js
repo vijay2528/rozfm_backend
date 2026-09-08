@@ -10,7 +10,7 @@ class EpisodeController {
   static async index(req, res) {
     try {
       const storyId = req.params.storyId || req.params.id || req.query.story_id;
-      const { search, page = 1, limit = 10 } = req.query;
+      const { search, page = 1, limit = 10, filter, status, is_locked, is_unlocked, is_scheduled, is_downloadable } = req.query;
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
       const offset = (pageNum - 1) * limitNum;
@@ -27,6 +27,49 @@ class EpisodeController {
       if (search) {
         whereClauses.push('(e.title LIKE ? OR e.description LIKE ?)');
         queryParams.push(`%${search}%`, `%${search}%`);
+      }
+
+      // Collect active filter flags
+      let activeFilters = new Set();
+      const rawFilter = filter || status;
+      if (rawFilter) {
+        const filterItems = Array.isArray(rawFilter) ? rawFilter : String(rawFilter).split(',');
+        filterItems.forEach((item) => {
+          const trimmed = String(item).trim().toLowerCase();
+          if (['locked', 'unlocked', 'scheduled', 'downloadable'].includes(trimmed)) {
+            activeFilters.add(trimmed);
+          }
+        });
+      }
+      if (is_locked === 'true' || is_locked === '1' || is_locked === 1 || is_locked === true) activeFilters.add('locked');
+      if (is_unlocked === 'true' || is_unlocked === '1' || is_unlocked === 1 || is_unlocked === true) activeFilters.add('unlocked');
+      if (is_scheduled === 'true' || is_scheduled === '1' || is_scheduled === 1 || is_scheduled === true) activeFilters.add('scheduled');
+      if (is_downloadable === 'true' || is_downloadable === '1' || is_downloadable === 1 || is_downloadable === true) activeFilters.add('downloadable');
+
+      if (activeFilters.has('locked')) {
+        if (userId) {
+          whereClauses.push('(e.is_premium = 1 AND e.id NOT IN (SELECT episode_id FROM user_episode_unlocks WHERE user_id = ?))');
+          queryParams.push(userId);
+        } else {
+          whereClauses.push('e.is_premium = 1');
+        }
+      }
+
+      if (activeFilters.has('unlocked')) {
+        if (userId) {
+          whereClauses.push('(e.is_premium = 0 OR e.id IN (SELECT episode_id FROM user_episode_unlocks WHERE user_id = ?))');
+          queryParams.push(userId);
+        } else {
+          whereClauses.push('e.is_premium = 0');
+        }
+      }
+
+      if (activeFilters.has('scheduled')) {
+        whereClauses.push("(e.publish_as = 'schedule_for_later' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at > NOW()))");
+      }
+
+      if (activeFilters.has('downloadable')) {
+        whereClauses.push("(e.audio_path IS NOT NULL AND e.audio_path != '' AND (e.is_downloadable IS NULL OR e.is_downloadable = 1))");
       }
 
       const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
@@ -145,6 +188,7 @@ class EpisodeController {
         audio_title,
         coins,
         is_premium,
+        is_downloadable,
         duration_seconds,
         duration_minutes,
         audio_file,
@@ -191,14 +235,15 @@ class EpisodeController {
 
       const createdById = req.user ? req.user.id : null;
       const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
+      const isDownloadableVal = (is_downloadable === undefined || is_downloadable === null || is_downloadable === '1' || is_downloadable === 1 || is_downloadable === 'true' || is_downloadable === true) ? 1 : 0;
       const finalAudioTitle = audio_title && String(audio_title).trim() !== '' ? String(audio_title).trim() : String(title).trim();
 
       const [result] = await pool.query(
         `INSERT INTO episodes (
           story_id, created_by, title, position, description, publish_as, scheduled_at,
-          audio_title, duration_seconds, duration_minutes, is_premium,
+          audio_title, duration_seconds, duration_minutes, is_premium, is_downloadable,
           coins, audio_path, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           targetStoryId,
           createdById,
@@ -211,6 +256,7 @@ class EpisodeController {
           duration_seconds ? parseInt(duration_seconds, 10) : 0,
           duration_minutes ? parseFloat(duration_minutes) : null,
           isPremiumVal,
+          isDownloadableVal,
           coinCost,
           audioFilePath,
           publishedAt,
@@ -311,6 +357,11 @@ class EpisodeController {
         const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
         updateFields.push('`is_premium` = ?');
         queryParams.push(isPremiumVal);
+      }
+      if (req.body.is_downloadable !== undefined) {
+        const isDownVal = (req.body.is_downloadable === '1' || req.body.is_downloadable === 1 || req.body.is_downloadable === 'true' || req.body.is_downloadable === true) ? 1 : 0;
+        updateFields.push('`is_downloadable` = ?');
+        queryParams.push(isDownVal);
       }
       if (coins !== undefined) {
         updateFields.push('`coins` = ?');

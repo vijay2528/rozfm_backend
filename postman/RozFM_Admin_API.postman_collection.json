@@ -264,11 +264,23 @@
           }
         },
         {
-          "name": "List All Episodes",
+          "name": "List All Episodes (with Filters)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-            "url": { "raw": "{{base_url}}/admin/episodes?story_id=&search=&page=1", "host": ["{{base_url}}"], "path": ["admin", "episodes"] }
+            "url": {
+              "raw": "{{base_url}}/admin/episodes?story_id=&search=&filter=downloadable&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "episodes"],
+              "query": [
+                { "key": "story_id", "value": "" },
+                { "key": "search", "value": "" },
+                { "key": "filter", "value": "downloadable", "description": "Filter options: locked, unlocked, scheduled, downloadable" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Fetch paginated list of all episodes across stories with optional filters: locked, unlocked, scheduled, downloadable."
           }
         },
         {
