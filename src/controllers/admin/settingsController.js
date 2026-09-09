@@ -59,11 +59,25 @@ class SettingsController {
 
       let recipientCount = 0;
       if (user_id) {
-        const [[{ count }]] = await pool.query('SELECT COUNT(*) as count FROM users WHERE id = ?', [user_id]);
-        recipientCount = count;
+        const [users] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [user_id]);
+        if (users.length > 0) {
+          recipientCount = 1;
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, message, icon_type, action_type, action_id, is_read, created_at)
+             VALUES (?, 'system', ?, ?, 'bell', ?, ?, 0, NOW())`,
+            [users[0].id, title.trim(), body.trim(), action_type || 'none', action_value || null]
+          );
+        }
       } else {
-        const [[{ count }]] = await pool.query('SELECT COUNT(*) as count FROM users WHERE is_blocked = 0');
-        recipientCount = count;
+        const [users] = await pool.query('SELECT id FROM users WHERE is_blocked = 0');
+        recipientCount = users.length;
+        for (const u of users) {
+          await pool.query(
+            `INSERT INTO notifications (user_id, type, title, message, icon_type, action_type, action_id, is_read, created_at)
+             VALUES (?, 'system', ?, ?, 'bell', ?, ?, 0, NOW())`,
+            [u.id, title.trim(), body.trim(), action_type || 'none', action_value || null]
+          );
+        }
       }
 
       return ApiResponse.success(

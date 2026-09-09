@@ -23,6 +23,7 @@ const LocationController = require('../controllers/locationController');
 const UserController = require('../controllers/userController');
 const BankController = require('../controllers/bankController');
 const StreakController = require('../controllers/streakController');
+const NotificationController = require('../controllers/notificationController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -109,6 +110,16 @@ router.post('/user/update-phone', MeController.requestPhoneUpdate);
 router.post('/user/update-phone/verify', MeController.verifyPhoneUpdate);
 router.get('/user/notifications/settings', MeController.getNotificationSettings);
 router.post('/user/notifications/settings', MeController.updateNotificationSettings);
+
+// Notifications API
+router.get('/notifications', NotificationController.index);
+router.get('/notifications/unread-count', NotificationController.unreadCount);
+router.post('/notifications/mark-all-read', NotificationController.markAllRead);
+router.put('/notifications/mark-all-read', NotificationController.markAllRead);
+router.post('/notifications/:id/read', NotificationController.markRead);
+router.put('/notifications/:id/read', NotificationController.markRead);
+router.delete('/notifications/:id', NotificationController.destroy);
+router.delete('/notifications', NotificationController.clearAll);
 
 // User Followers / Following (Current Authenticated User)
 router.get('/user/followers', UserController.getFollowers);

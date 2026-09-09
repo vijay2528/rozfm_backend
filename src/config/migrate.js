@@ -807,11 +807,95 @@ async function runMigrations() {
       { key: 'streak_milestone_4_name', value: 'Legendary' }
     ];
 
-    for (const setting of defaultStreakSettings) {
-      await connection.query(
-        `INSERT INTO settings (\`key\`, \`value\`) VALUES (?, ?) ON DUPLICATE KEY UPDATE \`value\` = \`value\``,
-        [setting.key, setting.value]
-      );
+    // 35. Notifications table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`notifications\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`type\` VARCHAR(50) DEFAULT 'system',
+        \`title\` VARCHAR(255) NOT NULL,
+        \`message\` TEXT NOT NULL,
+        \`avatar_path\` VARCHAR(512) NULL,
+        \`icon_type\` VARCHAR(50) DEFAULT 'bell',
+        \`action_type\` VARCHAR(50) DEFAULT 'none',
+        \`action_id\` VARCHAR(255) NULL,
+        \`is_read\` TINYINT(1) DEFAULT 0,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT \`fk_notifications_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Seed default sample notifications for users if notifications table is empty
+    const [[{ notifCount }]] = await connection.query('SELECT COUNT(*) as notifCount FROM `notifications`');
+    if (notifCount === 0) {
+      const [users] = await connection.query('SELECT id FROM `users` LIMIT 5');
+      for (const u of users) {
+        const uId = u.id;
+        const now = new Date();
+        const sampleNotifs = [
+          {
+            type: 'follower',
+            title: 'New Follower',
+            message: 'Riya Sharma started to follow you',
+            icon_type: 'follower',
+            action_type: 'user_profile',
+            action_id: '10',
+            is_read: 0,
+            minutes_ago: 2,
+          },
+          {
+            type: 'comment',
+            title: 'New Comment',
+            message: 'Mohit Verma commented on Ep 28',
+            icon_type: 'comment',
+            action_type: 'episode',
+            action_id: '28',
+            is_read: 0,
+            minutes_ago: 10,
+          },
+          {
+            type: 'trending',
+            title: 'Episode Trending',
+            message: 'Ep 26 is trending in Romance',
+            icon_type: 'flame',
+            action_type: 'episode',
+            action_id: '26',
+            is_read: 0,
+            minutes_ago: 30,
+          },
+          {
+            type: 'gift',
+            title: 'New Gift Received',
+            message: 'You received a gift',
+            icon_type: 'gift',
+            action_type: 'wallet',
+            action_id: null,
+            is_read: 0,
+            minutes_ago: 60,
+          },
+          {
+            type: 'payout',
+            title: 'Payout Success',
+            message: '₹4,120 sent to your UPI',
+            icon_type: 'payout',
+            action_type: 'wallet',
+            action_id: null,
+            is_read: 1,
+            minutes_ago: 120,
+          },
+        ];
+
+        for (const sn of sampleNotifs) {
+          const createdAt = new Date(now.getTime() - sn.minutes_ago * 60 * 1000);
+          await connection.query(
+            `INSERT INTO \`notifications\` (user_id, type, title, message, icon_type, action_type, action_id, is_read, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [uId, sn.type, sn.title, sn.message, sn.icon_type, sn.action_type, sn.action_id, sn.is_read, createdAt]
+          );
+        }
+      }
+      console.log('🌱 Sample notifications seeded successfully!');
     }
 
     console.log('✅ Database migrations completed successfully!');
