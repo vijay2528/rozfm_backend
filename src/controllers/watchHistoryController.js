@@ -22,7 +22,7 @@ class WatchHistoryController {
     try {
       const userId = req.user.id;
       const [historyRows] = await pool.query(
-        `SELECT w.*, s.title as story_title, s.cover_image_path, e.title as episode_title, e.episode_number as episode_position, e.duration as episode_duration
+        `SELECT w.*, s.title as story_title, s.cover_image_path, e.title as episode_title, COALESCE(e.position, 1) as episode_position, COALESCE(e.duration_seconds, 0) as episode_duration
          FROM watch_histories w
          JOIN stories s ON w.story_id = s.id
          LEFT JOIN episodes e ON w.episode_id = e.id
@@ -87,7 +87,7 @@ class WatchHistoryController {
       // Fetch episode info if episodeId is provided
       let epDuration = 0;
       if (episodeId) {
-        const [epRows] = await pool.query('SELECT story_id, duration FROM episodes WHERE id = ? LIMIT 1', [episodeId]);
+        const [epRows] = await pool.query('SELECT story_id, COALESCE(duration_seconds, 0) as duration FROM episodes WHERE id = ? LIMIT 1', [episodeId]);
         if (epRows.length > 0) {
           if (!storyId) storyId = epRows[0].story_id;
           epDuration = Number(epRows[0].duration || 0);
@@ -251,7 +251,7 @@ class WatchHistoryController {
       const userId = req.user.id;
       const episodeId = req.params.id;
 
-      const [epRows] = await pool.query('SELECT story_id, duration, episode_number, title FROM episodes WHERE id = ? LIMIT 1', [episodeId]);
+      const [epRows] = await pool.query('SELECT story_id, COALESCE(duration_seconds, 0) as duration, COALESCE(position, 1) as episode_number, title FROM episodes WHERE id = ? LIMIT 1', [episodeId]);
       if (epRows.length === 0) {
         return ApiResponse.error(res, 'Episode not found.', 404);
       }
@@ -318,7 +318,7 @@ class WatchHistoryController {
       const storyId = req.params.id;
 
       const [rows] = await pool.query(
-        `SELECT w.*, e.title as episode_title, e.episode_number as episode_position, e.duration as episode_duration
+        `SELECT w.*, e.title as episode_title, COALESCE(e.position, 1) as episode_position, COALESCE(e.duration_seconds, 0) as episode_duration
          FROM watch_histories w
          LEFT JOIN episodes e ON w.episode_id = e.id
          WHERE w.user_id = ? AND w.story_id = ?
@@ -428,7 +428,7 @@ class WatchHistoryController {
 
       // Fetch episode details
       const [epRows] = await pool.query(
-        'SELECT id, story_id, duration, episode_number, title FROM episodes WHERE id = ? LIMIT 1',
+        'SELECT id, story_id, COALESCE(duration_seconds, 0) as duration, COALESCE(position, 1) as episode_number, title FROM episodes WHERE id = ? LIMIT 1',
         [episodeId]
       );
 
