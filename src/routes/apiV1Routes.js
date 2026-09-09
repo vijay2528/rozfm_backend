@@ -22,6 +22,7 @@ const SubscriptionController = require('../controllers/subscriptionController');
 const LocationController = require('../controllers/locationController');
 const UserController = require('../controllers/userController');
 const BankController = require('../controllers/bankController');
+const StreakController = require('../controllers/streakController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -169,6 +170,14 @@ router.get('/episodes/:id/progress', WatchHistoryController.getEpisodeProgress);
 router.get('/stories/:id/progress', WatchHistoryController.getStoryProgress);
 router.get('/user/listening-stats', WatchHistoryController.getUserListeningStats);
 router.post('/episodes/:id/unlock', EpisodeController.unlock);
+
+// Streak & Daily Goal API
+router.get('/streak', StreakController.index);
+router.post('/streak/claim-daily', StreakController.claimDailyReward);
+router.post('/streak/claim-milestone', StreakController.claimMilestone);
+router.post('/streak/use-shield', StreakController.useShield);
+router.get('/streak/activity', StreakController.getActivityCalendar);
+router.get('/streak/date-details', StreakController.getDateDetails);
 
 // Wallet & Monetization
 router.get('/wallet', WalletController.show);

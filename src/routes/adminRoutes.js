@@ -13,6 +13,7 @@ const AdminLanguageController = require('../controllers/admin/languageController
 const AdminRoleController = require('../controllers/admin/roleController');
 const AdminAuthController = require('../controllers/admin/authController');
 const AdminLocationController = require('../controllers/admin/locationController');
+const AdminStreakSettingsController = require('../controllers/admin/streakSettingsController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -93,6 +94,9 @@ router.delete('/comments/:id', AdminModerationController.deleteComment);
 // ── 8. Notifications & System Settings ───────────────────────────────────────
 router.get('/settings', AdminSettingsController.getSettings);
 router.post('/settings', AdminSettingsController.updateSettings);
+router.get('/streak-settings', AdminStreakSettingsController.getSettings);
+router.post('/streak-settings', AdminStreakSettingsController.updateSettings);
+router.put('/streak-settings', AdminStreakSettingsController.updateSettings);
 router.post('/notifications/send', AdminSettingsController.sendNotification);
 
 router.post('/faqs', AdminSettingsController.storeFaq);

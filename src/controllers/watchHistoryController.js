@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
+const StreakService = require('../services/streakService');
 
 function formatTime(seconds) {
   const s = Math.max(0, parseInt(seconds, 10) || 0);
@@ -147,6 +148,13 @@ class WatchHistoryController {
         await pool.query('UPDATE stories SET total_views = total_views + 1, listeners_count = listeners_count + 1 WHERE id = ?', [storyId]);
       }
 
+      // Record daily streak listening progress asynchronously
+      if (secondsListened > 0) {
+        StreakService.recordListeningTime(userId, secondsListened).catch((err) =>
+          console.error('Streak auto-track error:', err)
+        );
+      }
+
       return ApiResponse.success(res, {
         watch_history_id: Number(recordId),
         user_id: Number(userId),
@@ -210,6 +218,13 @@ class WatchHistoryController {
           `INSERT INTO watch_histories (user_id, story_id, episode_id, total_seconds_listened, last_watched_at)
            VALUES (?, ?, ?, ?, NOW())`,
           [userId, resolvedStoryId, episode_id || null, secondsToAdd]
+        );
+      }
+
+      // Record daily streak listening progress asynchronously
+      if (secondsToAdd > 0) {
+        StreakService.recordListeningTime(userId, secondsToAdd).catch((err) =>
+          console.error('Streak auto-track error:', err)
         );
       }
 

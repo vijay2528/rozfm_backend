@@ -723,6 +723,97 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 31. User Streaks table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`user_streaks\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL UNIQUE,
+        \`current_streak_days\` INT DEFAULT 0,
+        \`best_streak_days\` INT DEFAULT 0,
+        \`total_energy\` INT DEFAULT 0,
+        \`shields_available\` INT DEFAULT 1,
+        \`shield_progress_days\` INT DEFAULT 0,
+        \`last_active_date\` DATE NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT \`fk_user_streaks_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 32. User Daily Activity table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`user_daily_activity\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`activity_date\` DATE NOT NULL,
+        \`listened_seconds\` INT DEFAULT 0,
+        \`goal_minutes\` INT DEFAULT 15,
+        \`is_goal_completed\` TINYINT(1) DEFAULT 0,
+        \`is_reward_claimed\` TINYINT(1) DEFAULT 0,
+        \`is_shield_used\` TINYINT(1) DEFAULT 0,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY \`user_daily_activity_unique\` (\`user_id\`, \`activity_date\`),
+        CONSTRAINT \`fk_daily_activity_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 33. User Streak Milestones table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`user_streak_milestones\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`milestone_id\` INT NOT NULL,
+        \`is_collected\` TINYINT(1) DEFAULT 0,
+        \`collected_at\` DATETIME NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY \`user_streak_milestone_unique\` (\`user_id\`, \`milestone_id\`),
+        CONSTRAINT \`fk_streak_milestones_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 34. User Streak Achievements table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`user_streak_achievements\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`achievement_id\` INT NOT NULL,
+        \`is_earned\` TINYINT(1) DEFAULT 0,
+        \`earned_at\` DATETIME NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY \`user_streak_achievement_unique\` (\`user_id\`, \`achievement_id\`),
+        CONSTRAINT \`fk_streak_achievements_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Seed default streak settings into settings table if not present
+    const defaultStreakSettings = [
+      { key: 'streak_daily_goal_minutes', value: '15' },
+      { key: 'streak_daily_reward_coins', value: '5' },
+      { key: 'streak_encouragement_quote', value: "You're building serious energy!" },
+      { key: 'streak_milestone_1_days', value: '3' },
+      { key: 'streak_milestone_1_reward', value: '10' },
+      { key: 'streak_milestone_1_name', value: 'First Spark' },
+      { key: 'streak_milestone_2_days', value: '7' },
+      { key: 'streak_milestone_2_reward', value: '25' },
+      { key: 'streak_milestone_2_name', value: 'Power Listener' },
+      { key: 'streak_milestone_3_days', value: '15' },
+      { key: 'streak_milestone_3_reward', value: '50' },
+      { key: 'streak_milestone_3_name', value: 'Energy Master' },
+      { key: 'streak_milestone_4_days', value: '30' },
+      { key: 'streak_milestone_4_reward', value: '100' },
+      { key: 'streak_milestone_4_name', value: 'Legendary' }
+    ];
+
+    for (const setting of defaultStreakSettings) {
+      await connection.query(
+        `INSERT INTO settings (\`key\`, \`value\`) VALUES (?, ?) ON DUPLICATE KEY UPDATE \`value\` = \`value\``,
+        [setting.key, setting.value]
+      );
+    }
+
     console.log('✅ Database migrations completed successfully!');
   } catch (error) {
     console.error('❌ Migration failed:', error);

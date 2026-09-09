@@ -1391,6 +1391,124 @@
           }
         }
       ]
+    },
+    {
+      "name": "Streak API",
+      "item": [
+        {
+          "name": "Get Streak Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/streak",
+              "host": ["{{base_url}}"],
+              "path": ["streak"]
+            },
+            "description": "Fetch user streak overview, today goal, week calendar, next reward, journey milestones, shield info, achievements, FAQs, and pre-formatted bottom sheets data."
+          }
+        },
+        {
+          "name": "Claim Daily Goal Reward",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/streak/claim-daily",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "claim-daily"]
+            },
+            "description": "Claim today's completed daily goal energy reward (+5 Energy/Coins)."
+          }
+        },
+        {
+          "name": "Claim Journey Milestone Reward",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"milestone_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/streak/claim-milestone",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "claim-milestone"]
+            },
+            "description": "Claim streak journey milestone reward (milestone_id 1=3 days, 2=7 days, 3=15 days, 4=30 days)."
+          }
+        },
+        {
+          "name": "Use Streak Shield",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_date\": \"2026-07-23\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/streak/use-shield",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "use-shield"]
+            },
+            "description": "Activate 1 available Streak Shield to protect a missed date without breaking streak."
+          }
+        },
+        {
+          "name": "Get Activity Calendar",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/streak/activity?year=2026&month=7",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "activity"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "7" }
+              ]
+            },
+            "description": "Fetch calendar activity grid for a specific month."
+          }
+        },
+        {
+          "name": "Get Date Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/streak/date-details?date=2026-07-26",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "date-details"],
+              "query": [
+                { "key": "date", "value": "2026-07-26" }
+              ]
+            },
+            "description": "Fetch date detail summary for bottom sheet."
+          }
+        }
+      ]
     }
   ]
 }
