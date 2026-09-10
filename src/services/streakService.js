@@ -244,8 +244,8 @@ class StreakService {
     const listenedSeconds = todayRows.length > 0 ? Number(todayRows[0].listened_seconds || 0) : 0;
     const listenedMinutes = Math.floor(listenedSeconds / 60);
     const goalMinutes = settings.daily_goal_minutes;
-    const todayPercentage = Math.min(100, Math.round((listenedMinutes / goalMinutes) * 100));
-    const minutesLeft = Math.max(0, goalMinutes - listenedMinutes);
+    const goalSeconds = goalMinutes * 60;
+    const todayPercentage = Math.min(100, Math.round((listenedSeconds / goalSeconds) * 100));
     const isClaimed = todayRows.length > 0 ? Boolean(todayRows[0].is_reward_claimed) : false;
 
     // 2. Best streak & this month completed days
@@ -298,6 +298,9 @@ class StreakService {
       const isPast = dateObj < new Date(todayStr);
 
       const act = weekActMap[dStr];
+      const actListenedSecs = act ? Number(act.listened_seconds || 0) : 0;
+      const actListenedMins = Math.floor(actListenedSecs / 60);
+
       let status = 'missed';
       let statusLabel = 'MISSED';
       let energy = 0;
@@ -335,6 +338,8 @@ class StreakService {
         status: status,
         status_label: statusLabel,
         energy: energy,
+        reward: 'Standard Day',
+        listening: `${Math.min(actListenedMins, goalMinutes)}/${goalMinutes}`,
       };
     });
 
@@ -365,6 +370,12 @@ class StreakService {
         ? 'Unlocked'
         : `${daysLeft} days left`;
 
+      let status = isCollected
+        ? 'Collected'
+        : currentStreakDays >= m.days_required
+        ? 'Unlocked'
+        : 'Locked';
+
       return {
         id: m.id,
         days_title: `${m.days_required} DAYS`,
@@ -373,6 +384,8 @@ class StreakService {
         status_text: statusText,
         is_collected: isCollected,
         is_current_target: isCurrentTarget,
+        progress: `${Math.min(currentStreakDays, m.days_required)}/${m.days_required}`,
+        status: status,
       };
     });
 
@@ -400,17 +413,15 @@ class StreakService {
       screen_data: {
         streak_overview: {
           current_streak_days: currentStreakDays,
-          encouragement_quote: settings.encouragement_quote,
           total_energy: Number(userStreak.total_energy || 0),
           best_streak_days: Number(userStreak.best_streak_days || 0),
           this_month_days: Number(thisMonthDays || 0),
+          today_reward: settings.daily_reward_coins,
+          next_milestone_reward: nextMilestone.reward_coins,
         },
         today_goal: {
           today_listened_seconds: listenedSeconds,
-          today_listened_minutes: listenedMinutes,
-          today_goal_minutes: goalMinutes,
-          today_percentage: todayPercentage,
-          minutes_left_to_power_up: minutesLeft,
+          today_goal_seconds: goalSeconds,
           today_reward_energy: settings.daily_reward_coins,
           is_claimed: isClaimed,
         },
@@ -420,6 +431,12 @@ class StreakService {
           next_reward_energy: nextMilestone.reward_coins,
           current_streak_days: currentStreakDays,
           days_left_to_unlock: daysLeftToUnlock,
+          energy_reward: nextMilestone.reward_coins,
+          energy_reward_text: `+${nextMilestone.reward_coins} Energy`,
+          required_streak_days: nextMilestone.days_required,
+          required_streak_text: `${nextMilestone.days_required} days`,
+          current_progress_text: `${currentStreakDays} / ${nextMilestone.days_required}`,
+          status_text: `${daysLeftToUnlock} days left`,
         },
         journey_milestones: journeyMilestones,
         streak_shield: {
