@@ -308,7 +308,12 @@
           "name": "Get Home Feed",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/home", "host": ["{{base_url}}"], "path": ["home"] }
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/home", "host": ["{{base_url}}"], "path": ["home"] },
+            "description": "Fetch mobile app home feed (Continue Listening with story progress_percentage & average_progress_percentage for card red progress bars, Recommended for You, Trending, New Releases, Top 10, Updated Today, Because You Listened, Popular, Free Stories)."
           }
         },
         {
@@ -460,21 +465,20 @@
           }
         },
         {
-          "name": "List Story Episodes (with Filters)",
+          "name": "List Story Episodes (with Progress & Last Resume Episode)",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/stories/1/episodes?filter=locked&page=1&limit=10",
+              "raw": "{{base_url}}/stories/1/episodes?filter=unlocked&page=1&limit=10",
               "host": ["{{base_url}}"],
               "path": ["stories", "1", "episodes"],
               "query": [
-                { "key": "filter", "value": "locked", "description": "Filter options: locked, unlocked, scheduled, downloadable" },
+                { "key": "filter", "value": "unlocked", "description": "Filter options: locked, unlocked, scheduled, downloadable" },
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "10" }
               ]
             },
-            "description": "Fetch paginated episodes for a specific story with optional filters (locked, unlocked, scheduled, downloadable)."
+            "description": "Fetch paginated episodes for a story with playback progress (progress_seconds, remaining_seconds, remaining_formatted, completion_percentage, is_completed) for every episode, and top-level last_watched_episode / last_resume_episode object."
           }
         },
         {

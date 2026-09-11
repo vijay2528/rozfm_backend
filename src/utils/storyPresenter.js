@@ -34,7 +34,33 @@ function formatDuration(seconds) {
   return `${remSec}s`;
 }
 
-function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true) {
+function formatTime(seconds) {
+  const s = Math.max(0, Math.floor(Number(seconds) || 0));
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  if (hrs > 0) {
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function formatRemainingTime(seconds) {
+  const s = Math.max(0, Math.floor(Number(seconds) || 0));
+  if (s === 0) return '0s remaining';
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  if (hrs > 0) {
+    return `${hrs}h ${mins}m remaining`;
+  }
+  if (mins > 0) {
+    return `${mins}m ${secs}s remaining`;
+  }
+  return `${secs}s remaining`;
+}
+
+function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, progressData = null) {
   const durationMins = episode.duration_minutes !== null && episode.duration_minutes !== undefined
     ? Number(episode.duration_minutes)
     : (episode.duration_seconds ? Number((episode.duration_seconds / 60).toFixed(2)) : null);
@@ -51,6 +77,29 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true) {
     : true;
   const isDown = hasAudio && isDownAllowed && isUnl;
 
+  const totalDurationSecs = Number(episode.duration_seconds || (progressData ? progressData.total_duration_seconds : 0) || 0);
+  const progressSecs = progressData ? Number(progressData.progress_seconds || 0) : 0;
+  const remainingSecs = Math.max(0, totalDurationSecs - progressSecs);
+
+  let completionPct = 0;
+  if (progressData && progressData.completion_percentage !== undefined && progressData.completion_percentage !== null) {
+    completionPct = Number(progressData.completion_percentage);
+  } else if (totalDurationSecs > 0) {
+    completionPct = parseFloat(((progressSecs / totalDurationSecs) * 100).toFixed(2));
+    if (completionPct > 100) completionPct = 100;
+  }
+
+  const isComp = progressData ? Boolean(progressData.completed || completionPct >= 90) : false;
+  const isLastW = progressData ? Boolean(progressData.is_last_watched) : false;
+  let statusStr = 'unwatched';
+  if (isComp) {
+    statusStr = 'completed';
+  } else if (progressData && (progressData.status || progressSecs > 0)) {
+    statusStr = progressData.status || 'playing';
+  }
+
+  const lastWatchedAtStr = progressData && progressData.last_watched_at ? new Date(progressData.last_watched_at).toISOString() : null;
+
   return {
     episode_id: Number(episode.id),
     story_id: Number(episode.story_id),
@@ -65,7 +114,8 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true) {
     description: episode.description || null,
     publish_as: episode.publish_as || 'publish_now',
     scheduled_at: episode.scheduled_at || null,
-    duration_seconds: Number(episode.duration_seconds || 0),
+    duration_seconds: totalDurationSecs,
+    duration_formatted: formatTime(totalDurationSecs),
     duration_minutes: durationMins,
     type: episode.is_premium ? 'premium' : 'free',
     coins: coinVal,
@@ -78,6 +128,30 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true) {
     audio_status: hasAudio ? 'uploaded' : 'missing',
     published_date: episode.published_at || episode.created_at,
     plays: Number(episode.plays_count || 0),
+
+    // Playback Progress & Resume Fields
+    progress_seconds: progressSecs,
+    progress_formatted: formatTime(progressSecs),
+    remaining_seconds: remainingSecs,
+    remaining_formatted: formatRemainingTime(remainingSecs),
+    completion_percentage: completionPct,
+    is_completed: isComp,
+    is_last_watched: isLastW,
+    playback_status: statusStr,
+    last_watched_at: lastWatchedAtStr,
+    progress: {
+      progress_seconds: progressSecs,
+      progress_formatted: formatTime(progressSecs),
+      total_duration_seconds: totalDurationSecs,
+      total_duration_formatted: formatTime(totalDurationSecs),
+      remaining_seconds: remainingSecs,
+      remaining_formatted: formatRemainingTime(remainingSecs),
+      completion_percentage: completionPct,
+      status: statusStr,
+      is_completed: isComp,
+      is_last_watched: isLastW,
+      last_watched_at: lastWatchedAtStr,
+    },
   };
 }
 
@@ -90,6 +164,7 @@ function toStoryFieldsArray(story, options = {}) {
     performance = null,
     completionRate = null,
     avgListeningTime = null,
+    watchHistory = null,
   } = options;
 
   const coverUrl = resolveUrl(story.cover_image_path);
@@ -144,6 +219,12 @@ function toStoryFieldsArray(story, options = {}) {
     formatted: formatDuration(avgSecsVal),
   };
 
+  const progressSecs = watchHistory ? Number(watchHistory.progress_seconds || 0) : 0;
+  const totalDurationSecs = watchHistory ? Number(watchHistory.total_duration_seconds || 0) : 0;
+  const remainingSecs = Math.max(0, totalDurationSecs - progressSecs);
+  const completionPct = watchHistory ? Number(watchHistory.completion_percentage || 0) : 0;
+  const avgProgressPct = watchHistory ? Number(watchHistory.average_progress_percentage || completionPct || 0) : 0;
+
   const data = {
     story_id: Number(story.id),
     title: story.title,
@@ -173,6 +254,22 @@ function toStoryFieldsArray(story, options = {}) {
     created_at: story.created_at,
   };
 
+  if (watchHistory) {
+    data.progress_seconds = progressSecs;
+    data.progress_formatted = formatTime(progressSecs);
+    data.total_duration_seconds = totalDurationSecs;
+    data.total_duration_formatted = formatTime(totalDurationSecs);
+    data.remaining_seconds = remainingSecs;
+    data.remaining_formatted = formatRemainingTime(remainingSecs);
+    data.completion_percentage = completionPct;
+    data.progress_percentage = completionPct;
+    data.average_progress_percentage = avgProgressPct;
+    data.last_watched_episode_id = watchHistory.episode_id || null;
+    data.last_watched_episode_no = watchHistory.episode_no || null;
+    data.last_watched_episode_title = watchHistory.episode_title || null;
+    data.last_watched_at = watchHistory.last_watched_at || null;
+  }
+
   if (Array.isArray(episodes)) {
     data.episodes = episodes.map((ep) =>
       toEpisodeFieldsArray(ep, story.title, userUnlockedEpisodeIds.has(Number(ep.id)))
@@ -186,6 +283,8 @@ module.exports = {
   resolveUrl,
   formatNumber,
   formatDuration,
+  formatTime,
+  formatRemainingTime,
   toStoryFieldsArray,
   toEpisodeFieldsArray,
 };

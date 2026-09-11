@@ -5,7 +5,7 @@ const { toEpisodeFieldsArray } = require('../utils/storyPresenter');
 class EpisodeController {
   /**
    * GET /api/v1/episodes or GET /api/v1/stories/:storyId/episodes
-   * Fetch paginated list of episodes with total count
+   * Fetch paginated list of episodes with total count, progress for every episode, and last resume episode
    */
   static async index(req, res) {
     try {
@@ -87,6 +87,9 @@ class EpisodeController {
       );
 
       let userUnlockedEpisodeIds = new Set();
+      let watchHistoryMap = {};
+      let lastWatchedEpisodeId = null;
+
       if (userId && episodes.length > 0) {
         const episodeIds = episodes.map((ep) => ep.id);
         const [unlocks] = await pool.query(
@@ -94,14 +97,70 @@ class EpisodeController {
           [userId, episodeIds]
         );
         unlocks.forEach((u) => userUnlockedEpisodeIds.add(u.episode_id));
+
+        // Query watch history for user
+        let whQuery = 'SELECT * FROM watch_histories WHERE user_id = ? AND episode_id IN (?)';
+        let whParams = [userId, episodeIds];
+
+        if (storyId) {
+          whQuery = 'SELECT * FROM watch_histories WHERE user_id = ? AND story_id = ? ORDER BY last_watched_at DESC';
+          whParams = [userId, storyId];
+        }
+
+        const [whRows] = await pool.query(whQuery, whParams);
+        whRows.forEach((wh) => {
+          if (wh.episode_id) {
+            watchHistoryMap[wh.episode_id] = wh;
+          }
+        });
+
+        // Determine last watched/resumed episode across story
+        if (whRows.length > 0) {
+          const validHistory = whRows.filter((r) => r.episode_id);
+          if (validHistory.length > 0) {
+            lastWatchedEpisodeId = Number(validHistory[0].episode_id);
+          }
+        }
       }
 
       const result = episodes.map((ep) => {
         const isUnlocked = !ep.is_premium || (userId && userUnlockedEpisodeIds.has(ep.id));
-        return toEpisodeFieldsArray(ep, ep.story_title, isUnlocked);
+        const wh = watchHistoryMap[ep.id] || null;
+        const isLastW = Boolean(lastWatchedEpisodeId && ep.id === lastWatchedEpisodeId);
+        const progressData = wh ? { ...wh, is_last_watched: isLastW } : { is_last_watched: isLastW };
+
+        return toEpisodeFieldsArray(ep, ep.story_title, isUnlocked, progressData);
       });
 
+      // Construct last resume / last watched episode object for top-level response
+      let lastWatchedEpisodeObj = null;
+      if (userId && lastWatchedEpisodeId) {
+        let targetEp = episodes.find((e) => e.id === lastWatchedEpisodeId);
+        if (!targetEp) {
+          const [fetched] = await pool.query(
+            `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path
+             FROM episodes e JOIN stories s ON e.story_id = s.id WHERE e.id = ? LIMIT 1`,
+            [lastWatchedEpisodeId]
+          );
+          if (fetched.length > 0) targetEp = fetched[0];
+        }
+
+        if (targetEp) {
+          const wh = watchHistoryMap[targetEp.id] || null;
+          const isUnlocked = !targetEp.is_premium || (userId && userUnlockedEpisodeIds.has(targetEp.id));
+          const progressData = wh ? { ...wh, is_last_watched: true } : { is_last_watched: true };
+          lastWatchedEpisodeObj = toEpisodeFieldsArray(targetEp, targetEp.story_title, isUnlocked, progressData);
+        }
+      } else if (episodes.length > 0) {
+        // Fallback default: If no watch history exists, offer first episode as starting point
+        const firstEp = episodes[0];
+        const isUnlocked = !firstEp.is_premium || (userId && userUnlockedEpisodeIds.has(firstEp.id));
+        lastWatchedEpisodeObj = toEpisodeFieldsArray(firstEp, firstEp.story_title, isUnlocked, { is_last_watched: true });
+      }
+
       return ApiResponse.success(res, {
+        last_watched_episode: lastWatchedEpisodeObj,
+        last_resume_episode: lastWatchedEpisodeObj,
         episodes: result,
         total: count,
         total_number: count,
@@ -161,7 +220,16 @@ class EpisodeController {
         }
       }
 
-      const result = toEpisodeFieldsArray(episode, episode.story_title, isUnlocked);
+      let wh = null;
+      if (userId) {
+        const [whRows] = await pool.query(
+          'SELECT * FROM watch_histories WHERE user_id = ? AND episode_id = ? LIMIT 1',
+          [userId, episodeId]
+        );
+        if (whRows.length > 0) wh = whRows[0];
+      }
+
+      const result = toEpisodeFieldsArray(episode, episode.story_title, isUnlocked, wh);
       return ApiResponse.success(res, { episode: result });
     } catch (error) {
       console.error('Get Episode Error:', error);

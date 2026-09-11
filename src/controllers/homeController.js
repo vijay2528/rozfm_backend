@@ -54,9 +54,20 @@ class HomeController {
       if (userId) {
         const [clRows] = await pool.query(
           `SELECT s.*, c.category_name, u.name as author_name,
-                  (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
+                  (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count,
+                  w.episode_id as wh_episode_id,
+                  w.progress_seconds as wh_progress_seconds,
+                  w.total_duration_seconds as wh_total_duration_seconds,
+                  w.completion_percentage as wh_completion_percentage,
+                  w.status as wh_status,
+                  w.completed as wh_completed,
+                  w.last_watched_at as wh_last_watched_at,
+                  e.title as ep_title,
+                  e.position as ep_position,
+                  COALESCE(e.duration_seconds, w.total_duration_seconds, 0) as ep_duration
            FROM watch_histories w
            JOIN stories s ON w.story_id = s.id
+           LEFT JOIN episodes e ON w.episode_id = e.id
            LEFT JOIN categories c ON s.category_id = c.id
            LEFT JOIN users u ON s.user_id = u.id
            WHERE w.user_id = ? AND w.completed = 0 AND s.status = 'published'
@@ -64,7 +75,50 @@ class HomeController {
            LIMIT 10`,
           [userId]
         );
-        continueListening = clRows.map(mapStory);
+
+        const storyIds = clRows.map((r) => r.id);
+        let avgProgressMap = {};
+
+        if (storyIds.length > 0) {
+          const [avgRows] = await pool.query(
+            `SELECT story_id, AVG(completion_percentage) as avg_completion
+             FROM watch_histories
+             WHERE user_id = ? AND story_id IN (?)
+             GROUP BY story_id`,
+            [userId, storyIds]
+          );
+          avgRows.forEach((r) => {
+            avgProgressMap[r.story_id] = parseFloat(Number(r.avg_completion || 0).toFixed(2));
+          });
+        }
+
+        continueListening = clRows.map((s) => {
+          const progressSecs = Number(s.wh_progress_seconds || 0);
+          const totalSecs = Number(s.ep_duration || s.wh_total_duration_seconds || 0);
+          let compPct = Number(s.wh_completion_percentage || 0);
+          if (compPct === 0 && totalSecs > 0) {
+            compPct = parseFloat(((progressSecs / totalSecs) * 100).toFixed(2));
+          }
+          const avgCompPct = avgProgressMap[s.id] !== undefined ? avgProgressMap[s.id] : compPct;
+
+          const watchHistoryData = {
+            episode_id: s.wh_episode_id ? Number(s.wh_episode_id) : null,
+            episode_no: s.ep_position ? Number(s.ep_position) : 1,
+            episode_title: s.ep_title || null,
+            progress_seconds: progressSecs,
+            total_duration_seconds: totalSecs,
+            completion_percentage: compPct,
+            average_progress_percentage: avgCompPct,
+            status: s.wh_status || 'playing',
+            last_watched_at: s.wh_last_watched_at ? new Date(s.wh_last_watched_at).toISOString() : null,
+          };
+
+          return toStoryFieldsArray(s, {
+            isLiked: userLikedIds.has(s.id),
+            isBookmarked: userBookmarkedIds.has(s.id),
+            watchHistory: watchHistoryData,
+          });
+        });
       }
 
       // ── 2. Recommended for You ─────────────────────────────────────────────
