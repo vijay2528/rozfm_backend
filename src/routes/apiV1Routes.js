@@ -182,13 +182,33 @@ router.get('/stories/:id/progress', WatchHistoryController.getStoryProgress);
 router.get('/user/listening-stats', WatchHistoryController.getUserListeningStats);
 router.post('/episodes/:id/unlock', EpisodeController.unlock);
 
-// Streak & Daily Goal API
+// Streak & Daily Goal API (My-Streak-Complete-Guide compliant)
 router.get('/streak', StreakController.index);
+router.get('/user/streak-summary', StreakController.getSummary);
+
+router.get('/listening/today-status', StreakController.getTodayStatus);
+router.post('/listening/heartbeat', StreakController.heartbeat);
+
 router.post('/streak/claim-daily', StreakController.claimDailyReward);
+router.post('/rewards/claim-daily', StreakController.claimDailyReward);
+
 router.post('/streak/claim-milestone', StreakController.claimMilestone);
+router.post('/rewards/claim-milestone', StreakController.claimMilestone);
+
 router.post('/streak/use-shield', StreakController.useShield);
+router.post('/streak/protect-day', StreakController.useShield);
+router.get('/streak/shield-status', StreakController.getShieldStatus);
+
+router.get('/user/weekly-activity', StreakController.getWeeklyActivity);
+
+router.get('/streak/next-milestone', StreakController.getNextMilestone);
+router.get('/streak/milestones', StreakController.getMilestones);
+
 router.get('/streak/activity', StreakController.getActivityCalendar);
+router.get('/user/streak-calendar', StreakController.getActivityCalendar);
 router.get('/streak/date-details', StreakController.getDateDetails);
+
+router.get('/user/achievements', StreakController.getAchievements);
 
 // Wallet & Monetization
 router.get('/wallet', WalletController.show);

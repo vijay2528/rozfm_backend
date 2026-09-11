@@ -1,6 +1,20 @@
 const { pool } = require('../config/db');
 
+function getLocalDateString(dateObj = new Date(), timeZone = 'Asia/Kolkata') {
+  const d = new Date(dateObj);
+  const options = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone };
+  const formatter = new Intl.DateTimeFormat('en-CA', options); // returns YYYY-MM-DD
+  return formatter.format(d);
+}
+
 class StreakService {
+  /**
+   * Helper to format dates consistently in IST/local timezone
+   */
+  static getTodayDateString(timeZone = 'Asia/Kolkata') {
+    return getLocalDateString(new Date(), timeZone);
+  }
+
   /**
    * Fetch current streak settings from admin settings table
    */
@@ -103,23 +117,29 @@ class StreakService {
 
   /**
    * Record listening seconds for today and auto-update streak goal
+   * Note: Enforces Section C.4 anti-cheat cap (max 60 seconds per single heartbeat ping)
    */
   static async recordListeningTime(userId, seconds) {
-    if (!seconds || seconds <= 0) return;
+    const rawSeconds = Math.max(0, parseInt(seconds, 10) || 0);
+    if (rawSeconds <= 0) return null;
+
+    // Sanity check (C.4 anti-cheat): cap single heartbeat to max 60 seconds
+    const secondsToAdd = Math.min(rawSeconds, 60);
 
     const settings = await this.getStreakSettings();
     const goalSeconds = settings.daily_goal_minutes * 60;
+    const todayStr = this.getTodayDateString();
 
     const [todayRows] = await pool.query(
-      'SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = CURDATE() LIMIT 1',
-      [userId]
+      'SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = ? LIMIT 1',
+      [userId, todayStr]
     );
 
-    let newListenedSeconds = seconds;
+    let newListenedSeconds = secondsToAdd;
     let wasCompletedBefore = false;
 
     if (todayRows.length > 0) {
-      newListenedSeconds = Number(todayRows[0].listened_seconds || 0) + seconds;
+      newListenedSeconds = Number(todayRows[0].listened_seconds || 0) + secondsToAdd;
       wasCompletedBefore = Boolean(todayRows[0].is_goal_completed);
 
       const isCompleted = newListenedSeconds >= goalSeconds ? 1 : 0;
@@ -134,23 +154,30 @@ class StreakService {
       const isCompleted = newListenedSeconds >= goalSeconds ? 1 : 0;
       await pool.query(
         `INSERT INTO user_daily_activity (user_id, activity_date, listened_seconds, goal_minutes, is_goal_completed)
-         VALUES (?, CURDATE(), ?, ?, ?)`,
-        [userId, newListenedSeconds, settings.daily_goal_minutes, isCompleted]
+         VALUES (?, ?, ?, ?, ?)`,
+        [userId, todayStr, newListenedSeconds, settings.daily_goal_minutes, isCompleted]
       );
     }
 
     // Recalculate streak stats if goal newly completed today
-    if (newListenedSeconds >= goalSeconds && !wasCompletedBefore) {
-      await this.recalculateStreak(userId);
-    }
+    const isNewlyCompleted = newListenedSeconds >= goalSeconds && !wasCompletedBefore;
+    await this.recalculateStreak(userId, isNewlyCompleted);
+
+    return {
+      today_listened_seconds: newListenedSeconds,
+      today_goal_seconds: goalSeconds,
+      is_goal_completed: newListenedSeconds >= goalSeconds,
+      is_newly_completed: isNewlyCompleted,
+    };
   }
 
   /**
    * Recalculate user streak based on consecutive completed/shielded days
    */
-  static async recalculateStreak(userId) {
+  static async recalculateStreak(userId, isNewCompletionToday = false) {
     const userStreak = await this.ensureUserStreak(userId);
     const settings = await this.getStreakSettings();
+    const todayStr = this.getTodayDateString();
 
     const [activities] = await pool.query(
       `SELECT activity_date, is_goal_completed, is_shield_used
@@ -162,11 +189,9 @@ class StreakService {
 
     const activityMap = {};
     activities.forEach((act) => {
-      const dateStr = new Date(act.activity_date).toISOString().split('T')[0];
+      const dateStr = getLocalDateString(act.activity_date);
       activityMap[dateStr] = act;
     });
-
-    const todayStr = new Date().toISOString().split('T')[0];
 
     // Determine current streak
     let streakCount = 0;
@@ -180,7 +205,7 @@ class StreakService {
     }
 
     while (true) {
-      const dStr = checkDate.toISOString().split('T')[0];
+      const dStr = getLocalDateString(checkDate);
       const act = activityMap[dStr];
       if (act && (act.is_goal_completed || act.is_shield_used)) {
         streakCount++;
@@ -195,9 +220,7 @@ class StreakService {
     let shieldProgress = Number(userStreak.shield_progress_days || 0);
     let shieldsAvailable = Number(userStreak.shields_available || 0);
 
-    const lastActiveStr = userStreak.last_active_date ? new Date(userStreak.last_active_date).toISOString().split('T')[0] : null;
-
-    if (todayAct && todayAct.is_goal_completed && lastActiveStr !== todayStr) {
+    if (isNewCompletionToday) {
       shieldProgress += 1;
       if (shieldProgress >= 7) {
         shieldProgress = 0;
@@ -209,9 +232,9 @@ class StreakService {
 
     await pool.query(
       `UPDATE user_streaks
-       SET current_streak_days = ?, best_streak_days = ?, shields_available = ?, shield_progress_days = ?, last_active_date = CURDATE()
+       SET current_streak_days = ?, best_streak_days = ?, shields_available = ?, shield_progress_days = ?, last_active_date = ?
        WHERE user_id = ?`,
-      [streakCount, newBestStreak, shieldsAvailable, shieldProgress, userId]
+      [streakCount, newBestStreak, shieldsAvailable, shieldProgress, todayStr, userId]
     );
 
     // Check & earn achievements
@@ -225,32 +248,26 @@ class StreakService {
         );
       }
     }
+
+    return {
+      current_streak_days: streakCount,
+      best_streak_days: newBestStreak,
+      shields_available: shieldsAvailable,
+      shield_progress_days: shieldProgress,
+    };
   }
 
   /**
-   * Get main screen & bottom sheet data for authenticated user
+   * GET /user/streak-summary
    */
-  static async getFullStreakData(userId) {
+  static async getSummary(userId) {
     const userStreak = await this.ensureUserStreak(userId);
     const settings = await this.getStreakSettings();
+    const todayStr = this.getTodayDateString();
 
-    // 1. Fetch Today's Activity
-    const todayStr = new Date().toISOString().split('T')[0];
-    const [todayRows] = await pool.query(
-      'SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = CURDATE() LIMIT 1',
-      [userId]
-    );
-
-    const listenedSeconds = todayRows.length > 0 ? Number(todayRows[0].listened_seconds || 0) : 0;
-    const listenedMinutes = Math.floor(listenedSeconds / 60);
-    const goalMinutes = settings.daily_goal_minutes;
-    const goalSeconds = goalMinutes * 60;
-    const todayPercentage = Math.min(100, Math.round((listenedSeconds / goalSeconds) * 100));
-    const isClaimed = todayRows.length > 0 ? Boolean(todayRows[0].is_reward_claimed) : false;
-
-    // 2. Best streak & this month completed days
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
+    const [nowParts] = await pool.query('SELECT MONTH(?) as currentMonth, YEAR(?) as currentYear', [todayStr, todayStr]);
+    const currentMonth = nowParts[0].currentMonth;
+    const currentYear = nowParts[0].currentYear;
 
     const [[{ thisMonthDays }]] = await pool.query(
       `SELECT COUNT(*) as thisMonthDays
@@ -260,22 +277,76 @@ class StreakService {
       [userId, currentMonth, currentYear]
     );
 
-    // 3. Build Week Calendar (Monday to Sunday)
-    const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 is Sun, 1 is Mon...
+    const currentStreakDays = Number(userStreak.current_streak_days || 0);
+    let nextMilestone = settings.milestones.find((m) => m.days_required > currentStreakDays);
+    if (!nextMilestone) {
+      nextMilestone = settings.milestones[settings.milestones.length - 1];
+    }
+
+    return {
+      current_streak_days: currentStreakDays,
+      best_streak_days: Number(userStreak.best_streak_days || 0),
+      total_energy: Number(userStreak.total_energy || 0),
+      this_month_days: Number(thisMonthDays || 0),
+      today_reward: settings.daily_reward_coins,
+      next_milestone_reward: nextMilestone.reward_coins,
+    };
+  }
+
+  /**
+   * GET /listening/today-status
+   */
+  static async getTodayStatus(userId) {
+    const settings = await this.getStreakSettings();
+    const todayStr = this.getTodayDateString();
+
+    const [todayRows] = await pool.query(
+      'SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = ? LIMIT 1',
+      [userId, todayStr]
+    );
+
+    const listenedSeconds = todayRows.length > 0 ? Number(todayRows[0].listened_seconds || 0) : 0;
+    const goalMinutes = settings.daily_goal_minutes;
+    const goalSeconds = goalMinutes * 60;
+    const percentage = Math.min(100, Math.round((listenedSeconds / goalSeconds) * 100));
+    const isCompleted = todayRows.length > 0 ? Boolean(todayRows[0].is_goal_completed) : false;
+    const isClaimed = todayRows.length > 0 ? Boolean(todayRows[0].is_reward_claimed) : false;
+
+    return {
+      today_listened_seconds: listenedSeconds,
+      today_goal_seconds: goalSeconds,
+      today_listened_minutes: Math.floor(listenedSeconds / 60),
+      today_goal_minutes: goalMinutes,
+      progress_percentage: percentage,
+      is_goal_completed: isCompleted,
+      is_reward_claimed: isClaimed,
+      reward_energy: settings.daily_reward_coins,
+      encouragement_quote: settings.encouragement_quote,
+    };
+  }
+
+  /**
+   * GET /user/weekly-activity
+   */
+  static async getWeeklyActivity(userId) {
+    const settings = await this.getStreakSettings();
+    const todayStr = this.getTodayDateString();
+
+    const todayObj = new Date();
+    const dayOfWeek = todayObj.getDay(); // 0 is Sun, 1 is Mon...
     const distToMon = (dayOfWeek + 6) % 7;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - distToMon);
+    const mondayObj = new Date(todayObj);
+    mondayObj.setDate(todayObj.getDate() - distToMon);
 
     const weekDates = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
+      const d = new Date(mondayObj);
+      d.setDate(mondayObj.getDate() + i);
       weekDates.push(d);
     }
 
-    const startDateStr = weekDates[0].toISOString().split('T')[0];
-    const endDateStr = weekDates[6].toISOString().split('T')[0];
+    const startDateStr = getLocalDateString(weekDates[0]);
+    const endDateStr = getLocalDateString(weekDates[6]);
 
     const [weekActivities] = await pool.query(
       `SELECT * FROM user_daily_activity
@@ -285,17 +356,18 @@ class StreakService {
 
     const weekActMap = {};
     weekActivities.forEach((wa) => {
-      const dStr = new Date(wa.activity_date).toISOString().split('T')[0];
+      const dStr = getLocalDateString(wa.activity_date);
       weekActMap[dStr] = wa;
     });
 
     const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const goalMinutes = settings.daily_goal_minutes;
 
-    const weekCalendar = weekDates.map((dateObj, idx) => {
-      const dStr = dateObj.toISOString().split('T')[0];
+    return weekDates.map((dateObj, idx) => {
+      const dStr = getLocalDateString(dateObj);
       const dateNum = dateObj.getDate();
       const isToday = dStr === todayStr;
-      const isPast = dateObj < new Date(todayStr);
+      const isPast = dStr < todayStr;
 
       const act = weekActMap[dStr];
       const actListenedSecs = act ? Number(act.listened_seconds || 0) : 0;
@@ -335,13 +407,120 @@ class StreakService {
       return {
         day_name: dayNames[idx],
         date_number: dateNum,
+        date: dStr,
         status: status,
         status_label: statusLabel,
         energy: energy,
-        reward: 'Standard Day',
+        reward: idx === 6 ? 'Sunday Bonus' : 'Standard Day',
         listening: `${Math.min(actListenedMins, goalMinutes)}/${goalMinutes}`,
       };
     });
+  }
+
+  /**
+   * GET /streak/next-milestone
+   */
+  static async getNextMilestone(userId) {
+    const userStreak = await this.ensureUserStreak(userId);
+    const settings = await this.getStreakSettings();
+    const currentStreakDays = Number(userStreak.current_streak_days || 0);
+
+    const [milestonesClaimedRows] = await pool.query(
+      'SELECT milestone_id FROM user_streak_milestones WHERE user_id = ? AND is_collected = 1',
+      [userId]
+    );
+    const claimedMilestoneIds = new Set(milestonesClaimedRows.map((r) => r.milestone_id));
+
+    let nextMilestone = settings.milestones.find((m) => m.days_required > currentStreakDays);
+    if (!nextMilestone) {
+      nextMilestone = settings.milestones[settings.milestones.length - 1];
+    }
+
+    const daysLeftToUnlock = Math.max(0, nextMilestone.days_required - currentStreakDays);
+
+    return {
+      next_reward_day: nextMilestone.days_required,
+      next_reward_energy: nextMilestone.reward_coins,
+      current_streak_days: currentStreakDays,
+      days_left_to_unlock: daysLeftToUnlock,
+      energy_reward: nextMilestone.reward_coins,
+      energy_reward_text: `+${nextMilestone.reward_coins} Energy`,
+      required_streak_days: nextMilestone.days_required,
+      required_streak_text: `${nextMilestone.days_required} days`,
+      current_progress_text: `${currentStreakDays} / ${nextMilestone.days_required}`,
+      status_text: `${daysLeftToUnlock} days left`,
+      is_collected: claimedMilestoneIds.has(nextMilestone.id),
+      milestone_name: nextMilestone.name,
+    };
+  }
+
+  /**
+   * GET /streak/shield-status
+   */
+  static async getShieldStatus(userId) {
+    const userStreak = await this.ensureUserStreak(userId);
+    const shieldsAvailable = Number(userStreak.shields_available || 0);
+    const shieldProgressDays = Number(userStreak.shield_progress_days || 0);
+    const daysLeftToEarnShield = Math.max(0, 7 - shieldProgressDays);
+
+    return {
+      shields_available: shieldsAvailable,
+      max_shields: 2,
+      current_days_progress: shieldProgressDays,
+      target_days_progress: 7,
+      days_left_to_earn: daysLeftToEarnShield,
+      progress_ratio: parseFloat((shieldProgressDays / 7).toFixed(2)),
+    };
+  }
+
+  /**
+   * GET /user/achievements
+   */
+  static async getAchievements(userId) {
+    const userStreak = await this.ensureUserStreak(userId);
+    const settings = await this.getStreakSettings();
+    const currentStreakDays = Number(userStreak.current_streak_days || 0);
+
+    const [earnedAchievementsRows] = await pool.query(
+      'SELECT achievement_id FROM user_streak_achievements WHERE user_id = ? AND is_earned = 1',
+      [userId]
+    );
+    const earnedAchievementIds = new Set(earnedAchievementsRows.map((r) => r.achievement_id));
+
+    return settings.achievements.map((ach) => ({
+      id: ach.id,
+      title: ach.title,
+      streak_requirement: ach.streak_requirement,
+      days_required: ach.days_required,
+      is_earned: earnedAchievementIds.has(ach.id) || currentStreakDays >= ach.days_required,
+    }));
+  }
+
+  /**
+   * Get main screen & bottom sheet data for authenticated user
+   */
+  static async getFullStreakData(userId) {
+    const userStreak = await this.ensureUserStreak(userId);
+    const settings = await this.getStreakSettings();
+    const todayStr = this.getTodayDateString();
+
+    // 1. Fetch Today's Activity
+    const [todayRows] = await pool.query(
+      'SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = ? LIMIT 1',
+      [userId, todayStr]
+    );
+
+    const listenedSeconds = todayRows.length > 0 ? Number(todayRows[0].listened_seconds || 0) : 0;
+    const listenedMinutes = Math.floor(listenedSeconds / 60);
+    const goalMinutes = settings.daily_goal_minutes;
+    const goalSeconds = goalMinutes * 60;
+    const isClaimed = todayRows.length > 0 ? Boolean(todayRows[0].is_reward_claimed) : false;
+
+    // 2. Best streak & this month completed days
+    const summary = await this.getSummary(userId);
+
+    // 3. Build Week Calendar (Monday to Sunday)
+    const weekCalendar = await this.getWeeklyActivity(userId);
 
     // 4. Milestones & Claims
     const [milestonesClaimedRows] = await pool.query(
@@ -390,35 +569,15 @@ class StreakService {
     });
 
     // 5. Achievements
-    const [earnedAchievementsRows] = await pool.query(
-      'SELECT achievement_id FROM user_streak_achievements WHERE user_id = ? AND is_earned = 1',
-      [userId]
-    );
-    const earnedAchievementIds = new Set(earnedAchievementsRows.map((r) => r.achievement_id));
-
-    const achievements = settings.achievements.map((ach) => ({
-      id: ach.id,
-      title: ach.title,
-      streak_requirement: ach.streak_requirement,
-      is_earned: earnedAchievementIds.has(ach.id) || currentStreakDays >= ach.days_required,
-    }));
+    const achievements = await this.getAchievements(userId);
 
     // 6. Streak Shield
-    const shieldsAvailable = Number(userStreak.shields_available || 0);
-    const shieldProgressDays = Number(userStreak.shield_progress_days || 0);
-    const daysLeftToEarnShield = Math.max(0, 7 - shieldProgressDays);
+    const shieldStatus = await this.getShieldStatus(userId);
 
     // Construct Response matching exact user payload specification
     return {
       screen_data: {
-        streak_overview: {
-          current_streak_days: currentStreakDays,
-          total_energy: Number(userStreak.total_energy || 0),
-          best_streak_days: Number(userStreak.best_streak_days || 0),
-          this_month_days: Number(thisMonthDays || 0),
-          today_reward: settings.daily_reward_coins,
-          next_milestone_reward: nextMilestone.reward_coins,
-        },
+        streak_overview: summary,
         today_goal: {
           today_listened_seconds: listenedSeconds,
           today_goal_seconds: goalSeconds,
@@ -439,13 +598,7 @@ class StreakService {
           status_text: `${daysLeftToUnlock} days left`,
         },
         journey_milestones: journeyMilestones,
-        streak_shield: {
-          shields_available: shieldsAvailable,
-          max_shields: 2,
-          current_days_progress: shieldProgressDays,
-          target_days_progress: 7,
-          days_left_to_earn: daysLeftToEarnShield,
-        },
+        streak_shield: shieldStatus,
         achievements: achievements,
         help_faqs: settings.help_faqs,
       },
@@ -474,16 +627,16 @@ class StreakService {
             description: 'Protect one missed listening day without losing your streak.',
           },
           availability: {
-            shields_available: shieldsAvailable,
-            max_shields: 2,
+            shields_available: shieldStatus.shields_available,
+            max_shields: shieldStatus.max_shields,
           },
           next_shield_progress: {
             title: 'Earn Your Next Shield',
-            current_days_progress: shieldProgressDays,
-            target_days_progress: 7,
-            days_left: daysLeftToEarnShield,
-            progress_ratio: parseFloat((shieldProgressDays / 7).toFixed(2)),
-            subtitle: `${daysLeftToEarnShield} more successful listening days to earn 1 Shield.`,
+            current_days_progress: shieldStatus.current_days_progress,
+            target_days_progress: shieldStatus.target_days_progress,
+            days_left: shieldStatus.days_left_to_earn,
+            progress_ratio: shieldStatus.progress_ratio,
+            subtitle: `${shieldStatus.days_left_to_earn} more successful listening days to earn 1 Shield.`,
           },
           rules_cards: [
             {

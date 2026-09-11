@@ -4,7 +4,7 @@ const StreakService = require('../services/streakService');
 
 class StreakController {
   /**
-   * GET /api/v1/streak
+   * GET /streak or GET /user/streak-summary
    * Main streak dashboard data (screen_data + bottom_sheets_data)
    */
   static async index(req, res) {
@@ -19,32 +19,86 @@ class StreakController {
   }
 
   /**
-   * POST /api/v1/streak/claim-daily
-   * Claim today's completed daily goal energy reward
+   * GET /user/streak-summary
+   */
+  static async getSummary(req, res) {
+    try {
+      const userId = req.user.id;
+      const summary = await StreakService.getSummary(userId);
+      return ApiResponse.success(res, summary, 'Streak summary fetched successfully.');
+    } catch (error) {
+      console.error('Get Streak Summary Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch streak summary.', 500);
+    }
+  }
+
+  /**
+   * GET /listening/today-status
+   */
+  static async getTodayStatus(req, res) {
+    try {
+      const userId = req.user.id;
+      const status = await StreakService.getTodayStatus(userId);
+      return ApiResponse.success(res, status, 'Today status fetched successfully.');
+    } catch (error) {
+      console.error('Get Today Status Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch today listening status.', 500);
+    }
+  }
+
+  /**
+   * POST /listening/heartbeat
+   * Audio player ping (Section B.2, C.4)
+   */
+  static async heartbeat(req, res) {
+    try {
+      const userId = req.user.id;
+      const seconds = req.body.seconds || req.body.seconds_listened || req.body.delta_seconds || 15;
+
+      const result = await StreakService.recordListeningTime(userId, seconds);
+      const todayStatus = await StreakService.getTodayStatus(userId);
+
+      return ApiResponse.success(res, {
+        heartbeat_recorded: result,
+        today_status: todayStatus,
+      }, 'Listening heartbeat recorded successfully.');
+    } catch (error) {
+      console.error('Heartbeat Error:', error);
+      return ApiResponse.error(res, 'Failed to record listening heartbeat.', 500);
+    }
+  }
+
+  /**
+   * POST /streak/claim-daily or POST /rewards/claim-daily
+   * Claim today's completed daily goal energy reward (Section C.1 transaction & locking)
    */
   static async claimDailyReward(req, res) {
     try {
       const userId = req.user.id;
       const settings = await StreakService.getStreakSettings();
+      const todayStr = StreakService.getTodayDateString();
 
-      const [todayRows] = await pool.query(
-        'SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = CURDATE() LIMIT 1',
-        [userId]
-      );
-
-      if (todayRows.length === 0 || !todayRows[0].is_goal_completed) {
-        return ApiResponse.error(res, "Today's listening goal is not completed yet.", 422);
-      }
-
-      if (todayRows[0].is_reward_claimed) {
-        return ApiResponse.error(res, "Today's daily streak reward has already been claimed.", 422);
-      }
-
-      const rewardCoins = settings.daily_reward_coins;
       const connection = await pool.getConnection();
+      let rewardCoins = settings.daily_reward_coins;
 
       try {
         await connection.beginTransaction();
+
+        // Lock today's activity row (C.1 race condition protection)
+        const [todayRows] = await connection.query(
+          'SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = ? FOR UPDATE',
+          [userId, todayStr]
+        );
+
+        if (todayRows.length === 0 || !todayRows[0].is_goal_completed) {
+          await connection.rollback();
+          return ApiResponse.error(res, "Today's listening goal is not completed yet.", 422);
+        }
+
+        if (todayRows[0].is_reward_claimed) {
+          await connection.rollback();
+          return ApiResponse.error(res, "Today's daily streak reward has already been claimed.", 422);
+        }
 
         // Mark today as claimed
         await connection.query(
@@ -90,13 +144,13 @@ class StreakController {
   }
 
   /**
-   * POST /api/v1/streak/claim-milestone
-   * Claim journey milestone energy reward (3, 7, 15, 30 days)
+   * POST /streak/claim-milestone or POST /rewards/claim-milestone
+   * Claim journey milestone energy reward (3, 7, 15, 30 days) (Section C.1 transaction & locking)
    */
   static async claimMilestone(req, res) {
     try {
       const userId = req.user.id;
-      const milestoneId = parseInt(req.body.milestone_id, 10);
+      const milestoneId = parseInt(req.body.milestone_id || req.body.id, 10);
 
       if (!milestoneId) {
         return ApiResponse.error(res, 'milestone_id is required.', 422);
@@ -120,28 +174,34 @@ class StreakController {
         );
       }
 
-      const [existingClaim] = await pool.query(
-        'SELECT id FROM user_streak_milestones WHERE user_id = ? AND milestone_id = ? AND is_collected = 1 LIMIT 1',
-        [userId, milestoneId]
-      );
-
-      if (existingClaim.length > 0) {
-        return ApiResponse.error(res, 'Milestone reward already claimed.', 422);
-      }
-
       const rewardCoins = milestone.reward_coins;
       const connection = await pool.getConnection();
 
       try {
         await connection.beginTransaction();
 
-        // Record milestone claim
-        await connection.query(
-          `INSERT INTO user_streak_milestones (user_id, milestone_id, is_collected, collected_at)
-           VALUES (?, ?, 1, NOW())
-           ON DUPLICATE KEY UPDATE is_collected = 1, collected_at = NOW()`,
+        // Row-level lock check for milestone claim (C.1 race condition protection)
+        const [existingClaim] = await connection.query(
+          'SELECT is_collected FROM user_streak_milestones WHERE user_id = ? AND milestone_id = ? FOR UPDATE',
           [userId, milestoneId]
         );
+
+        if (existingClaim.length > 0 && existingClaim[0].is_collected) {
+          await connection.rollback();
+          return ApiResponse.error(res, 'Milestone reward already claimed.', 422);
+        }
+
+        if (existingClaim.length > 0) {
+          await connection.query(
+            'UPDATE user_streak_milestones SET is_collected = 1, collected_at = NOW() WHERE user_id = ? AND milestone_id = ?',
+            [userId, milestoneId]
+          );
+        } else {
+          await connection.query(
+            `INSERT INTO user_streak_milestones (user_id, milestone_id, is_collected, collected_at) VALUES (?, ?, 1, NOW())`,
+            [userId, milestoneId]
+          );
+        }
 
         // Credit user wallet
         await connection.query('UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?', [rewardCoins, userId]);
@@ -183,13 +243,13 @@ class StreakController {
   }
 
   /**
-   * POST /api/v1/streak/use-shield
-   * Use a Streak Shield to protect a missed day
+   * POST /streak/use-shield or POST /streak/protect-day
+   * Use a Streak Shield to protect a missed day (Section B.6)
    */
   static async useShield(req, res) {
     try {
       const userId = req.user.id;
-      const { target_date } = req.body;
+      let dateToShield = req.body.target_date || req.body.date || req.body.date_to_shield;
 
       const userStreak = await StreakService.ensureUserStreak(userId);
       const shieldsAvailable = Number(userStreak.shields_available || 0);
@@ -198,11 +258,11 @@ class StreakController {
         return ApiResponse.error(res, 'No Streak Shields available.', 422);
       }
 
-      let dateToShield = target_date;
       if (!dateToShield) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
-        dateToShield = yesterday.toISOString().split('T')[0];
+        const options = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Kolkata' };
+        dateToShield = new Intl.DateTimeFormat('en-CA', options).format(yesterday);
       }
 
       const [actRows] = await pool.query(
@@ -264,14 +324,115 @@ class StreakController {
   }
 
   /**
-   * GET /api/v1/streak/activity
+   * GET /user/weekly-activity
+   */
+  static async getWeeklyActivity(req, res) {
+    try {
+      const userId = req.user.id;
+      const week = await StreakService.getWeeklyActivity(userId);
+      return ApiResponse.success(res, { week }, 'Weekly activity fetched.');
+    } catch (error) {
+      console.error('Get Weekly Activity Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch weekly activity.', 500);
+    }
+  }
+
+  /**
+   * GET /streak/next-milestone
+   */
+  static async getNextMilestone(req, res) {
+    try {
+      const userId = req.user.id;
+      const milestone = await StreakService.getNextMilestone(userId);
+      return ApiResponse.success(res, milestone, 'Next milestone fetched.');
+    } catch (error) {
+      console.error('Get Next Milestone Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch next milestone.', 500);
+    }
+  }
+
+  /**
+   * GET /streak/milestones
+   */
+  static async getMilestones(req, res) {
+    try {
+      const userId = req.user.id;
+      const settings = await StreakService.getStreakSettings();
+      const userStreak = await StreakService.ensureUserStreak(userId);
+      const currentStreakDays = Number(userStreak.current_streak_days || 0);
+
+      const [milestonesClaimedRows] = await pool.query(
+        'SELECT milestone_id FROM user_streak_milestones WHERE user_id = ? AND is_collected = 1',
+        [userId]
+      );
+      const claimedMilestoneIds = new Set(milestonesClaimedRows.map((r) => r.milestone_id));
+
+      const milestones = settings.milestones.map((m) => {
+        const isCollected = claimedMilestoneIds.has(m.id);
+        const daysLeft = Math.max(0, m.days_required - currentStreakDays);
+
+        return {
+          id: m.id,
+          days_required: m.days_required,
+          name: m.name,
+          reward_coins: m.reward_coins,
+          energy_reward_text: `+${m.reward_coins} Energy`,
+          is_collected: isCollected,
+          is_unlocked: currentStreakDays >= m.days_required,
+          days_left: daysLeft,
+          status: isCollected ? 'Collected' : currentStreakDays >= m.days_required ? 'Unlocked' : 'Locked',
+        };
+      });
+
+      return ApiResponse.success(res, { milestones }, 'Milestones fetched successfully.');
+    } catch (error) {
+      console.error('Get Milestones Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch milestones.', 500);
+    }
+  }
+
+  /**
+   * GET /streak/shield-status
+   */
+  static async getShieldStatus(req, res) {
+    try {
+      const userId = req.user.id;
+      const status = await StreakService.getShieldStatus(userId);
+      return ApiResponse.success(res, status, 'Shield status fetched successfully.');
+    } catch (error) {
+      console.error('Get Shield Status Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch shield status.', 500);
+    }
+  }
+
+  /**
+   * GET /user/achievements
+   */
+  static async getAchievements(req, res) {
+    try {
+      const userId = req.user.id;
+      const achievements = await StreakService.getAchievements(userId);
+      return ApiResponse.success(res, { achievements }, 'Achievements fetched successfully.');
+    } catch (error) {
+      console.error('Get Achievements Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch achievements.', 500);
+    }
+  }
+
+  /**
+   * GET /streak/activity or GET /user/streak-calendar
    * Activity calendar for selected year and month
    */
   static async getActivityCalendar(req, res) {
     try {
       const userId = req.user.id;
-      const year = parseInt(req.query.year || new Date().getFullYear(), 10);
-      const month = parseInt(req.query.month || (new Date().getMonth() + 1), 10);
+      const todayStr = StreakService.getTodayDateString();
+      const todayParts = todayStr.split('-');
+      const defaultYear = parseInt(todayParts[0], 10);
+      const defaultMonth = parseInt(todayParts[1], 10);
+
+      const year = parseInt(req.query.year || defaultYear, 10);
+      const month = parseInt(req.query.month || defaultMonth, 10);
 
       const daysInMonth = new Date(year, month, 0).getDate();
       const startDateStr = `${year}-${String(month).padStart(2, '0')}-01`;
@@ -285,11 +446,13 @@ class StreakController {
 
       const actMap = {};
       activities.forEach((act) => {
-        const dStr = new Date(act.activity_date).toISOString().split('T')[0];
-        actMap[dStr] = act;
+        const dObj = new Date(act.activity_date);
+        const y = dObj.getFullYear();
+        const m = String(dObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dObj.getDate()).padStart(2, '0');
+        actMap[`${y}-${m}-${d}`] = act;
       });
 
-      const todayStr = new Date().toISOString().split('T')[0];
       const monthDays = [];
 
       for (let day = 1; day <= daysInMonth; day++) {
@@ -298,9 +461,9 @@ class StreakController {
 
         let status = 'missed';
         if (act && act.is_goal_completed) status = 'completed';
-        else if (act && act.is_shield_used) status = 'shielded';
+        else if (act && act.is_shield_used) status = 'protected';
         else if (dateStr === todayStr) status = 'today';
-        else if (new Date(dateStr) > new Date(todayStr)) status = 'upcoming';
+        else if (dateStr > todayStr) status = 'upcoming';
 
         monthDays.push({
           date: dateStr,
@@ -323,13 +486,14 @@ class StreakController {
   }
 
   /**
-   * GET /api/v1/streak/date-details
-   * Details for a specific calendar date (bottom sheet #6)
+   * GET /streak/date-details
+   * Details for a specific calendar date
    */
   static async getDateDetails(req, res) {
     try {
       const userId = req.user.id;
-      const targetDate = req.query.date || new Date().toISOString().split('T')[0];
+      const todayStr = StreakService.getTodayDateString();
+      const targetDate = req.query.date || todayStr;
 
       const settings = await StreakService.getStreakSettings();
       const [rows] = await pool.query(
@@ -348,7 +512,7 @@ class StreakController {
       let statusStr = 'Missed';
       if (isCompleted) statusStr = 'Completed';
       else if (isShielded) statusStr = 'Protected (Shield Used)';
-      else if (targetDate === new Date().toISOString().split('T')[0]) statusStr = 'In Progress';
+      else if (targetDate === todayStr) statusStr = 'In Progress';
 
       return ApiResponse.success(res, {
         date: targetDate,

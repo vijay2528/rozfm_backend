@@ -1393,10 +1393,10 @@
       ]
     },
     {
-      "name": "Streak API",
+      "name": "Streak & Daily Goal API",
       "item": [
         {
-          "name": "Get Streak Overview",
+          "name": "Get Full Streak Dashboard",
           "request": {
             "method": "GET",
             "header": [
@@ -1408,7 +1408,60 @@
               "host": ["{{base_url}}"],
               "path": ["streak"]
             },
-            "description": "Fetch user streak overview, today goal, week calendar, next reward, journey milestones, shield info, achievements, FAQs, and pre-formatted bottom sheets data."
+            "description": "Fetch complete user streak overview, today goal, week calendar, next reward, journey milestones, shield info, achievements, FAQs, and bottom sheets data."
+          }
+        },
+        {
+          "name": "Get Streak Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/streak-summary",
+              "host": ["{{base_url}}"],
+              "path": ["user", "streak-summary"]
+            },
+            "description": "Fetch high-level hero card summary (current_streak_days, best_streak_days, total_energy, this_month_days, today_reward, next_milestone_reward)."
+          }
+        },
+        {
+          "name": "Get Today Listening Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/listening/today-status",
+              "host": ["{{base_url}}"],
+              "path": ["listening", "today-status"]
+            },
+            "description": "Fetch today's listening goal progress, listened minutes/seconds, completion status, and reward claimed status."
+          }
+        },
+        {
+          "name": "Post Listening Heartbeat",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seconds\": 15\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/listening/heartbeat",
+              "host": ["{{base_url}}"],
+              "path": ["listening", "heartbeat"]
+            },
+            "description": "Send periodic listening heartbeat from player (every 15-30 seconds). Updates listened time, completes daily goal automatically when target reached, and calculates streak."
           }
         },
         {
@@ -1424,7 +1477,23 @@
               "host": ["{{base_url}}"],
               "path": ["streak", "claim-daily"]
             },
-            "description": "Claim today's completed daily goal energy reward (+5 Energy/Coins)."
+            "description": "Claim today's completed daily goal energy reward (+5 Energy/Coins). Alias: /rewards/claim-daily."
+          }
+        },
+        {
+          "name": "Claim Daily Goal Reward (Alias)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rewards/claim-daily",
+              "host": ["{{base_url}}"],
+              "path": ["rewards", "claim-daily"]
+            },
+            "description": "Claim today's completed daily goal energy reward (+5 Energy/Coins). Alias endpoint."
           }
         },
         {
@@ -1445,11 +1514,11 @@
               "host": ["{{base_url}}"],
               "path": ["streak", "claim-milestone"]
             },
-            "description": "Claim streak journey milestone reward (milestone_id 1=3 days, 2=7 days, 3=15 days, 4=30 days)."
+            "description": "Claim streak journey milestone reward (milestone_id 1=3 days, 2=7 days, 3=15 days, 4=30 days). Alias: /rewards/claim-milestone."
           }
         },
         {
-          "name": "Use Streak Shield",
+          "name": "Claim Journey Milestone Reward (Alias)",
           "request": {
             "method": "POST",
             "header": [
@@ -1459,14 +1528,120 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"target_date\": \"2026-07-23\"\n}"
+              "raw": "{\n  \"milestone_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rewards/claim-milestone",
+              "host": ["{{base_url}}"],
+              "path": ["rewards", "claim-milestone"]
+            },
+            "description": "Claim streak journey milestone reward. Alias endpoint."
+          }
+        },
+        {
+          "name": "Use Streak Shield / Protect Day",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target_date\": \"2026-09-10\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/streak/use-shield",
               "host": ["{{base_url}}"],
               "path": ["streak", "use-shield"]
             },
-            "description": "Activate 1 available Streak Shield to protect a missed date without breaking streak."
+            "description": "Activate 1 available Streak Shield to protect a missed date without breaking streak. Alias: /streak/protect-day."
+          }
+        },
+        {
+          "name": "Protect Day (Shield Alias)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-09-10\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/streak/protect-day",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "protect-day"]
+            },
+            "description": "Protect a missed day using a Streak Shield. Alias endpoint."
+          }
+        },
+        {
+          "name": "Get Shield Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/streak/shield-status",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "shield-status"]
+            },
+            "description": "Fetch streak shield count, max storage limit (2), current days progress, and days left to earn next shield."
+          }
+        },
+        {
+          "name": "Get Weekly Activity Strip",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/weekly-activity",
+              "host": ["{{base_url}}"],
+              "path": ["user", "weekly-activity"]
+            },
+            "description": "Fetch 7-day weekly activity strip data (Monday to Sunday) with day status, listened minutes, and rewards."
+          }
+        },
+        {
+          "name": "Get Next Milestone",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/streak/next-milestone",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "next-milestone"]
+            },
+            "description": "Fetch current target unclaimed milestone and days left to unlock."
+          }
+        },
+        {
+          "name": "Get All Journey Milestones",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/streak/milestones",
+              "host": ["{{base_url}}"],
+              "path": ["streak", "milestones"]
+            },
+            "description": "Fetch all milestone statuses (3, 7, 15, 30 days), requirements, rewards, and claim statuses."
           }
         },
         {
@@ -1478,15 +1653,35 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/streak/activity?year=2026&month=7",
+              "raw": "{{base_url}}/streak/activity?year=2026&month=9",
               "host": ["{{base_url}}"],
               "path": ["streak", "activity"],
               "query": [
                 { "key": "year", "value": "2026" },
-                { "key": "month", "value": "7" }
+                { "key": "month", "value": "9" }
               ]
             },
-            "description": "Fetch calendar activity grid for a specific month."
+            "description": "Fetch calendar activity grid for a specific month. Alias: /user/streak-calendar."
+          }
+        },
+        {
+          "name": "Get Streak Calendar (Alias)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/streak-calendar?year=2026&month=9",
+              "host": ["{{base_url}}"],
+              "path": ["user", "streak-calendar"],
+              "query": [
+                { "key": "year", "value": "2026" },
+                { "key": "month", "value": "9" }
+              ]
+            },
+            "description": "Fetch calendar activity grid for a specific month. Alias endpoint."
           }
         },
         {
@@ -1498,14 +1693,30 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{base_url}}/streak/date-details?date=2026-07-26",
+              "raw": "{{base_url}}/streak/date-details?date=2026-09-11",
               "host": ["{{base_url}}"],
               "path": ["streak", "date-details"],
               "query": [
-                { "key": "date", "value": "2026-07-26" }
+                { "key": "date", "value": "2026-09-11" }
               ]
             },
-            "description": "Fetch date detail summary for bottom sheet."
+            "description": "Fetch date detail summary for calendar bottom sheet."
+          }
+        },
+        {
+          "name": "Get User Achievements",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/achievements",
+              "host": ["{{base_url}}"],
+              "path": ["user", "achievements"]
+            },
+            "description": "Fetch user's earned and locked streak achievements list."
           }
         }
       ]
