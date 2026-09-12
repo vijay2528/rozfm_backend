@@ -172,9 +172,7 @@ router.delete('/watch-history', WatchHistoryController.clear);
 router.delete('/watch-history/:id', WatchHistoryController.destroy);
 
 router.post('/episodes/:id/track-progress', WatchHistoryController.trackProgress);
-router.post('/episodes/:id/play-duration', WatchHistoryController.updatePlayDuration);
 router.post('/episodes/play-duration', WatchHistoryController.updatePlayDuration);
-router.post('/episodes/:id/update-play-duration', WatchHistoryController.updatePlayDuration);
 router.post('/episodes/update-play-duration', WatchHistoryController.updatePlayDuration);
 router.post('/episode/play-duration', WatchHistoryController.updatePlayDuration);
 router.get('/episodes/:id/progress', WatchHistoryController.getEpisodeProgress);
