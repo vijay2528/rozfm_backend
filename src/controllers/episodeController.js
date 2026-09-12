@@ -99,17 +99,17 @@ class EpisodeController {
         unlocks.forEach((u) => userUnlockedEpisodeIds.add(u.episode_id));
 
         // Query watch history for user
-        let whQuery = 'SELECT * FROM watch_histories WHERE user_id = ? AND episode_id IN (?)';
+        let whQuery = 'SELECT * FROM watch_histories WHERE user_id = ? AND episode_id IN (?) ORDER BY COALESCE(last_watched_at, updated_at, created_at) DESC, id DESC';
         let whParams = [userId, episodeIds];
 
         if (storyId) {
-          whQuery = 'SELECT * FROM watch_histories WHERE user_id = ? AND story_id = ? ORDER BY last_watched_at DESC';
+          whQuery = 'SELECT * FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id IS NOT NULL ORDER BY COALESCE(last_watched_at, updated_at, created_at) DESC, id DESC';
           whParams = [userId, storyId];
         }
 
         const [whRows] = await pool.query(whQuery, whParams);
         whRows.forEach((wh) => {
-          if (wh.episode_id) {
+          if (wh.episode_id && !watchHistoryMap[wh.episode_id]) {
             watchHistoryMap[wh.episode_id] = wh;
           }
         });

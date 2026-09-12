@@ -27,7 +27,7 @@ class WatchHistoryController {
          JOIN stories s ON w.story_id = s.id
          LEFT JOIN episodes e ON w.episode_id = e.id
          WHERE w.user_id = ?
-         ORDER BY w.last_watched_at DESC`,
+         ORDER BY COALESCE(w.last_watched_at, w.updated_at, w.created_at) DESC, w.id DESC`,
         [userId]
       );
 
@@ -115,8 +115,10 @@ class WatchHistoryController {
 
       // Check existing watch history row
       const [existing] = await pool.query(
-        'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND (episode_id = ? OR episode_id IS NULL) LIMIT 1',
-        [userId, storyId, episodeId || null]
+        episodeId 
+          ? 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1'
+          : 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id IS NULL LIMIT 1',
+        episodeId ? [userId, storyId, episodeId] : [userId, storyId]
       );
 
       let recordId;
@@ -202,8 +204,10 @@ class WatchHistoryController {
       }
 
       const [existing] = await pool.query(
-        'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND (episode_id = ? OR episode_id IS NULL) LIMIT 1',
-        [userId, resolvedStoryId, episode_id || null]
+        episode_id
+          ? 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1'
+          : 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id IS NULL LIMIT 1',
+        episode_id ? [userId, resolvedStoryId, episode_id] : [userId, resolvedStoryId]
       );
 
       let newTotal = secondsToAdd;
@@ -320,9 +324,9 @@ class WatchHistoryController {
       const [rows] = await pool.query(
         `SELECT w.*, e.title as episode_title, COALESCE(e.position, 1) as episode_position, COALESCE(e.duration_seconds, 0) as episode_duration
          FROM watch_histories w
-         LEFT JOIN episodes e ON w.episode_id = e.id
-         WHERE w.user_id = ? AND w.story_id = ?
-         ORDER BY w.last_watched_at DESC
+         INNER JOIN episodes e ON w.episode_id = e.id
+         WHERE w.user_id = ? AND w.story_id = ? AND w.episode_id IS NOT NULL
+         ORDER BY COALESCE(w.last_watched_at, w.updated_at, w.created_at) DESC, w.id DESC
          LIMIT 1`,
         [userId, storyId]
       );

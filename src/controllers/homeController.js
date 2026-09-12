@@ -1,6 +1,6 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
-const { toStoryFieldsArray } = require('../utils/storyPresenter');
+const { toStoryFieldsArray, toEpisodeFieldsArray } = require('../utils/storyPresenter');
 
 class HomeController {
   static async index(req, res) {
@@ -49,7 +49,7 @@ class HomeController {
         });
 
       // ── 1. Continue Listening ───────────────────────────────────────────────
-      // Logic: In-progress listening (w.completed = 0) ordered by recent listening time
+      // Logic: Recent listening activity per story ordered by last watched time
       let continueListening = [];
       if (userId) {
         const [clRows] = await pool.query(
@@ -61,19 +61,32 @@ class HomeController {
                   w.completion_percentage as wh_completion_percentage,
                   w.status as wh_status,
                   w.completed as wh_completed,
-                  w.last_watched_at as wh_last_watched_at,
+                  COALESCE(w.last_watched_at, w.updated_at, w.created_at) as wh_last_watched_at,
+                  e.id as ep_id,
                   e.title as ep_title,
                   e.position as ep_position,
+                  e.description as ep_description,
+                  e.is_premium as ep_is_premium,
+                  e.coins as ep_coins,
+                  e.audio_path as ep_audio_path,
+                  e.published_at as ep_published_at,
+                  e.created_at as ep_created_at,
                   COALESCE(e.duration_seconds, w.total_duration_seconds, 0) as ep_duration
            FROM watch_histories w
+           INNER JOIN (
+             SELECT story_id, MAX(id) as max_history_id
+             FROM watch_histories
+             WHERE user_id = ? AND episode_id IS NOT NULL
+             GROUP BY story_id
+           ) latest ON w.id = latest.max_history_id
            JOIN stories s ON w.story_id = s.id
            LEFT JOIN episodes e ON w.episode_id = e.id
            LEFT JOIN categories c ON s.category_id = c.id
            LEFT JOIN users u ON s.user_id = u.id
-           WHERE w.user_id = ? AND w.completed = 0 AND s.status = 'published'
-           ORDER BY w.last_watched_at DESC
+           WHERE w.user_id = ? AND s.status IN ('ongoing', 'completed', 'published')
+           ORDER BY COALESCE(w.last_watched_at, w.updated_at, w.created_at) DESC, w.id DESC
            LIMIT 10`,
-          [userId]
+          [userId, userId]
         );
 
         const storyIds = clRows.map((r) => r.id);
@@ -113,10 +126,37 @@ class HomeController {
             last_watched_at: s.wh_last_watched_at ? new Date(s.wh_last_watched_at).toISOString() : null,
           };
 
+          let lastPlayedEpisodeData = null;
+          if (s.wh_episode_id && s.ep_title) {
+            const epObj = {
+              id: s.wh_episode_id,
+              story_id: s.id,
+              title: s.ep_title,
+              position: s.ep_position || 1,
+              description: s.ep_description || null,
+              is_premium: s.ep_is_premium || 0,
+              coins: s.ep_coins || 25,
+              audio_path: s.ep_audio_path || null,
+              published_at: s.ep_published_at || s.ep_created_at,
+              duration_seconds: totalSecs,
+            };
+            const progressObj = {
+              progress_seconds: progressSecs,
+              total_duration_seconds: totalSecs,
+              completion_percentage: compPct,
+              status: s.wh_status || 'playing',
+              completed: Boolean(s.wh_completed),
+              is_last_watched: true,
+              last_watched_at: s.wh_last_watched_at ? new Date(s.wh_last_watched_at).toISOString() : null,
+            };
+            lastPlayedEpisodeData = toEpisodeFieldsArray(epObj, s.title, true, progressObj);
+          }
+
           return toStoryFieldsArray(s, {
             isLiked: userLikedIds.has(s.id),
             isBookmarked: userBookmarkedIds.has(s.id),
             watchHistory: watchHistoryData,
+            lastPlayedEpisode: lastPlayedEpisodeData,
           });
         });
       }
@@ -324,6 +364,7 @@ class HomeController {
       // Construct final response payload using Title Case section names
       return ApiResponse.success(res, {
         'Continue Listening': continueListening,
+        'continue_listening': continueListening,
         'Recommended for You': recommendedForYou,
         'Trending': trending,
         'New Releases': newReleases,

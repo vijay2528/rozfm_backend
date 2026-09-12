@@ -59,7 +59,7 @@ router.get('/cities', LocationController.getCities);
 router.get('/cities/:id', LocationController.getCityById);
 
 // Home, Banners, Plans & Categories
-router.get('/home', HomeController.index);
+router.get('/home', authMiddleware.optional, HomeController.index);
 router.get('/banners', BannerController.index);
 router.get('/categories', CategoryController.index);
 router.get('/plans', PlanController.index);
