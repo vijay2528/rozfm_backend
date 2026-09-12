@@ -187,7 +187,7 @@ router.get('/streak', StreakController.index);
 router.get('/user/streak-summary', StreakController.getSummary);
 
 router.get('/listening/today-status', StreakController.getTodayStatus);
-router.post('/listening/heartbeat', StreakController.heartbeat);
+
 
 router.post('/streak/claim-daily', StreakController.claimDailyReward);
 router.post('/rewards/claim-daily', StreakController.claimDailyReward);

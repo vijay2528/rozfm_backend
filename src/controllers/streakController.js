@@ -46,27 +46,6 @@ class StreakController {
     }
   }
 
-  /**
-   * POST /listening/heartbeat
-   * Audio player ping (Section B.2, C.4)
-   */
-  static async heartbeat(req, res) {
-    try {
-      const userId = req.user.id;
-      const seconds = req.body.seconds || req.body.seconds_listened || req.body.delta_seconds || 15;
-
-      const result = await StreakService.recordListeningTime(userId, seconds);
-      const todayStatus = await StreakService.getTodayStatus(userId);
-
-      return ApiResponse.success(res, {
-        heartbeat_recorded: result,
-        today_status: todayStatus,
-      }, 'Listening heartbeat recorded successfully.');
-    } catch (error) {
-      console.error('Heartbeat Error:', error);
-      return ApiResponse.error(res, 'Failed to record listening heartbeat.', 500);
-    }
-  }
 
   /**
    * POST /streak/claim-daily or POST /rewards/claim-daily
