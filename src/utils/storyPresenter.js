@@ -160,6 +160,7 @@ function toStoryFieldsArray(story, options = {}) {
     isLiked = false,
     isBookmarked = false,
     episodes = null,
+    lastPlayedEpisode = null,
     userUnlockedEpisodeIds = new Set(),
     performance = null,
     completionRate = null,
@@ -268,6 +269,11 @@ function toStoryFieldsArray(story, options = {}) {
     data.last_watched_episode_no = watchHistory.episode_no || null;
     data.last_watched_episode_title = watchHistory.episode_title || null;
     data.last_watched_at = watchHistory.last_watched_at || null;
+  }
+
+  if (lastPlayedEpisode) {
+    data.last_played_episode = lastPlayedEpisode;
+    data.current_playing_episode = lastPlayedEpisode;
   }
 
   if (Array.isArray(episodes)) {
