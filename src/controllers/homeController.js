@@ -293,8 +293,8 @@ class HomeController {
           `SELECT w.story_id, s.category_id, s.title
            FROM watch_histories w
            JOIN stories s ON w.story_id = s.id
-           WHERE w.user_id = ?
-           ORDER BY w.last_watched_at DESC
+           WHERE w.user_id = ? AND w.episode_id IS NOT NULL
+           ORDER BY COALESCE(w.last_watched_at, w.updated_at, w.created_at) DESC, w.id DESC
            LIMIT 1`,
           [userId]
         );

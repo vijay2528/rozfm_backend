@@ -27,7 +27,7 @@ class WatchHistoryController {
          JOIN stories s ON w.story_id = s.id
          LEFT JOIN episodes e ON w.episode_id = e.id
          WHERE w.user_id = ?
-         ORDER BY COALESCE(w.last_watched_at, w.updated_at, w.created_at) DESC, w.id DESC`,
+         ORDER BY w.last_watched_at DESC`,
         [userId]
       );
 
