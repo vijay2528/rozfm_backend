@@ -455,7 +455,7 @@ class WatchHistoryController {
 
       // Upsert into watch_histories
       const [existing] = await pool.query(
-        'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND (episode_id = ? OR episode_id IS NULL) LIMIT 1',
+        'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1',
         [userId, storyId, episodeId]
       );
 
@@ -499,8 +499,8 @@ class WatchHistoryController {
         completed: isCompleted,
       }, 'Episode play duration updated successfully.');
     } catch (error) {
-      console.error('Update Episode Play Duration Error:', error);
-      return ApiResponse.error(res, 'Failed to update episode play duration.', 500);
+      console.error('Update Episode Play Duration Error:', error.message, error.stack);
+      return ApiResponse.error(res, `Failed to update episode play duration: ${error.message}`, 500);
     }
   }
 
