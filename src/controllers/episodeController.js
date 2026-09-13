@@ -104,10 +104,9 @@ class EpisodeController {
           hasActiveMembership = true;
         }
 
-        const episodeIds = episodes.map((ep) => ep.id);
         const [unlocks] = await pool.query(
-          'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ? AND episode_id IN (?)',
-          [userId, episodeIds]
+          'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ?',
+          [userId]
         );
         unlocks.forEach((u) => {
           if (u.episode_id !== null && u.episode_id !== undefined) {
@@ -115,6 +114,19 @@ class EpisodeController {
             userUnlockedEpisodeIds.add(String(u.episode_id));
           }
         });
+
+        const [coinUnlocks] = await pool.query(
+          "SELECT reference_id FROM coin_transactions WHERE user_id = ? AND (type = 'spend' OR type = 'debit') AND reference_id IS NOT NULL AND reference_id != ''",
+          [userId]
+        );
+        coinUnlocks.forEach((c) => {
+          if (c.reference_id !== null && c.reference_id !== undefined && c.reference_id !== '') {
+            userUnlockedEpisodeIds.add(Number(c.reference_id));
+            userUnlockedEpisodeIds.add(String(c.reference_id));
+          }
+        });
+
+        const episodeIds = episodes.map((ep) => ep.id);
 
         // Query watch history for user
         let whQuery = 'SELECT * FROM watch_histories WHERE user_id = ? AND episode_id IN (?) ORDER BY GREATEST(COALESCE(last_watched_at, \'1970-01-01\'), COALESCE(updated_at, \'1970-01-01\'), COALESCE(created_at, \'1970-01-01\')) DESC, id DESC';
@@ -165,14 +177,14 @@ class EpisodeController {
 
         if (targetEp) {
           const wh = watchHistoryMap[targetEp.id] || null;
-          const isUnlocked = !targetEp.is_premium || hasActiveMembership || Boolean(userId && userUnlockedEpisodeIds.has(targetEp.id));
+          const isUnlocked = !targetEp.is_premium || hasActiveMembership || Boolean(userId && (userUnlockedEpisodeIds.has(Number(targetEp.id)) || userUnlockedEpisodeIds.has(String(targetEp.id))));
           const progressData = wh ? { ...wh, is_last_watched: true } : { is_last_watched: true };
           lastWatchedEpisodeObj = toEpisodeFieldsArray(targetEp, targetEp.story_title, isUnlocked, progressData);
         }
       } else if (episodes.length > 0) {
         // Fallback default: If no watch history exists, offer first episode as starting point
         const firstEp = episodes[0];
-        const isUnlocked = !firstEp.is_premium || hasActiveMembership || Boolean(userId && userUnlockedEpisodeIds.has(firstEp.id));
+        const isUnlocked = !firstEp.is_premium || hasActiveMembership || Boolean(userId && (userUnlockedEpisodeIds.has(Number(firstEp.id)) || userUnlockedEpisodeIds.has(String(firstEp.id))));
         lastWatchedEpisodeObj = toEpisodeFieldsArray(firstEp, firstEp.story_title, isUnlocked, { is_last_watched: true });
       }
 
