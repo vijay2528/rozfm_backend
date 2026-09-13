@@ -1,6 +1,7 @@
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
 const { toStoryFieldsArray, toEpisodeFieldsArray } = require('../../utils/storyPresenter');
+const { uploadToR2 } = require('../../services/r2StorageService');
 
 class ContentController {
   /**
@@ -69,6 +70,429 @@ class ContentController {
     } catch (error) {
       console.error('Admin List Stories Error:', error);
       return ApiResponse.error(res, 'Failed to fetch admin stories list.', 500);
+    }
+  }
+
+  /**
+   * GET /api/v1/admin/stories/:id
+   * Fetch single story details for admin view/edit form
+   */
+  static async showStory(req, res) {
+    try {
+      const storyId = req.params.id;
+
+      const [stories] = await pool.query(
+        `SELECT s.*, c.category_name, u.name as author_name,
+                (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
+         FROM stories s
+         LEFT JOIN categories c ON s.category_id = c.id
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE s.id = ? LIMIT 1`,
+        [storyId]
+      );
+
+      if (stories.length === 0) {
+        return ApiResponse.error(res, 'Story not found.', 444);
+      }
+
+      const result = toStoryFieldsArray(stories[0]);
+
+      return ApiResponse.success(res, { story: result });
+    } catch (error) {
+      console.error('Admin Show Story Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch story details.', 500);
+    }
+  }
+
+  /**
+   * POST /api/v1/admin/stories
+   * Create a new story (supports multipart/form-data & application/json)
+   */
+  static async storeStory(req, res) {
+    try {
+      const {
+        title,
+        description,
+        synopsis,
+        category_id,
+        category,
+        language,
+        tags,
+        is_premium,
+        status,
+        story_status,
+        release,
+        user_id,
+        creator_id,
+        creator,
+        assigned_creator,
+        author_id,
+      } = req.body;
+
+      if (!title || !title.trim()) {
+        return ApiResponse.error(res, 'Story title is required.', 422);
+      }
+
+      const storyDescription = description || synopsis || null;
+      const storyLanguage = language || 'Hindi';
+
+      // 1. Resolve Category ID
+      let finalCategoryId = null;
+      const rawCategory = category_id || category;
+      if (rawCategory !== undefined && rawCategory !== null && rawCategory !== '') {
+        const parsedCat = parseInt(rawCategory, 10);
+        if (!isNaN(parsedCat)) {
+          finalCategoryId = parsedCat;
+        } else {
+          const [catRows] = await pool.query(
+            'SELECT id FROM categories WHERE LOWER(category_name) = ? LIMIT 1',
+            [String(rawCategory).trim().toLowerCase()]
+          );
+          if (catRows.length > 0) {
+            finalCategoryId = catRows[0].id;
+          }
+        }
+      }
+
+      // 2. Resolve Creator / User ID
+      let finalUserId = req.user ? req.user.id : null;
+      const rawUser = user_id || creator_id || creator || assigned_creator || author_id;
+      if (rawUser !== undefined && rawUser !== null && rawUser !== '') {
+        const parsedUser = parseInt(rawUser, 10);
+        if (!isNaN(parsedUser)) {
+          finalUserId = parsedUser;
+        } else {
+          const [userRows] = await pool.query(
+            'SELECT id FROM users WHERE LOWER(name) = ? LIMIT 1',
+            [String(rawUser).trim().toLowerCase()]
+          );
+          if (userRows.length > 0) {
+            finalUserId = userRows[0].id;
+          }
+        }
+      }
+
+      // 3. Resolve Status
+      let finalStatus = 'published';
+      const rawStatus = (status || story_status || release || '').toString().toLowerCase();
+
+      if (rawStatus.includes('draft') || rawStatus.includes('save as draft')) {
+        finalStatus = 'draft';
+      } else if (rawStatus.includes('schedule')) {
+        finalStatus = 'scheduled';
+      } else if (rawStatus.includes('completed')) {
+        finalStatus = 'completed';
+      } else if (rawStatus.includes('ongoing')) {
+        finalStatus = 'ongoing';
+      } else if (rawStatus.includes('publish')) {
+        if (status && ['ongoing', 'completed'].includes(status.toLowerCase())) {
+          finalStatus = status.toLowerCase();
+        } else {
+          finalStatus = 'published';
+        }
+      } else if (['ongoing', 'completed', 'draft', 'published', 'scheduled'].includes(rawStatus)) {
+        finalStatus = rawStatus;
+      }
+
+      // 4. Handle Cover & Banner Image files uploaded via Multer/R2
+      let coverImagePath = req.body.cover_image_path || req.body.cover_image || req.body.image || null;
+      let bannerImagePath = req.body.banner_image_path || req.body.banner_image || req.body.banner || null;
+
+      if (req.files) {
+        let filesArr = [];
+        if (Array.isArray(req.files)) {
+          filesArr = req.files;
+        } else if (typeof req.files === 'object') {
+          Object.values(req.files).forEach((val) => {
+            if (Array.isArray(val)) filesArr.push(...val);
+            else if (val) filesArr.push(val);
+          });
+        }
+
+        const coverFile = filesArr.find((f) => ['cover_image', 'image', 'cover', 'cover_image_path'].includes(f.fieldname));
+        if (coverFile) {
+          try {
+            coverImagePath = await uploadToR2(coverFile, 'covers');
+          } catch (uploadErr) {
+            console.error('Failed to upload cover image:', uploadErr.message);
+          }
+        }
+
+        const bannerFile = filesArr.find((f) => ['banner_image', 'banner', 'banner_image_path'].includes(f.fieldname));
+        if (bannerFile) {
+          try {
+            bannerImagePath = await uploadToR2(bannerFile, 'banners');
+          } catch (uploadErr) {
+            console.error('Failed to upload banner image:', uploadErr.message);
+          }
+        }
+      } else if (req.file) {
+        const field = req.file.fieldname;
+        if (['cover_image', 'image', 'cover', 'cover_image_path'].includes(field)) {
+          try {
+            coverImagePath = await uploadToR2(req.file, 'covers');
+          } catch (uploadErr) {
+            console.error('Failed to upload cover image:', uploadErr.message);
+          }
+        } else if (['banner_image', 'banner', 'banner_image_path'].includes(field)) {
+          try {
+            bannerImagePath = await uploadToR2(req.file, 'banners');
+          } catch (uploadErr) {
+            console.error('Failed to upload banner image:', uploadErr.message);
+          }
+        }
+      }
+
+      const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
+
+      // 5. Insert Story
+      const [result] = await pool.query(
+        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          finalUserId,
+          title.trim(),
+          storyDescription,
+          finalCategoryId,
+          coverImagePath,
+          bannerImagePath,
+          storyLanguage,
+          tags || null,
+          isPremiumBool ? 1 : 0,
+          finalStatus,
+        ]
+      );
+
+      const newStoryId = result.insertId;
+
+      // 6. Return response
+      const [storyRows] = await pool.query(
+        `SELECT s.*, c.category_name, u.name as author_name,
+                (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
+         FROM stories s
+         LEFT JOIN categories c ON s.category_id = c.id
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE s.id = ? LIMIT 1`,
+        [newStoryId]
+      );
+
+      return ApiResponse.success(
+        res,
+        { story: toStoryFieldsArray(storyRows[0]) },
+        'Story created successfully.',
+        201
+      );
+    } catch (error) {
+      console.error('Admin Create Story Error:', error);
+      return ApiResponse.error(res, 'Failed to create story.', 500);
+    }
+  }
+
+  /**
+   * PUT / POST /api/v1/admin/stories/:id
+   * Update an existing story (supports multipart/form-data & application/json)
+   */
+  static async updateStory(req, res) {
+    try {
+      const storyId = req.params.id;
+
+      const [existingRows] = await pool.query('SELECT * FROM stories WHERE id = ? LIMIT 1', [storyId]);
+      if (existingRows.length === 0) {
+        return ApiResponse.error(res, 'Story not found.', 444);
+      }
+
+      const {
+        title,
+        description,
+        synopsis,
+        category_id,
+        category,
+        language,
+        tags,
+        is_premium,
+        status,
+        story_status,
+        release,
+        user_id,
+        creator_id,
+        creator,
+        assigned_creator,
+        author_id,
+      } = req.body;
+
+      const updateFields = [];
+      const queryParams = [];
+
+      if (title !== undefined && title !== null && title.trim() !== '') {
+        updateFields.push('`title` = ?');
+        queryParams.push(title.trim());
+      }
+
+      const storyDescription = description !== undefined ? description : (synopsis !== undefined ? synopsis : undefined);
+      if (storyDescription !== undefined) {
+        updateFields.push('`description` = ?');
+        queryParams.push(storyDescription);
+      }
+
+      const rawCategory = category_id !== undefined ? category_id : category;
+      if (rawCategory !== undefined && rawCategory !== null && rawCategory !== '') {
+        const parsedCat = parseInt(rawCategory, 10);
+        if (!isNaN(parsedCat)) {
+          updateFields.push('`category_id` = ?');
+          queryParams.push(parsedCat);
+        } else {
+          const [catRows] = await pool.query('SELECT id FROM categories WHERE LOWER(category_name) = ? LIMIT 1', [
+            String(rawCategory).trim().toLowerCase(),
+          ]);
+          if (catRows.length > 0) {
+            updateFields.push('`category_id` = ?');
+            queryParams.push(catRows[0].id);
+          }
+        }
+      }
+
+      if (language !== undefined) {
+        updateFields.push('`language` = ?');
+        queryParams.push(language);
+      }
+
+      if (tags !== undefined) {
+        updateFields.push('`tags` = ?');
+        queryParams.push(tags);
+      }
+
+      const rawUser = user_id || creator_id || creator || assigned_creator || author_id;
+      if (rawUser !== undefined && rawUser !== null && rawUser !== '') {
+        const parsedUser = parseInt(rawUser, 10);
+        if (!isNaN(parsedUser)) {
+          updateFields.push('`user_id` = ?');
+          queryParams.push(parsedUser);
+        } else {
+          const [userRows] = await pool.query('SELECT id FROM users WHERE LOWER(name) = ? LIMIT 1', [
+            String(rawUser).trim().toLowerCase(),
+          ]);
+          if (userRows.length > 0) {
+            updateFields.push('`user_id` = ?');
+            queryParams.push(userRows[0].id);
+          }
+        }
+      }
+
+      if (is_premium !== undefined) {
+        updateFields.push('`is_premium` = ?');
+        const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
+        queryParams.push(isPremiumBool ? 1 : 0);
+      }
+
+      const rawStatus = (status || story_status || release || '').toString().toLowerCase();
+      if (rawStatus) {
+        let finalStatus = null;
+        if (rawStatus.includes('draft') || rawStatus.includes('save as draft')) {
+          finalStatus = 'draft';
+        } else if (rawStatus.includes('schedule')) {
+          finalStatus = 'scheduled';
+        } else if (rawStatus.includes('completed')) {
+          finalStatus = 'completed';
+        } else if (rawStatus.includes('ongoing')) {
+          finalStatus = 'ongoing';
+        } else if (rawStatus.includes('publish')) {
+          if (status && ['ongoing', 'completed'].includes(status.toLowerCase())) {
+            finalStatus = status.toLowerCase();
+          } else {
+            finalStatus = 'published';
+          }
+        } else if (['ongoing', 'completed', 'draft', 'published', 'scheduled'].includes(rawStatus)) {
+          finalStatus = rawStatus;
+        }
+
+        if (finalStatus) {
+          updateFields.push('`status` = ?');
+          queryParams.push(finalStatus);
+        }
+      }
+
+      let coverImagePath = null;
+      let bannerImagePath = null;
+
+      if (req.files) {
+        let filesArr = [];
+        if (Array.isArray(req.files)) {
+          filesArr = req.files;
+        } else if (typeof req.files === 'object') {
+          Object.values(req.files).forEach((val) => {
+            if (Array.isArray(val)) filesArr.push(...val);
+            else if (val) filesArr.push(val);
+          });
+        }
+
+        const coverFile = filesArr.find((f) => ['cover_image', 'image', 'cover', 'cover_image_path'].includes(f.fieldname));
+        if (coverFile) {
+          try {
+            coverImagePath = await uploadToR2(coverFile, 'covers');
+          } catch (uploadErr) {
+            console.error('Failed to upload cover image:', uploadErr.message);
+          }
+        }
+
+        const bannerFile = filesArr.find((f) => ['banner_image', 'banner', 'banner_image_path'].includes(f.fieldname));
+        if (bannerFile) {
+          try {
+            bannerImagePath = await uploadToR2(bannerFile, 'banners');
+          } catch (uploadErr) {
+            console.error('Failed to upload banner image:', uploadErr.message);
+          }
+        }
+      } else if (req.file) {
+        const field = req.file.fieldname;
+        if (['cover_image', 'image', 'cover', 'cover_image_path'].includes(field)) {
+          try {
+            coverImagePath = await uploadToR2(req.file, 'covers');
+          } catch (uploadErr) {
+            console.error('Failed to upload cover image:', uploadErr.message);
+          }
+        } else if (['banner_image', 'banner', 'banner_image_path'].includes(field)) {
+          try {
+            bannerImagePath = await uploadToR2(req.file, 'banners');
+          } catch (uploadErr) {
+            console.error('Failed to upload banner image:', uploadErr.message);
+          }
+        }
+      }
+
+      if (coverImagePath) {
+        updateFields.push('`cover_image_path` = ?');
+        queryParams.push(coverImagePath);
+      }
+      if (bannerImagePath) {
+        updateFields.push('`banner_image_path` = ?');
+        queryParams.push(bannerImagePath);
+      }
+
+      if (updateFields.length > 0) {
+        updateFields.push('`updated_at` = NOW()');
+        const updateSql = `UPDATE stories SET ${updateFields.join(', ')} WHERE id = ?`;
+        queryParams.push(storyId);
+        await pool.query(updateSql, queryParams);
+      }
+
+      const [updatedRows] = await pool.query(
+        `SELECT s.*, c.category_name, u.name as author_name,
+                (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
+         FROM stories s
+         LEFT JOIN categories c ON s.category_id = c.id
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE s.id = ? LIMIT 1`,
+        [storyId]
+      );
+
+      return ApiResponse.success(
+        res,
+        { story: toStoryFieldsArray(updatedRows[0]) },
+        'Story updated successfully.'
+      );
+    } catch (error) {
+      console.error('Admin Update Story Error:', error);
+      return ApiResponse.error(res, 'Failed to update story.', 500);
     }
   }
 

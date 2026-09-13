@@ -241,6 +241,63 @@
           }
         },
         {
+          "name": "Get Story Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": { "raw": "{{base_url}}/admin/stories/1", "host": ["{{base_url}}"], "path": ["admin", "stories", "1"] },
+            "description": "Fetch detailed information for a single story by ID for admin viewing/editing."
+          }
+        },
+        {
+          "name": "Create Story",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "The Silent Monsoon", "type": "text" },
+                { "key": "category_id", "value": "1", "type": "text" },
+                { "key": "language", "value": "Hindi", "type": "text" },
+                { "key": "description", "value": "Short description shown on the story page", "type": "text" },
+                { "key": "user_id", "value": "1", "type": "text" },
+                { "key": "release", "value": "Publish immediately", "type": "text" },
+                { "key": "status", "value": "ongoing", "type": "text" },
+                { "key": "is_premium", "value": "1", "type": "text" },
+                { "key": "cover_image", "type": "file", "src": [] },
+                { "key": "banner_image", "type": "file", "src": [] }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/admin/stories", "host": ["{{base_url}}"], "path": ["admin", "stories"] },
+            "description": "Create a new story with multipart form-data (title, category, language, description/synopsis, cover_image, banner_image, creator, status, is_premium)."
+          }
+        },
+        {
+          "name": "Update Story",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "The Silent Monsoon (Updated)", "type": "text" },
+                { "key": "category_id", "value": "1", "type": "text" },
+                { "key": "language", "value": "Hindi", "type": "text" },
+                { "key": "description", "value": "Updated description for the story page", "type": "text" },
+                { "key": "user_id", "value": "1", "type": "text" },
+                { "key": "release", "value": "Publish immediately", "type": "text" },
+                { "key": "status", "value": "completed", "type": "text" },
+                { "key": "is_premium", "value": "1", "type": "text" },
+                { "key": "cover_image", "type": "file", "src": [] },
+                { "key": "banner_image", "type": "file", "src": [] }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/admin/stories/1", "host": ["{{base_url}}"], "path": ["admin", "stories", "1"] },
+            "description": "Update an existing story details and images."
+          }
+        },
+        {
           "name": "Update Story Status",
           "request": {
             "method": "PUT",
