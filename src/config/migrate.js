@@ -133,6 +133,7 @@ async function runMigrations() {
         \`language\` VARCHAR(50) DEFAULT 'en',
         \`tags\` VARCHAR(512) NULL,
         \`status\` VARCHAR(50) DEFAULT 'published',
+        \`release_status\` VARCHAR(50) DEFAULT 'publish_immediately',
         \`episodes_count\` INT DEFAULT 0,
         \`listeners_count\` INT DEFAULT 0,
         \`total_views\` INT DEFAULT 0,
@@ -144,6 +145,12 @@ async function runMigrations() {
         CONSTRAINT \`fk_stories_category\` FOREIGN KEY (\`category_id\`) REFERENCES \`categories\` (\`id\`) ON DELETE SET NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    try {
+      await connection.query(`ALTER TABLE \`stories\` ADD COLUMN \`release_status\` VARCHAR(50) DEFAULT 'publish_immediately' AFTER \`status\`;`);
+    } catch (e) {
+      // Column already exists
+    }
 
     // 7. Episodes table
     await connection.query(`

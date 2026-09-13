@@ -242,6 +242,8 @@ function toStoryFieldsArray(story, options = {}) {
     listeners: listenersCount,
     total_views: totalViews,
     status: statusStr,
+    release_status: story.release_status || 'publish_immediately',
+    release: story.release_status || 'publish_immediately',
     is_live: isLive,
     rating: Number(story.rating || 0.0),
     is_premium: Boolean(story.is_premium),

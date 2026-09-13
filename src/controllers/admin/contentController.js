@@ -172,14 +172,17 @@ class ContentController {
         }
       }
 
-      // 3. Resolve Status
-      let finalStatus = 'published';
+      // 3. Resolve Release Status & Story Status
+      let finalReleaseStatus = release || release_status || 'publish_immediately';
+      let finalStatus = status || story_status || 'ongoing';
       const rawStatus = (status || story_status || release || '').toString().toLowerCase();
 
       if (rawStatus.includes('draft') || rawStatus.includes('save as draft')) {
         finalStatus = 'draft';
+        finalReleaseStatus = 'save_as_draft';
       } else if (rawStatus.includes('schedule')) {
         finalStatus = 'scheduled';
+        finalReleaseStatus = 'schedule_release';
       } else if (rawStatus.includes('completed')) {
         finalStatus = 'completed';
       } else if (rawStatus.includes('ongoing')) {
@@ -190,6 +193,7 @@ class ContentController {
         } else {
           finalStatus = 'published';
         }
+        finalReleaseStatus = 'publish_immediately';
       } else if (['ongoing', 'completed', 'draft', 'published', 'scheduled'].includes(rawStatus)) {
         finalStatus = rawStatus;
       }
@@ -247,8 +251,8 @@ class ContentController {
 
       // 5. Insert Story
       const [result] = await pool.query(
-        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status, release_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           finalUserId,
           title.trim(),
@@ -260,6 +264,7 @@ class ContentController {
           tags || null,
           isPremiumBool ? 1 : 0,
           finalStatus,
+          finalReleaseStatus,
         ]
       );
 
@@ -384,7 +389,13 @@ class ContentController {
         queryParams.push(isPremiumBool ? 1 : 0);
       }
 
-      const rawStatus = (status || story_status || release || '').toString().toLowerCase();
+      const rawRelease = release || release_status;
+      if (rawRelease !== undefined && rawRelease !== null && rawRelease !== '') {
+        updateFields.push('`release_status` = ?');
+        queryParams.push(String(rawRelease));
+      }
+
+      const rawStatus = (status || story_status || '').toString().toLowerCase();
       if (rawStatus) {
         let finalStatus = null;
         if (rawStatus.includes('draft') || rawStatus.includes('save as draft')) {
