@@ -76,15 +76,15 @@ class HomeController {
            INNER JOIN (
              SELECT story_id, MAX(id) as max_history_id
              FROM watch_histories
-             WHERE user_id = ? AND episode_id IS NOT NULL
+             WHERE user_id = ? AND episode_id IS NOT NULL AND completed = 0 AND COALESCE(status, 'playing') != 'completed'
              GROUP BY story_id
            ) latest ON w.id = latest.max_history_id
            JOIN stories s ON w.story_id = s.id
            LEFT JOIN episodes e ON w.episode_id = e.id
            LEFT JOIN categories c ON s.category_id = c.id
            LEFT JOIN users u ON s.user_id = u.id
-           WHERE w.user_id = ? AND s.status IN ('ongoing', 'completed', 'published')
-           ORDER BY COALESCE(w.last_watched_at, w.updated_at, w.created_at) DESC, w.id DESC
+           WHERE w.user_id = ? AND w.completed = 0 AND COALESCE(w.status, 'playing') != 'completed' AND s.status IN ('ongoing', 'completed', 'published')
+           ORDER BY GREATEST(COALESCE(w.last_watched_at, '1970-01-01'), COALESCE(w.updated_at, '1970-01-01'), COALESCE(w.created_at, '1970-01-01')) DESC, w.id DESC
            LIMIT 10`,
           [userId, userId]
         );
@@ -294,7 +294,7 @@ class HomeController {
            FROM watch_histories w
            JOIN stories s ON w.story_id = s.id
            WHERE w.user_id = ? AND w.episode_id IS NOT NULL
-           ORDER BY COALESCE(w.last_watched_at, w.updated_at, w.created_at) DESC, w.id DESC
+           ORDER BY GREATEST(COALESCE(w.last_watched_at, '1970-01-01'), COALESCE(w.updated_at, '1970-01-01'), COALESCE(w.created_at, '1970-01-01')) DESC, w.id DESC
            LIMIT 1`,
           [userId]
         );
@@ -364,7 +364,6 @@ class HomeController {
       // Construct final response payload using Title Case section names
       return ApiResponse.success(res, {
         'Continue Listening': continueListening,
-        'continue_listening': continueListening,
         'Recommended for You': recommendedForYou,
         'Trending': trending,
         'New Releases': newReleases,

@@ -165,7 +165,7 @@ class StoryController {
              FROM watch_histories w
              INNER JOIN episodes e ON w.episode_id = e.id
              WHERE w.user_id = ? AND w.story_id = ? AND w.episode_id IS NOT NULL
-             ORDER BY COALESCE(w.last_watched_at, w.updated_at, w.created_at) DESC, w.id DESC
+             ORDER BY GREATEST(COALESCE(w.last_watched_at, '1970-01-01'), COALESCE(w.updated_at, '1970-01-01'), COALESCE(w.created_at, '1970-01-01')) DESC, w.id DESC
              LIMIT 1`,
             [userId, storyId]
           );
