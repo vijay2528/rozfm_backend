@@ -176,8 +176,8 @@ function toStoryFieldsArray(story, options = {}) {
   const likesCount = Number(story.likes_count || 0);
   const sharesCount = Number(story.shares_count || 0);
 
-  const statusStr = story.status || 'published';
-  const isLive = ['published', 'ongoing', 'completed', 'live'].includes(statusStr.toLowerCase());
+  const statusStr = story.status || null;
+  const isLive = statusStr ? ['published', 'ongoing', 'completed', 'live'].includes(String(statusStr).toLowerCase()) : false;
 
   const performanceObj = performance || {
     plays: {
@@ -242,8 +242,8 @@ function toStoryFieldsArray(story, options = {}) {
     listeners: listenersCount,
     total_views: totalViews,
     status: statusStr,
-    release_status: story.release_status || 'publish_immediately',
-    release: story.release_status || 'publish_immediately',
+    release_status: story.release_status || null,
+    release: story.release_status || null,
     is_live: isLive,
     rating: Number(story.rating || 0.0),
     is_premium: Boolean(story.is_premium),

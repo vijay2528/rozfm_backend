@@ -122,6 +122,7 @@ class ContentController {
         status,
         story_status,
         release,
+        release_status,
         user_id,
         creator_id,
         creator,
@@ -173,29 +174,31 @@ class ContentController {
       }
 
       // 3. Resolve Release Status & Story Status
-      let finalReleaseStatus = release || release_status || 'publish_immediately';
-      let finalStatus = status || story_status || 'ongoing';
+      let finalReleaseStatus = (release !== undefined && release !== null) ? String(release) : ((release_status !== undefined && release_status !== null) ? String(release_status) : null);
+      let finalStatus = (status !== undefined && status !== null) ? String(status) : ((story_status !== undefined && story_status !== null) ? String(story_status) : null);
       const rawStatus = (status || story_status || release || '').toString().toLowerCase();
 
-      if (rawStatus.includes('draft') || rawStatus.includes('save as draft')) {
-        finalStatus = 'draft';
-        finalReleaseStatus = 'save_as_draft';
-      } else if (rawStatus.includes('schedule')) {
-        finalStatus = 'scheduled';
-        finalReleaseStatus = 'schedule_release';
-      } else if (rawStatus.includes('completed')) {
-        finalStatus = 'completed';
-      } else if (rawStatus.includes('ongoing')) {
-        finalStatus = 'ongoing';
-      } else if (rawStatus.includes('publish')) {
-        if (status && ['ongoing', 'completed'].includes(status.toLowerCase())) {
-          finalStatus = status.toLowerCase();
-        } else {
-          finalStatus = 'published';
+      if (rawStatus) {
+        if (rawStatus.includes('draft') || rawStatus.includes('save as draft')) {
+          finalStatus = finalStatus || 'draft';
+          finalReleaseStatus = finalReleaseStatus || 'save_as_draft';
+        } else if (rawStatus.includes('schedule')) {
+          finalStatus = finalStatus || 'scheduled';
+          finalReleaseStatus = finalReleaseStatus || 'schedule_release';
+        } else if (rawStatus.includes('completed')) {
+          finalStatus = 'completed';
+        } else if (rawStatus.includes('ongoing')) {
+          finalStatus = 'ongoing';
+        } else if (rawStatus.includes('publish')) {
+          if (status && ['ongoing', 'completed'].includes(status.toLowerCase())) {
+            finalStatus = status.toLowerCase();
+          } else if (!finalStatus) {
+            finalStatus = 'published';
+          }
+          if (!finalReleaseStatus) finalReleaseStatus = 'publish_immediately';
+        } else if (['ongoing', 'completed', 'draft', 'published', 'scheduled'].includes(rawStatus)) {
+          finalStatus = rawStatus;
         }
-        finalReleaseStatus = 'publish_immediately';
-      } else if (['ongoing', 'completed', 'draft', 'published', 'scheduled'].includes(rawStatus)) {
-        finalStatus = rawStatus;
       }
 
       // 4. Handle Cover & Banner Image files uploaded via Multer/R2
