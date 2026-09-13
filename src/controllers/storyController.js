@@ -166,7 +166,12 @@ class StoryController {
           'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ?',
           [userId]
         );
-        unlocks.forEach((u) => userUnlockedEpisodeIds.add(u.episode_id));
+        unlocks.forEach((u) => {
+          if (u.episode_id !== null && u.episode_id !== undefined) {
+            userUnlockedEpisodeIds.add(Number(u.episode_id));
+            userUnlockedEpisodeIds.add(String(u.episode_id));
+          }
+        });
       }
 
       // Fetch user's last watched history for this story
@@ -223,7 +228,7 @@ class StoryController {
 
       let lastPlayedEpisodeData = null;
       if (targetEpisode) {
-        const isUnlocked = !targetEpisode.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(targetEpisode.id));
+        const isUnlocked = !targetEpisode.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(targetEpisode.id)) || userUnlockedEpisodeIds.has(String(targetEpisode.id));
         const { toEpisodeFieldsArray } = require('../utils/storyPresenter');
 
         const progressData = lastWatchedHistory ? {

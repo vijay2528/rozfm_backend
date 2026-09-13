@@ -109,7 +109,12 @@ class EpisodeController {
           'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ? AND episode_id IN (?)',
           [userId, episodeIds]
         );
-        unlocks.forEach((u) => userUnlockedEpisodeIds.add(u.episode_id));
+        unlocks.forEach((u) => {
+          if (u.episode_id !== null && u.episode_id !== undefined) {
+            userUnlockedEpisodeIds.add(Number(u.episode_id));
+            userUnlockedEpisodeIds.add(String(u.episode_id));
+          }
+        });
 
         // Query watch history for user
         let whQuery = 'SELECT * FROM watch_histories WHERE user_id = ? AND episode_id IN (?) ORDER BY GREATEST(COALESCE(last_watched_at, \'1970-01-01\'), COALESCE(updated_at, \'1970-01-01\'), COALESCE(created_at, \'1970-01-01\')) DESC, id DESC';
@@ -137,7 +142,7 @@ class EpisodeController {
       }
 
       const result = episodes.map((ep) => {
-        const isUnlocked = !ep.is_premium || hasActiveMembership || Boolean(userId && userUnlockedEpisodeIds.has(ep.id));
+        const isUnlocked = !ep.is_premium || hasActiveMembership || Boolean(userId && (userUnlockedEpisodeIds.has(Number(ep.id)) || userUnlockedEpisodeIds.has(String(ep.id))));
         const wh = watchHistoryMap[ep.id] || null;
         const isLastW = Boolean(lastWatchedEpisodeId && ep.id === lastWatchedEpisodeId);
         const progressData = wh ? { ...wh, is_last_watched: isLastW } : { is_last_watched: isLastW };

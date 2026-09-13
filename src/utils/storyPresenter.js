@@ -288,7 +288,7 @@ function toStoryFieldsArray(story, options = {}) {
 
   if (Array.isArray(episodes)) {
     data.episodes = episodes.map((ep) =>
-      toEpisodeFieldsArray(ep, story.title, !ep.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(ep.id)))
+      toEpisodeFieldsArray(ep, story.title, !ep.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(ep.id)) || userUnlockedEpisodeIds.has(String(ep.id)))
     );
   }
 
