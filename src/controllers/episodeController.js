@@ -87,10 +87,23 @@ class EpisodeController {
       );
 
       let userUnlockedEpisodeIds = new Set();
+      let hasActiveMembership = false;
       let watchHistoryMap = {};
       let lastWatchedEpisodeId = null;
 
       if (userId && episodes.length > 0) {
+        const [subRows] = await pool.query(
+          "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1",
+          [userId]
+        );
+        const [userRows] = await pool.query(
+          "SELECT subscription_type, role FROM users WHERE id = ? LIMIT 1",
+          [userId]
+        );
+        if (subRows.length > 0 || (userRows.length > 0 && (userRows[0].subscription_type === 'vip' || userRows[0].role === 'vip'))) {
+          hasActiveMembership = true;
+        }
+
         const episodeIds = episodes.map((ep) => ep.id);
         const [unlocks] = await pool.query(
           'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ? AND episode_id IN (?)',
@@ -124,7 +137,7 @@ class EpisodeController {
       }
 
       const result = episodes.map((ep) => {
-        const isUnlocked = !ep.is_premium || (userId && userUnlockedEpisodeIds.has(ep.id));
+        const isUnlocked = !ep.is_premium || hasActiveMembership || Boolean(userId && userUnlockedEpisodeIds.has(ep.id));
         const wh = watchHistoryMap[ep.id] || null;
         const isLastW = Boolean(lastWatchedEpisodeId && ep.id === lastWatchedEpisodeId);
         const progressData = wh ? { ...wh, is_last_watched: isLastW } : { is_last_watched: isLastW };
@@ -147,14 +160,14 @@ class EpisodeController {
 
         if (targetEp) {
           const wh = watchHistoryMap[targetEp.id] || null;
-          const isUnlocked = !targetEp.is_premium || (userId && userUnlockedEpisodeIds.has(targetEp.id));
+          const isUnlocked = !targetEp.is_premium || hasActiveMembership || Boolean(userId && userUnlockedEpisodeIds.has(targetEp.id));
           const progressData = wh ? { ...wh, is_last_watched: true } : { is_last_watched: true };
           lastWatchedEpisodeObj = toEpisodeFieldsArray(targetEp, targetEp.story_title, isUnlocked, progressData);
         }
       } else if (episodes.length > 0) {
         // Fallback default: If no watch history exists, offer first episode as starting point
         const firstEp = episodes[0];
-        const isUnlocked = !firstEp.is_premium || (userId && userUnlockedEpisodeIds.has(firstEp.id));
+        const isUnlocked = !firstEp.is_premium || hasActiveMembership || Boolean(userId && userUnlockedEpisodeIds.has(firstEp.id));
         lastWatchedEpisodeObj = toEpisodeFieldsArray(firstEp, firstEp.story_title, isUnlocked, { is_last_watched: true });
       }
 
@@ -212,11 +225,25 @@ class EpisodeController {
         if (!userId) {
           isUnlocked = false;
         } else {
-          const [unlockRow] = await pool.query(
-            'SELECT id FROM user_episode_unlocks WHERE user_id = ? AND episode_id = ? LIMIT 1',
-            [userId, episodeId]
+          const [subRows] = await pool.query(
+            "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1",
+            [userId]
           );
-          isUnlocked = unlockRow.length > 0;
+          const [userRows] = await pool.query(
+            "SELECT subscription_type, role FROM users WHERE id = ? LIMIT 1",
+            [userId]
+          );
+          const hasActiveMembership = subRows.length > 0 || (userRows.length > 0 && (userRows[0].subscription_type === 'vip' || userRows[0].role === 'vip'));
+
+          if (hasActiveMembership) {
+            isUnlocked = true;
+          } else {
+            const [unlockRow] = await pool.query(
+              'SELECT id FROM user_episode_unlocks WHERE user_id = ? AND episode_id = ? LIMIT 1',
+              [userId, episodeId]
+            );
+            isUnlocked = unlockRow.length > 0;
+          }
         }
       }
 

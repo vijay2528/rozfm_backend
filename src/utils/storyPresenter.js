@@ -120,7 +120,6 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, pro
     type: episode.is_premium ? 'premium' : 'free',
     coins: coinVal,
     is_premium: Boolean(episode.is_premium),
-    is_locked: !isUnl,
     is_unlocked: isUnl,
     is_scheduled: Boolean(isSched),
     is_downloadable: Boolean(isDown),
@@ -162,6 +161,7 @@ function toStoryFieldsArray(story, options = {}) {
     episodes = null,
     lastPlayedEpisode = null,
     userUnlockedEpisodeIds = new Set(),
+    hasActiveMembership = false,
     performance = null,
     completionRate = null,
     avgListeningTime = null,
@@ -171,7 +171,11 @@ function toStoryFieldsArray(story, options = {}) {
   const coverUrl = resolveUrl(story.cover_image_path);
   const bannerUrl = resolveUrl(story.banner_image_path);
 
-  const totalViews = Number(story.total_views || 0);
+  const totalViews = Math.max(Number(story.total_views || 0), Number(story.real_plays_count || 0));
+  const totalEpisodes = story.real_episodes_count !== undefined && story.real_episodes_count !== null
+    ? Number(story.real_episodes_count)
+    : Number(story.episodes_count || 0);
+
   const listenersCount = Number(story.listeners_count || 0);
   const likesCount = Number(story.likes_count || 0);
   const sharesCount = Number(story.shares_count || 0);
@@ -238,9 +242,13 @@ function toStoryFieldsArray(story, options = {}) {
     author_id: Number(story.user_id || 0),
     language: story.language || 'en',
     tags: story.tags || null,
-    total_episodes: Number(story.episodes_count || 0),
+    total_episodes: totalEpisodes,
+    episodes_count: totalEpisodes,
+    real_episodes_count: totalEpisodes,
     listeners: listenersCount,
     total_views: totalViews,
+    play_count: totalViews,
+    plays_count: totalViews,
     status: statusStr,
     release_status: story.release_status || null,
     release: story.release_status || null,
@@ -280,7 +288,7 @@ function toStoryFieldsArray(story, options = {}) {
 
   if (Array.isArray(episodes)) {
     data.episodes = episodes.map((ep) =>
-      toEpisodeFieldsArray(ep, story.title, userUnlockedEpisodeIds.has(Number(ep.id)))
+      toEpisodeFieldsArray(ep, story.title, !ep.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(ep.id)))
     );
   }
 

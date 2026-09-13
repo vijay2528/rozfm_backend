@@ -135,8 +135,21 @@ class StoryController {
       let isLiked = false;
       let isBookmarked = false;
       let userUnlockedEpisodeIds = new Set();
+      let hasActiveMembership = false;
 
       if (userId) {
+        const [subRows] = await pool.query(
+          "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1",
+          [userId]
+        );
+        const [userRows] = await pool.query(
+          "SELECT subscription_type, role FROM users WHERE id = ? LIMIT 1",
+          [userId]
+        );
+        if (subRows.length > 0 || (userRows.length > 0 && (userRows[0].subscription_type === 'vip' || userRows[0].role === 'vip'))) {
+          hasActiveMembership = true;
+        }
+
         const [likeRow] = await pool.query(
           'SELECT id FROM story_likes WHERE user_id = ? AND story_id = ? LIMIT 1',
           [userId, storyId]
@@ -210,7 +223,7 @@ class StoryController {
 
       let lastPlayedEpisodeData = null;
       if (targetEpisode) {
-        const isUnlocked = userUnlockedEpisodeIds.has(Number(targetEpisode.id)) || !targetEpisode.is_premium;
+        const isUnlocked = !targetEpisode.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(targetEpisode.id));
         const { toEpisodeFieldsArray } = require('../utils/storyPresenter');
 
         const progressData = lastWatchedHistory ? {
@@ -339,6 +352,7 @@ class StoryController {
         isBookmarked,
         lastPlayedEpisode: lastPlayedEpisodeData,
         userUnlockedEpisodeIds,
+        hasActiveMembership,
         performance: performanceObj,
         completionRate,
         avgListeningTime,
