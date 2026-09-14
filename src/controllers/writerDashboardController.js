@@ -69,11 +69,17 @@ class WriterDashboardController {
       const userIdNum = Number(targetUserId);
 
       // 1. Fetch User / Writer Details
-      const [[user]] = await pool.query(
-        `SELECT id, name, username, email, avatar_path, bio, role, subscription_type, is_verified
-         FROM users WHERE id = ? LIMIT 1`,
-        [userIdNum]
-      );
+      let user = null;
+      try {
+        const [[userRow]] = await pool.query(
+          `SELECT id, name, username, email, avatar_path, bio, role, subscription_type, is_verified
+           FROM users WHERE id = ? LIMIT 1`,
+          [userIdNum]
+        );
+        user = userRow;
+      } catch (err) {
+        console.error('Error fetching writer user:', err.message);
+      }
 
       if (!user) {
         return ApiResponse.error(res, 'Writer user not found.', 404);
@@ -81,118 +87,135 @@ class WriterDashboardController {
 
       // Determine Writer Badge Title
       let badgeText = 'Writer';
-      if (user.subscription_type && user.subscription_type.toLowerCase() === 'premium') {
+      if (user.subscription_type && String(user.subscription_type).toLowerCase() === 'premium') {
         badgeText = 'Premium Writer';
-      } else if (user.role && (user.role.toLowerCase() === 'creator' || user.role.toLowerCase() === 'admin')) {
+      } else if (user.role && (String(user.role).toLowerCase() === 'creator' || String(user.role).toLowerCase() === 'admin')) {
         badgeText = 'Verified Creator';
       }
 
       const writerInfo = {
         user_id: user.id,
-        name: user.name || 'Armaan Writer',
+        name: user.name || 'Writer',
         username: user.username ? user.username.replace(/^@/, '') : `writer${user.id}`,
         handle: user.username ? `@${user.username.replace(/^@/, '')}` : `@writer${user.id}`,
         profile_image: resolveUrl(user.avatar_path),
         avatar_path: resolveUrl(user.avatar_path),
         badge_text: badgeText,
-        is_premium: Boolean(user.subscription_type && user.subscription_type.toLowerCase() === 'premium'),
+        is_premium: Boolean(user.subscription_type && String(user.subscription_type).toLowerCase() === 'premium'),
         tagline: user.bio || 'Keep writing, the world is listening',
       };
 
-      // 2. Unread Notifications Count
-      const [[{ unreadCount }]] = await pool.query(
-        'SELECT COUNT(*) AS unreadCount FROM notifications WHERE user_id = ? AND is_read = 0',
-        [userIdNum]
-      );
+      // 2. Unread Notifications Count (safely wrapped)
+      let unreadCount = 0;
+      try {
+        const [[notifRow]] = await pool.query(
+          'SELECT COUNT(*) AS unreadCount FROM notifications WHERE user_id = ? AND is_read = 0',
+          [userIdNum]
+        );
+        if (notifRow) unreadCount = Number(notifRow.unreadCount || 0);
+      } catch (err) {
+        console.warn('Notifications table query warning:', err.message);
+      }
 
       const unreadNotifications = {
-        has_unread: Number(unreadCount || 0) > 0,
-        count: Number(unreadCount || 0),
+        has_unread: unreadCount > 0,
+        count: unreadCount,
       };
 
-      // 3. Earnings Calculation from writer_earnings & fallback episode unlocks
-      const [[{ todayEarningsRaw }]] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS todayEarningsRaw
-         FROM writer_earnings WHERE user_id = ? AND DATE(created_at) = CURDATE()`,
-        [userIdNum]
-      );
+      // 3. Earnings Calculation from writer_earnings & fallback user_episode_unlocks
+      let todayAmt = 0;
+      let yestAmt = 0;
+      let monthAmt = 0;
+      let totalAmt = 0;
 
-      const [[{ yestEarningsRaw }]] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS yestEarningsRaw
-         FROM writer_earnings WHERE user_id = ? AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY`,
-        [userIdNum]
-      );
-
-      const [[{ monthEarningsRaw }]] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS monthEarningsRaw
-         FROM writer_earnings WHERE user_id = ? AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())`,
-        [userIdNum]
-      );
-
-      const [[{ totalEarningsRaw }]] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS totalEarningsRaw
-         FROM writer_earnings WHERE user_id = ?`,
-        [userIdNum]
-      );
-
-      // Check user episode unlocks if writer_earnings is empty
-      let todayAmt = Number(todayEarningsRaw || 0);
-      let yestAmt = Number(yestEarningsRaw || 0);
-      let monthAmt = Number(monthEarningsRaw || 0);
-      let totalAmt = Number(totalEarningsRaw || 0);
-
-      if (totalAmt === 0) {
-        // Compute from user_episode_unlocks for writer's episodes
-        const [unlockRows] = await pool.query(
-          `SELECT ueu.coins_spent, ueu.unlocked_at, DATE(ueu.unlocked_at) AS unlock_date
-           FROM user_episode_unlocks ueu
-           JOIN episodes e ON ueu.episode_id = e.id
-           JOIN stories s ON e.story_id = s.id
-           WHERE s.user_id = ?`,
+      // Try querying writer_earnings table
+      try {
+        const [[{ todayEarningsRaw }]] = await pool.query(
+          `SELECT COALESCE(SUM(amount), 0) AS todayEarningsRaw
+           FROM writer_earnings WHERE user_id = ? AND DATE(created_at) = CURDATE()`,
+          [userIdNum]
+        );
+        const [[{ yestEarningsRaw }]] = await pool.query(
+          `SELECT COALESCE(SUM(amount), 0) AS yestEarningsRaw
+           FROM writer_earnings WHERE user_id = ? AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY`,
+          [userIdNum]
+        );
+        const [[{ monthEarningsRaw }]] = await pool.query(
+          `SELECT COALESCE(SUM(amount), 0) AS monthEarningsRaw
+           FROM writer_earnings WHERE user_id = ? AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())`,
+          [userIdNum]
+        );
+        const [[{ totalEarningsRaw }]] = await pool.query(
+          `SELECT COALESCE(SUM(amount), 0) AS totalEarningsRaw
+           FROM writer_earnings WHERE user_id = ?`,
           [userIdNum]
         );
 
-        if (unlockRows.length > 0) {
-          // Get monetization conversion settings
-          const [settingRows] = await pool.query(
-            "SELECT `key`, `value` FROM settings WHERE `key` IN ('writer_revenue_share_percentage', 'coins_per_rupee')"
+        todayAmt = Number(todayEarningsRaw || 0);
+        yestAmt = Number(yestEarningsRaw || 0);
+        monthAmt = Number(monthEarningsRaw || 0);
+        totalAmt = Number(totalEarningsRaw || 0);
+      } catch (err) {
+        console.warn('writer_earnings table query warning:', err.message);
+      }
+
+      // If writer_earnings is empty or missing, fallback to computing from user_episode_unlocks
+      if (totalAmt === 0) {
+        try {
+          const [unlockRows] = await pool.query(
+            `SELECT ueu.coins_spent, ueu.unlocked_at, DATE(ueu.unlocked_at) AS unlock_date
+             FROM user_episode_unlocks ueu
+             JOIN episodes e ON ueu.episode_id = e.id
+             JOIN stories s ON e.story_id = s.id
+             WHERE s.user_id = ?`,
+            [userIdNum]
           );
 
-          let sharePct = 70.0;
-          let coinsPerRupee = 10.0;
-          settingRows.forEach((s) => {
-            if (s.key === 'writer_revenue_share_percentage' && s.value) {
-              const val = parseFloat(s.value);
-              if (!isNaN(val) && val >= 0) sharePct = val;
-            }
-            if (s.key === 'coins_per_rupee' && s.value) {
-              const val = parseFloat(s.value);
-              if (!isNaN(val) && val > 0) coinsPerRupee = val;
-            }
-          });
+          if (unlockRows.length > 0) {
+            let sharePct = 70.0;
+            let coinsPerRupee = 10.0;
 
-          const todayStr = new Date().toISOString().split('T')[0];
-          const yestDate = new Date(Date.now() - 86400000);
-          const yestStr = yestDate.toISOString().split('T')[0];
-          const currentMonth = new Date().getMonth();
-          const currentYear = new Date().getFullYear();
+            try {
+              const [settingRows] = await pool.query(
+                "SELECT `key`, `value` FROM settings WHERE `key` IN ('writer_revenue_share_percentage', 'coins_per_rupee')"
+              );
+              settingRows.forEach((s) => {
+                if (s.key === 'writer_revenue_share_percentage' && s.value) {
+                  const val = parseFloat(s.value);
+                  if (!isNaN(val) && val >= 0) sharePct = val;
+                }
+                if (s.key === 'coins_per_rupee' && s.value) {
+                  const val = parseFloat(s.value);
+                  if (!isNaN(val) && val > 0) coinsPerRupee = val;
+                }
+              });
+            } catch (_) {}
 
-          unlockRows.forEach((r) => {
-            const coins = Number(r.coins_spent || 0);
-            const writerCoins = (coins * sharePct) / 100;
-            const inr = writerCoins / coinsPerRupee;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const yestDate = new Date(Date.now() - 86400000);
+            const yestStr = yestDate.toISOString().split('T')[0];
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
 
-            totalAmt += inr;
+            unlockRows.forEach((r) => {
+              const coins = Number(r.coins_spent || 0);
+              const writerCoins = (coins * sharePct) / 100;
+              const inr = writerCoins / coinsPerRupee;
 
-            const uDate = r.unlock_date ? new Date(r.unlock_date).toISOString().split('T')[0] : '';
-            if (uDate === todayStr) todayAmt += inr;
-            if (uDate === yestStr) yestAmt += inr;
+              totalAmt += inr;
 
-            const uObj = new Date(r.unlocked_at || Date.now());
-            if (uObj.getMonth() === currentMonth && uObj.getFullYear() === currentYear) {
-              monthAmt += inr;
-            }
-          });
+              const uDate = r.unlock_date ? new Date(r.unlock_date).toISOString().split('T')[0] : '';
+              if (uDate === todayStr) todayAmt += inr;
+              if (uDate === yestStr) yestAmt += inr;
+
+              const uObj = new Date(r.unlocked_at || Date.now());
+              if (uObj.getMonth() === currentMonth && uObj.getFullYear() === currentYear) {
+                monthAmt += inr;
+              }
+            });
+          }
+        } catch (unlockErr) {
+          console.warn('user_episode_unlocks fallback query warning:', unlockErr.message);
         }
       }
 
@@ -224,20 +247,31 @@ class WriterDashboardController {
       };
 
       // 4. Writer's Stories and Episodes
-      const [stories] = await pool.query(
-        'SELECT id, total_views, listeners_count, shares_count FROM stories WHERE user_id = ?',
-        [userIdNum]
-      );
+      let stories = [];
+      try {
+        const [storyRows] = await pool.query(
+          'SELECT id, total_views, listeners_count, shares_count FROM stories WHERE user_id = ?',
+          [userIdNum]
+        );
+        stories = storyRows;
+      } catch (err) {
+        console.warn('Stories query warning:', err.message);
+      }
+
       const storyIds = stories.map((s) => s.id);
       const totalStoriesCount = stories.length;
 
       let totalEpisodesCount = 0;
       if (storyIds.length > 0) {
-        const [[{ epCount }]] = await pool.query(
-          'SELECT COUNT(*) AS epCount FROM episodes WHERE story_id IN (?)',
-          [storyIds]
-        );
-        totalEpisodesCount = Number(epCount || 0);
+        try {
+          const [[{ epCount }]] = await pool.query(
+            'SELECT COUNT(*) AS epCount FROM episodes WHERE story_id IN (?)',
+            [storyIds]
+          );
+          totalEpisodesCount = Number(epCount || 0);
+        } catch (err) {
+          console.warn('Episodes query warning:', err.message);
+        }
       }
 
       // 5. Today's Overview (Plays, Likes, Comments, Shares)
@@ -248,60 +282,64 @@ class WriterDashboardController {
       let todayComments = 0;
       let yestComments = 0;
       let todayShares = 0;
-      let yestShares = 0;
 
       if (storyIds.length > 0) {
         // Plays today & yesterday from watch_histories
-        const [[{ tPlays }]] = await pool.query(
-          `SELECT COUNT(*) AS tPlays FROM watch_histories 
-           WHERE story_id IN (?) AND DATE(updated_at) = CURDATE()`,
-          [storyIds]
-        );
-        const [[{ yPlays }]] = await pool.query(
-          `SELECT COUNT(*) AS yPlays FROM watch_histories 
-           WHERE story_id IN (?) AND DATE(updated_at) = CURDATE() - INTERVAL 1 DAY`,
-          [storyIds]
-        );
-        todayPlays = Number(tPlays || 0);
-        yestPlays = Number(yPlays || 0);
+        try {
+          const [[{ tPlays }]] = await pool.query(
+            `SELECT COUNT(*) AS tPlays FROM watch_histories 
+             WHERE story_id IN (?) AND DATE(updated_at) = CURDATE()`,
+            [storyIds]
+          );
+          const [[{ yPlays }]] = await pool.query(
+            `SELECT COUNT(*) AS yPlays FROM watch_histories 
+             WHERE story_id IN (?) AND DATE(updated_at) = CURDATE() - INTERVAL 1 DAY`,
+            [storyIds]
+          );
+          todayPlays = Number(tPlays || 0);
+          yestPlays = Number(yPlays || 0);
+        } catch (_) {}
 
         // Likes today & yesterday from story_likes
-        const [[{ tLikes }]] = await pool.query(
-          `SELECT COUNT(*) AS tLikes FROM story_likes 
-           WHERE story_id IN (?) AND DATE(created_at) = CURDATE()`,
-          [storyIds]
-        );
-        const [[{ yLikes }]] = await pool.query(
-          `SELECT COUNT(*) AS yLikes FROM story_likes 
-           WHERE story_id IN (?) AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY`,
-          [storyIds]
-        );
-        todayLikes = Number(tLikes || 0);
-        yestLikes = Number(yLikes || 0);
+        try {
+          const [[{ tLikes }]] = await pool.query(
+            `SELECT COUNT(*) AS tLikes FROM story_likes 
+             WHERE story_id IN (?) AND DATE(created_at) = CURDATE()`,
+            [storyIds]
+          );
+          const [[{ yLikes }]] = await pool.query(
+            `SELECT COUNT(*) AS yLikes FROM story_likes 
+             WHERE story_id IN (?) AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY`,
+            [storyIds]
+          );
+          todayLikes = Number(tLikes || 0);
+          yestLikes = Number(yLikes || 0);
+        } catch (_) {}
 
         // Comments today & yesterday from comments
-        const [[{ tComments }]] = await pool.query(
-          `SELECT COUNT(*) AS tComments FROM comments 
-           WHERE story_id IN (?) AND DATE(created_at) = CURDATE()`,
-          [storyIds]
-        );
-        const [[{ yComments }]] = await pool.query(
-          `SELECT COUNT(*) AS yComments FROM comments 
-           WHERE story_id IN (?) AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY`,
-          [storyIds]
-        );
-        todayComments = Number(tComments || 0);
-        yestComments = Number(yComments || 0);
+        try {
+          const [[{ tComments }]] = await pool.query(
+            `SELECT COUNT(*) AS tComments FROM comments 
+             WHERE story_id IN (?) AND DATE(created_at) = CURDATE()`,
+            [storyIds]
+          );
+          const [[{ yComments }]] = await pool.query(
+            `SELECT COUNT(*) AS yComments FROM comments 
+             WHERE story_id IN (?) AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY`,
+            [storyIds]
+          );
+          todayComments = Number(tComments || 0);
+          yestComments = Number(yComments || 0);
+        } catch (_) {}
 
         // Total Shares across writer's stories
-        const sharesSum = stories.reduce((acc, s) => acc + Number(s.shares_count || 0), 0);
-        todayShares = sharesSum;
+        todayShares = stories.reduce((acc, s) => acc + Number(s.shares_count || 0), 0);
       }
 
       const playsGrowth = calculateGrowth(todayPlays, yestPlays);
       const likesGrowth = calculateGrowth(todayLikes, yestLikes);
       const commentsGrowth = calculateGrowth(todayComments, yestComments);
-      const sharesGrowth = calculateGrowth(todayShares, yestShares);
+      const sharesGrowth = calculateGrowth(todayShares, 0);
 
       const todayOverview = {
         plays: {
@@ -382,7 +420,7 @@ class WriterDashboardController {
         'Writer dashboard statistics fetched successfully.'
       );
     } catch (error) {
-      console.error('Writer Dashboard Error:', error);
+      console.error('Writer Dashboard Critical Error:', error);
       return ApiResponse.error(res, 'Failed to fetch writer dashboard statistics.', 500);
     }
   }
