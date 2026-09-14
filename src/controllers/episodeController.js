@@ -585,6 +585,49 @@ class EpisodeController {
           [userId, 'spend', coinCost, `Unlocked Episode #${episode.position}: ${episode.title}`, String(episodeId)]
         );
 
+        // Fetch parent story to identify writer
+        const [storyRows] = await connection.query('SELECT user_id, title FROM stories WHERE id = ? LIMIT 1', [episode.story_id]);
+        if (storyRows.length > 0 && storyRows[0].user_id) {
+          const writerId = storyRows[0].user_id;
+
+          // Fetch system settings for revenue share % and coin conversion rate
+          const [settingRows] = await connection.query(
+            "SELECT `key`, `value` FROM settings WHERE `key` IN ('writer_revenue_share_percentage', 'coins_per_rupee')"
+          );
+
+          let sharePct = 70.0;
+          let coinsPerRupee = 10.0;
+
+          settingRows.forEach((s) => {
+            if (s.key === 'writer_revenue_share_percentage' && s.value) {
+              const val = parseFloat(s.value);
+              if (!isNaN(val) && val >= 0) sharePct = val;
+            }
+            if (s.key === 'coins_per_rupee' && s.value) {
+              const val = parseFloat(s.value);
+              if (!isNaN(val) && val > 0) coinsPerRupee = val;
+            }
+          });
+
+          // Calculate Writer share coins and INR rupee amount
+          const writerCoins = parseFloat(((coinCost * sharePct) / 100).toFixed(2));
+          const rupeeAmount = parseFloat((writerCoins / coinsPerRupee).toFixed(2));
+
+          // Record writer earnings
+          await connection.query(
+            `INSERT INTO writer_earnings (user_id, story_id, episode_id, amount, coins, source_type, description)
+             VALUES (?, ?, ?, ?, ?, 'episode_unlock', ?)`,
+            [
+              writerId,
+              episode.story_id,
+              episodeId,
+              rupeeAmount,
+              writerCoins,
+              `Unlocked Ep #${episode.position}: ${episode.title} (${sharePct}% share of ${coinCost} coins)`
+            ]
+          );
+        }
+
         await connection.commit();
       } catch (txErr) {
         await connection.rollback();

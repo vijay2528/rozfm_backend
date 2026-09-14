@@ -799,8 +799,8 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Seed default streak settings into settings table if not present
-    const defaultStreakSettings = [
+    // Seed default streak & writer settings into settings table if not present
+    const defaultSettings = [
       { key: 'streak_daily_goal_minutes', value: '15' },
       { key: 'streak_daily_reward_coins', value: '5' },
       { key: 'streak_encouragement_quote', value: "You're building serious energy!" },
@@ -815,8 +815,18 @@ async function runMigrations() {
       { key: 'streak_milestone_3_name', value: 'Energy Master' },
       { key: 'streak_milestone_4_days', value: '30' },
       { key: 'streak_milestone_4_reward', value: '100' },
-      { key: 'streak_milestone_4_name', value: 'Legendary' }
+      { key: 'streak_milestone_4_name', value: 'Legendary' },
+      { key: 'writer_revenue_share_percentage', value: '70' },
+      { key: 'coins_per_rupee', value: '10' },
     ];
+
+    for (const s of defaultSettings) {
+      await connection.query(
+        `INSERT INTO \`settings\` (\`key\`, \`value\`) VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE \`value\` = IF(\`value\` IS NULL OR \`value\` = '', VALUES(\`value\`), \`value\`)`,
+        [s.key, s.value]
+      );
+    }
 
     // 35. Notifications table
     await connection.query(`
@@ -864,6 +874,23 @@ async function runMigrations() {
         \`earned_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY \`user_badge_unique\` (\`user_id\`, \`badge_key\`),
         CONSTRAINT \`fk_user_writer_badges_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 38. Writer Earnings table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`writer_earnings\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`story_id\` INT NULL,
+        \`episode_id\` INT NULL,
+        \`amount\` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+        \`coins\` DECIMAL(10, 2) DEFAULT 0.00,
+        \`source_type\` VARCHAR(50) DEFAULT 'episode_unlock',
+        \`description\` VARCHAR(255) NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT \`fk_writer_earnings_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 

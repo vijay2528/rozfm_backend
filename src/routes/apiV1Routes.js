@@ -27,6 +27,7 @@ const NotificationController = require('../controllers/notificationController');
 const LeaderboardController = require('../controllers/leaderboardController');
 const AudienceController = require('../controllers/audienceController');
 const BadgeController = require('../controllers/badgeController');
+const WriterDashboardController = require('../controllers/writerDashboardController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -119,6 +120,11 @@ router.post('/user/update-phone', MeController.requestPhoneUpdate);
 router.post('/user/update-phone/verify', MeController.verifyPhoneUpdate);
 router.get('/user/notifications/settings', MeController.getNotificationSettings);
 router.post('/user/notifications/settings', MeController.updateNotificationSettings);
+
+// Writer Dashboard API
+router.get('/writer/dashboard', WriterDashboardController.index);
+router.get('/writer-dashboard', WriterDashboardController.index);
+router.get('/user/writer-dashboard', WriterDashboardController.index);
 
 // Notifications API
 router.get('/notifications', NotificationController.index);
