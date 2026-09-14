@@ -24,6 +24,8 @@ const UserController = require('../controllers/userController');
 const BankController = require('../controllers/bankController');
 const StreakController = require('../controllers/streakController');
 const NotificationController = require('../controllers/notificationController');
+const LeaderboardController = require('../controllers/leaderboardController');
+const AudienceController = require('../controllers/audienceController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -64,6 +66,12 @@ router.get('/banners', BannerController.index);
 router.get('/categories', CategoryController.index);
 router.get('/plans', PlanController.index);
 router.get('/coin-packs', CoinPackController.index);
+
+// Leaderboard API (Single endpoint for 3 sections or tab-specific endpoints)
+router.get('/leaderboard', authMiddleware.optional, LeaderboardController.index);
+router.get('/leaderboard/writers', authMiddleware.optional, LeaderboardController.writers);
+router.get('/leaderboard/stories', authMiddleware.optional, LeaderboardController.stories);
+router.get('/leaderboard/listeners', authMiddleware.optional, LeaderboardController.listeners);
 
 // Section Drill-downs
 router.get('/sections/trending', SectionController.trending);
@@ -121,9 +129,12 @@ router.put('/notifications/:id/read', NotificationController.markRead);
 router.delete('/notifications/:id', NotificationController.destroy);
 router.delete('/notifications', NotificationController.clearAll);
 
-// User Followers / Following (Current Authenticated User)
+// User Followers / Following & Audience Statistics
 router.get('/user/followers', UserController.getFollowers);
 router.get('/user/following', UserController.getFollowing);
+router.get('/user/audience-stats', AudienceController.getAudienceStats);
+router.get('/audience/stats', AudienceController.getAudienceStats);
+router.get('/users/:id/audience-stats', AudienceController.getAudienceStats);
 
 // User Follow / Unfollow
 router.post('/users/:id/follow', UserController.follow);
