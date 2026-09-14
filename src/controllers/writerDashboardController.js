@@ -111,33 +111,19 @@ class WriterDashboardController {
         badgeText = 'Verified Creator';
       }
 
+      const rawUsername = user.username ? user.username.replace(/^@/, '') : null;
+      const handle = rawUsername ? `@${rawUsername}` : null;
+
       const writerInfo = {
         user_id: user.id,
-        name: user.name || 'Writer',
-        username: user.username ? user.username.replace(/^@/, '') : `writer${user.id}`,
-        handle: user.username ? `@${user.username.replace(/^@/, '')}` : `@writer${user.id}`,
+        name: user.name || null,
+        username: rawUsername,
+        handle: handle,
         profile_image: resolveUrl(user.avatar_path),
         avatar_path: resolveUrl(user.avatar_path),
         badge_text: badgeText,
         is_premium: Boolean(user.subscription_type && String(user.subscription_type).toLowerCase() === 'premium'),
-        tagline: user.bio || 'Keep writing, the world is listening',
-      };
-
-      // 2. Unread Notifications Count (safely wrapped)
-      let unreadCount = 0;
-      try {
-        const [[notifRow]] = await pool.query(
-          'SELECT COUNT(*) AS unreadCount FROM notifications WHERE user_id = ? AND is_read = 0',
-          [userIdNum]
-        );
-        if (notifRow) unreadCount = Number(notifRow.unreadCount || 0);
-      } catch (err) {
-        console.warn('Notifications table query warning:', err.message);
-      }
-
-      const unreadNotifications = {
-        has_unread: unreadCount > 0,
-        count: unreadCount,
+        tagline: user.bio || null,
       };
 
       // 3. Earnings Calculation from writer_earnings & fallback user_episode_unlocks
@@ -390,46 +376,12 @@ class WriterDashboardController {
         },
       };
 
-      // 6. Quick Actions Configuration
-      const quickActions = [
-        {
-          id: 'upload_episode',
-          title: 'Upload Episode',
-          icon: 'upload',
-          action_type: 'upload_episode',
-          target_route: '/episodes/create',
-        },
-        {
-          id: 'create_story',
-          title: 'Create Story',
-          icon: 'microphone',
-          action_type: 'create_story',
-          target_route: '/stories/create',
-        },
-        {
-          id: 'go_live',
-          title: 'Go Live',
-          icon: 'podcast',
-          action_type: 'go_live',
-          target_route: '/live/stream',
-        },
-        {
-          id: 'view_analytics',
-          title: 'View Analytics',
-          icon: 'analytics',
-          action_type: 'view_analytics',
-          target_route: '/writer/analytics',
-        },
-      ];
-
       return ApiResponse.success(
         res,
         {
           writer_info: writerInfo,
-          unread_notifications: unreadNotifications,
           earnings: earnings,
           today_overview: todayOverview,
-          quick_actions: quickActions,
           stories_summary: {
             total_stories: totalStoriesCount,
             total_episodes: totalEpisodesCount,
