@@ -51,6 +51,10 @@ router.post('/users/:id/wallet', AdminUserController.updateWallet);
 
 // ── 3. Content Management (Stories & Episodes) ───────────────────────────────
 router.get('/stories', AdminContentController.listStories);
+router.get('/stories/:id', AdminContentController.showStory);
+router.post('/stories', upload.storyMedia, AdminContentController.storeStory);
+router.put('/stories/:id', upload.storyMedia, AdminContentController.updateStory);
+router.post('/stories/:id', upload.storyMedia, AdminContentController.updateStory);
 router.put('/stories/:id/status', AdminContentController.updateStoryStatus);
 router.post('/stories/:id/status', AdminContentController.updateStoryStatus);
 router.delete('/stories/:id', AdminContentController.deleteStory);

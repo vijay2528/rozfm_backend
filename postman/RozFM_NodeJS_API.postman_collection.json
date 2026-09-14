@@ -39,14 +39,29 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"app.user@example.com\",\n  \"password\": \"Password123!\",\n  \"phone\": \"9876543210\",\n  \"platform\": \"android\",\n  \"locale\": \"en\",\n  \"device_token\": \"fcm-token-sample-123\",\n  \"device_type\": \"android\"\n}"
             },
-            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
             "description": "Register a new mobile user with name, email, password, phone, platform, and device token."
           }
         },
@@ -70,14 +85,29 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"9876543210\",\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\"\n}"
             },
-            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
             "description": "Initiate phone login. Generates demo OTP 123456 valid for 10 minutes."
           }
         },
@@ -101,14 +131,29 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"app.user@example.com\",\n  \"password\": \"Password123!\",\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\"\n}"
             },
-            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
             "description": "Direct email & password login."
           }
         },
@@ -132,24 +177,62 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\"\n}"
             },
-            "url": { "raw": "{{base_url}}/auth/verify-otp", "host": ["{{base_url}}"], "path": ["auth", "verify-otp"] },
+            "url": {
+              "raw": "{{base_url}}/auth/verify-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "verify-otp"
+              ]
+            },
             "description": "Verify OTP (demo OTP: 123456)."
           }
         },
         {
           "name": "Logout",
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
             "description": "Logout authenticated user."
           }
         }
@@ -157,14 +240,37 @@
     },
     {
       "name": "Authenticated — Profile",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
         {
           "name": "Get Profile",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "profile"
+              ]
+            }
           }
         },
         {
@@ -172,131 +278,356 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"app.user@example.com\",\n  \"phone\": \"9876543210\",\n  \"country\": \"India\",\n  \"state\": \"Gujarat\",\n  \"city\": \"Ahmedabad\",\n  \"age_group\": \"25-34\",\n  \"gender\": \"male\",\n  \"locale\": \"en\",\n  \"instagram_link\": \"https://instagram.com/johndoe\",\n  \"youtube_link\": \"https://youtube.com/@johndoe\",\n  \"facebook_link\": \"https://facebook.com/johndoe\"\n}"
             },
-            "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
+            "url": {
+              "raw": "{{base_url}}/user/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "profile"
+              ]
+            }
           }
         },
         {
           "name": "Update Profile (FormData with Avatar)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "name", "value": "John Doe", "type": "text" },
-                { "key": "phone", "value": "9876543210", "type": "text" },
-                { "key": "country", "value": "India", "type": "text" },
-                { "key": "state", "value": "Gujarat", "type": "text" },
-                { "key": "city", "value": "Ahmedabad", "type": "text" },
-                { "key": "age_group", "value": "25-34", "type": "text" },
-                { "key": "gender", "value": "male", "type": "text" },
-                { "key": "locale", "value": "en", "type": "text" },
-                { "key": "instagram_link", "value": "https://instagram.com/johndoe", "type": "text" },
-                { "key": "youtube_link", "value": "https://youtube.com/@johndoe", "type": "text" },
-                { "key": "facebook_link", "value": "https://facebook.com/johndoe", "type": "text" },
-                { "key": "image", "type": "file", "src": [] }
+                {
+                  "key": "name",
+                  "value": "John Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "9876543210",
+                  "type": "text"
+                },
+                {
+                  "key": "country",
+                  "value": "India",
+                  "type": "text"
+                },
+                {
+                  "key": "state",
+                  "value": "Gujarat",
+                  "type": "text"
+                },
+                {
+                  "key": "city",
+                  "value": "Ahmedabad",
+                  "type": "text"
+                },
+                {
+                  "key": "age_group",
+                  "value": "25-34",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "type": "text"
+                },
+                {
+                  "key": "locale",
+                  "value": "en",
+                  "type": "text"
+                },
+                {
+                  "key": "instagram_link",
+                  "value": "https://instagram.com/johndoe",
+                  "type": "text"
+                },
+                {
+                  "key": "youtube_link",
+                  "value": "https://youtube.com/@johndoe",
+                  "type": "text"
+                },
+                {
+                  "key": "facebook_link",
+                  "value": "https://facebook.com/johndoe",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": []
+                }
               ]
             },
-            "url": { "raw": "{{base_url}}/user/profile", "host": ["{{base_url}}"], "path": ["user", "profile"] }
+            "url": {
+              "raw": "{{base_url}}/user/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "profile"
+              ]
+            }
           }
         },
         {
           "name": "Select Language",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"locale\": \"hi\"\n}" },
-            "url": { "raw": "{{base_url}}/user/select-language", "host": ["{{base_url}}"], "path": ["user", "select-language"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locale\": \"hi\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/select-language",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "select-language"
+              ]
+            }
           }
         },
         {
           "name": "Request Phone Update",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"9876500000\"\n}" },
-            "url": { "raw": "{{base_url}}/user/update-phone", "host": ["{{base_url}}"], "path": ["user", "update-phone"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876500000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/update-phone",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "update-phone"
+              ]
+            }
           }
         },
         {
           "name": "Verify Phone Update",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"9876500000\",\n  \"otp\": \"123456\"\n}" },
-            "url": { "raw": "{{base_url}}/user/update-phone/verify", "host": ["{{base_url}}"], "path": ["user", "update-phone", "verify"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876500000\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/update-phone/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "update-phone",
+                "verify"
+              ]
+            }
           }
         },
         {
           "name": "Get Notification Settings",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/user/notifications/settings", "host": ["{{base_url}}"], "path": ["user", "notifications", "settings"] }
+            "url": {
+              "raw": "{{base_url}}/user/notifications/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "notifications",
+                "settings"
+              ]
+            }
           }
         },
         {
           "name": "Update Notification Settings",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"new_episodes\": true,\n  \"promotions\": true,\n  \"recommendations\": true,\n  \"account_activity\": false\n}"
             },
-            "url": { "raw": "{{base_url}}/user/notifications/settings", "host": ["{{base_url}}"], "path": ["user", "notifications", "settings"] }
+            "url": {
+              "raw": "{{base_url}}/user/notifications/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "notifications",
+                "settings"
+              ]
+            }
           }
         },
         {
           "name": "Delete Account",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/user/delete-account", "host": ["{{base_url}}"], "path": ["user", "delete-account"] }
+            "url": {
+              "raw": "{{base_url}}/user/delete-account",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "delete-account"
+              ]
+            }
           }
         }
       ]
     },
     {
       "name": "Categories",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
         {
           "name": "Get All Categories (Public)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] }
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
           }
         },
         {
           "name": "Get User Preferences",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/user/categories", "host": ["{{base_url}}"], "path": ["user", "categories"] }
+            "url": {
+              "raw": "{{base_url}}/user/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "categories"
+              ]
+            }
           }
         },
         {
           "name": "Update User Preferences (POST)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"category_ids\": [1, 2, 3]\n}" },
-            "url": { "raw": "{{base_url}}/user/categories", "host": ["{{base_url}}"], "path": ["user", "categories"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "categories"
+              ]
+            }
           }
         },
         {
           "name": "Update User Preferences (PUT)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"category_ids\": [1, 2, 3]\n}" },
-            "url": { "raw": "{{base_url}}/user/categories", "host": ["{{base_url}}"], "path": ["user", "categories"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "categories"
+              ]
+            }
           }
         }
       ]
@@ -309,75 +640,217 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
-            "url": { "raw": "{{base_url}}/home", "host": ["{{base_url}}"], "path": ["home"] },
-            "description": "Fetch mobile app home feed (Continue Listening with story progress_percentage & average_progress_percentage for card red progress bars, Recommended for You, Trending, New Releases, Top 10, Updated Today, Because You Listened, Popular, Free Stories)."
+            "url": {
+              "raw": "{{base_url}}/home",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "home"
+              ]
+            },
+            "description": "Fetch mobile app home feed with optional auth token. Includes `Continue Listening` (and `continue_listening`) section with user in-progress stories, progress percentages, and last played episode details."
           }
         },
         {
           "name": "Search Home Feed",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/home?search=mystery", "host": ["{{base_url}}"], "path": ["home"], "query": [{ "key": "search", "value": "mystery" }] }
+            "url": {
+              "raw": "{{base_url}}/home?search=mystery",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "home"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "mystery"
+                }
+              ]
+            }
           }
         },
         {
           "name": "Get Banners",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/banners", "host": ["{{base_url}}"], "path": ["banners"] }
+            "url": {
+              "raw": "{{base_url}}/banners",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "banners"
+              ]
+            }
           }
         },
         {
           "name": "Section Trending",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/sections/trending", "host": ["{{base_url}}"], "path": ["sections", "trending"] }
+            "url": {
+              "raw": "{{base_url}}/sections/trending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sections",
+                "trending"
+              ]
+            }
           }
         },
         {
           "name": "Section Popular",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/sections/popular", "host": ["{{base_url}}"], "path": ["sections", "popular"] }
+            "url": {
+              "raw": "{{base_url}}/sections/popular",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sections",
+                "popular"
+              ]
+            }
           }
         },
         {
           "name": "Section Top Rated",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/sections/top-rated", "host": ["{{base_url}}"], "path": ["sections", "top-rated"] }
+            "url": {
+              "raw": "{{base_url}}/sections/top-rated",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sections",
+                "top-rated"
+              ]
+            }
           }
         },
         {
           "name": "Section Top Picks",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/sections/top-picks", "host": ["{{base_url}}"], "path": ["sections", "top-picks"] }
+            "url": {
+              "raw": "{{base_url}}/sections/top-picks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sections",
+                "top-picks"
+              ]
+            }
           }
         }
       ]
     },
     {
       "name": "Stories & Episodes",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
         {
           "name": "List Stories",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/stories?category_id=1&search=&language=hi&sort=popular&page=1&limit=10", "host": ["{{base_url}}"], "path": ["stories"], "query": [{ "key": "category_id", "value": "1" }, { "key": "search", "value": "" }, { "key": "language", "value": "hi" }, { "key": "sort", "value": "popular" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+            "url": {
+              "raw": "{{base_url}}/stories?category_id=1&search=&language=hi&sort=popular&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories"
+              ],
+              "query": [
+                {
+                  "key": "category_id",
+                  "value": "1"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "language",
+                  "value": "hi"
+                },
+                {
+                  "key": "sort",
+                  "value": "popular"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
           }
         },
         {
           "name": "Get Story Details",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/stories/1", "host": ["{{base_url}}"], "path": ["stories", "1"] }
+            "url": {
+              "raw": "{{base_url}}/stories/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1"
+              ]
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "description": "Fetch single story details with optional user token. Returns story metadata, author, performance metrics, and `last_played_episode` (most recent episode played by the user with duration, progress, audio file, etc.). Note: Full episode list is removed from story details; use List Story Episodes for all episodes."
           }
         },
         {
@@ -385,23 +858,70 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "title", "value": "The Secret Listener", "type": "text" },
-                { "key": "description", "value": "An exciting audio mystery drama story.", "type": "text" },
-                { "key": "category_id", "value": "1", "type": "text" },
-                { "key": "language", "value": "hi", "type": "text" },
-                { "key": "tags", "value": "mystery, thriller, audio drama", "type": "text" },
-                { "key": "is_premium", "value": "0", "type": "text" },
-                { "key": "status", "value": "ongoing", "type": "text" },
-                { "key": "cover_image", "type": "file", "src": [] },
-                { "key": "banner_image", "type": "file", "src": [] }
+                {
+                  "key": "title",
+                  "value": "The Secret Listener",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "An exciting audio mystery drama story.",
+                  "type": "text"
+                },
+                {
+                  "key": "category_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "language",
+                  "value": "hi",
+                  "type": "text"
+                },
+                {
+                  "key": "tags",
+                  "value": "mystery, thriller, audio drama",
+                  "type": "text"
+                },
+                {
+                  "key": "is_premium",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "ongoing",
+                  "type": "text"
+                },
+                {
+                  "key": "cover_image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "banner_image",
+                  "type": "file",
+                  "src": []
+                }
               ]
             },
-            "url": { "raw": "{{base_url}}/stories", "host": ["{{base_url}}"], "path": ["stories"] },
+            "url": {
+              "raw": "{{base_url}}/stories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories"
+              ]
+            },
             "description": "Create a new story using multipart/form-data API with all parameters and image file uploads."
           }
         },
@@ -410,23 +930,71 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "title", "value": "The Secret Listener (Updated)", "type": "text" },
-                { "key": "description", "value": "Updated story description and plot line.", "type": "text" },
-                { "key": "category_id", "value": "1", "type": "text" },
-                { "key": "language", "value": "hi", "type": "text" },
-                { "key": "tags", "value": "mystery, suspense", "type": "text" },
-                { "key": "is_premium", "value": "1", "type": "text" },
-                { "key": "status", "value": "completed", "type": "text" },
-                { "key": "cover_image", "type": "file", "src": [] },
-                { "key": "banner_image", "type": "file", "src": [] }
+                {
+                  "key": "title",
+                  "value": "The Secret Listener (Updated)",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Updated story description and plot line.",
+                  "type": "text"
+                },
+                {
+                  "key": "category_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "language",
+                  "value": "hi",
+                  "type": "text"
+                },
+                {
+                  "key": "tags",
+                  "value": "mystery, suspense",
+                  "type": "text"
+                },
+                {
+                  "key": "is_premium",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "completed",
+                  "type": "text"
+                },
+                {
+                  "key": "cover_image",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "banner_image",
+                  "type": "file",
+                  "src": []
+                }
               ]
             },
-            "url": { "raw": "{{base_url}}/stories/1", "host": ["{{base_url}}"], "path": ["stories", "1"] },
+            "url": {
+              "raw": "{{base_url}}/stories/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1"
+              ]
+            },
             "description": "Update an existing story using multipart/form-data API via POST with all parameters."
           }
         },
@@ -434,31 +1002,74 @@
           "name": "Toggle Story Like",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/stories/1/like", "host": ["{{base_url}}"], "path": ["stories", "1", "like"] }
+            "url": {
+              "raw": "{{base_url}}/stories/1/like",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "like"
+              ]
+            }
           }
         },
         {
           "name": "Share Story",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/stories/1/share", "host": ["{{base_url}}"], "path": ["stories", "1", "share"] }
+            "url": {
+              "raw": "{{base_url}}/stories/1/share",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "share"
+              ]
+            }
           }
         },
         {
           "name": "List Episodes (with Filters)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/episodes?story_id=1&filter=unlocked&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
               "query": [
-                { "key": "story_id", "value": "1" },
-                { "key": "filter", "value": "unlocked", "description": "Filter options: locked, unlocked, scheduled, downloadable (comma-separated or single)" },
-                { "key": "search", "value": "", "disabled": true },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "story_id",
+                  "value": "1"
+                },
+                {
+                  "key": "filter",
+                  "value": "unlocked",
+                  "description": "Filter options: locked, unlocked, scheduled, downloadable (comma-separated or single)"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Fetch paginated episodes with optional filters (locked, unlocked, scheduled, downloadable)."
@@ -470,12 +1081,28 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/stories/1/episodes?filter=unlocked&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["stories", "1", "episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "episodes"
+              ],
               "query": [
-                { "key": "filter", "value": "unlocked", "description": "Filter options: locked, unlocked, scheduled, downloadable" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "filter",
+                  "value": "unlocked",
+                  "description": "Filter options: locked, unlocked, scheduled, downloadable"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Fetch paginated episodes for a story with playback progress (progress_seconds, remaining_seconds, remaining_formatted, completion_percentage, is_completed) for every episode, and top-level last_watched_episode / last_resume_episode object."
@@ -485,12 +1112,25 @@
           "name": "Create Episode",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"story_id\": 1,\n  \"title\": \"Episode 1: The Mysterious Discovery\",\n  \"episode_number\": 1,\n  \"description\": \"In this episode, the secret journey begins.\",\n  \"publish_as\": \"publish_now\",\n  \"schedule_date_time\": \"2026-08-30 10:00:00\",\n  \"audio_title\": \"Episode 1 Full Track\",\n  \"audio_file\": \"episodes/audio_sample_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"is_downloadable\": 1,\n  \"duration_seconds\": 300,\n  \"duration_minutes\": 5.0\n}"
             },
-            "url": { "raw": "{{base_url}}/episodes", "host": ["{{base_url}}"], "path": ["episodes"] },
+            "url": {
+              "raw": "{{base_url}}/episodes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ]
+            },
             "description": "Create a new episode with all parameters (title, episode_number, description, story_id, publish_as, schedule_date_time, audio_file, audio_title, coins [default 25], is_downloadable [default 1], duration)."
           }
         },
@@ -498,12 +1138,26 @@
           "name": "Edit Episode (PUT)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Episode 1: The Mysterious Discovery (Updated)\",\n  \"episode_number\": 1,\n  \"description\": \"Updated episode summary.\",\n  \"publish_as\": \"schedule_for_later\",\n  \"schedule_date_time\": \"2026-09-01 18:00:00\",\n  \"audio_title\": \"Episode 1 Remastered Track\",\n  \"audio_file\": \"episodes/updated_audio_ep1.mp3\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"is_downloadable\": 1,\n  \"duration_seconds\": 360,\n  \"duration_minutes\": 6.0\n}"
             },
-            "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] },
+            "url": {
+              "raw": "{{base_url}}/episodes/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1"
+              ]
+            },
             "description": "Edit existing episode details via PUT."
           }
         },
@@ -511,51 +1165,135 @@
           "name": "Edit Episode (POST)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Episode 1: Updated Title\",\n  \"coins\": 25,\n  \"is_premium\": 1,\n  \"is_downloadable\": 1\n}"
             },
-            "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] },
+            "url": {
+              "raw": "{{base_url}}/episodes/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1"
+              ]
+            },
             "description": "Edit existing episode details via POST."
           }
         },
         {
           "name": "Get Episode Details",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/episodes/1", "host": ["{{base_url}}"], "path": ["episodes", "1"] }
+            "url": {
+              "raw": "{{base_url}}/episodes/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1"
+              ]
+            }
           }
         },
         {
           "name": "Unlock Episode",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/episodes/1/unlock", "host": ["{{base_url}}"], "path": ["episodes", "1", "unlock"] }
+            "url": {
+              "raw": "{{base_url}}/episodes/1/unlock",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "unlock"
+              ]
+            }
           }
         }
       ]
     },
     {
       "name": "Reviews & Comments",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
         {
           "name": "Get Story Reviews",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/stories/1/reviews?page=1&limit=10", "host": ["{{base_url}}"], "path": ["stories", "1", "reviews"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+            "url": {
+              "raw": "{{base_url}}/stories/1/reviews?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
           }
         },
         {
           "name": "Submit Story Review",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"review\": \"Amazing audio story! Highly recommended.\"\n}" },
-            "url": { "raw": "{{base_url}}/stories/1/reviews", "host": ["{{base_url}}"], "path": ["stories", "1", "reviews"] },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"review\": \"Amazing audio story! Highly recommended.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/stories/1/reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "reviews"
+              ]
+            },
             "description": "Submit rating (1-5) and review text for a story."
           }
         },
@@ -563,119 +1301,316 @@
           "name": "Get User Reviews",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/user/reviews?page=1&limit=10", "host": ["{{base_url}}"], "path": ["user", "reviews"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+            "url": {
+              "raw": "{{base_url}}/user/reviews?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
           }
         },
         {
           "name": "Get Story Comments",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/stories/1/comments?page=1&limit=10", "host": ["{{base_url}}"], "path": ["stories", "1", "comments"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+            "url": {
+              "raw": "{{base_url}}/stories/1/comments?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "comments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
           }
         },
         {
           "name": "Post Story Comment",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"comment\": \"Great narration in this episode!\",\n  \"parent_id\": null\n}" },
-            "url": { "raw": "{{base_url}}/stories/1/comments", "host": ["{{base_url}}"], "path": ["stories", "1", "comments"] },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Great narration in this episode!\",\n  \"parent_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/stories/1/comments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "comments"
+              ]
+            },
             "description": "Post a top-level comment or a reply to parent_id."
           }
         },
         {
           "name": "Get Comment Replies",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/comments/1/replies?page=1&limit=10", "host": ["{{base_url}}"], "path": ["comments", "1", "replies"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+            "url": {
+              "raw": "{{base_url}}/comments/1/replies?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "comments",
+                "1",
+                "replies"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
           }
         },
         {
           "name": "Toggle Comment Like",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/comments/1/like", "host": ["{{base_url}}"], "path": ["comments", "1", "like"] }
+            "url": {
+              "raw": "{{base_url}}/comments/1/like",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "comments",
+                "1",
+                "like"
+              ]
+            }
           }
         }
       ]
     },
     {
       "name": "Bookmarks & Watch History",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
         {
           "name": "Get User Bookmarks",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/bookmarks", "host": ["{{base_url}}"], "path": ["bookmarks"] }
+            "url": {
+              "raw": "{{base_url}}/bookmarks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "bookmarks"
+              ]
+            }
           }
         },
         {
           "name": "Toggle Story Bookmark",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/stories/1/bookmark", "host": ["{{base_url}}"], "path": ["stories", "1", "bookmark"] }
+            "url": {
+              "raw": "{{base_url}}/stories/1/bookmark",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "bookmark"
+              ]
+            }
           }
         },
         {
           "name": "Get Watch History",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/watch-history", "host": ["{{base_url}}"], "path": ["watch-history"] }
+            "url": {
+              "raw": "{{base_url}}/watch-history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch-history"
+              ]
+            }
           }
         },
         {
           "name": "Clear All Watch History",
           "request": {
             "method": "DELETE",
-            "url": { "raw": "{{base_url}}/watch-history", "host": ["{{base_url}}"], "path": ["watch-history"] }
+            "url": {
+              "raw": "{{base_url}}/watch-history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch-history"
+              ]
+            }
           }
         },
         {
           "name": "Remove Story From Watch History",
           "request": {
             "method": "DELETE",
-            "url": { "raw": "{{base_url}}/watch-history/1", "host": ["{{base_url}}"], "path": ["watch-history", "1"] }
+            "url": {
+              "raw": "{{base_url}}/watch-history/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch-history",
+                "1"
+              ]
+            }
           }
         }
       ]
     },
     {
       "name": "Wallet, Payments & Subscriptions",
-      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{token}}",
+            "type": "string"
+          }
+        ]
+      },
       "item": [
         {
           "name": "Get Wallet Details",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/wallet", "host": ["{{base_url}}"], "path": ["wallet"] }
+            "url": {
+              "raw": "{{base_url}}/wallet",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet"
+              ]
+            }
           }
         },
         {
           "name": "Get Plans",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/plans", "host": ["{{base_url}}"], "path": ["plans"] }
+            "url": {
+              "raw": "{{base_url}}/plans",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plans"
+              ]
+            }
           }
         },
         {
           "name": "Get Coin Packs",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "url": { "raw": "{{base_url}}/coin-packs", "host": ["{{base_url}}"], "path": ["coin-packs"] }
+            "url": {
+              "raw": "{{base_url}}/coin-packs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coin-packs"
+              ]
+            }
           }
         },
         {
           "name": "Purchase Coins",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}" },
-            "url": { "raw": "{{base_url}}/wallet/purchase-coins", "host": ["{{base_url}}"], "path": ["wallet", "purchase-coins"] },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/wallet/purchase-coins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "purchase-coins"
+              ]
+            },
             "description": "Credit coins to user wallet via plan_id or coin_pack_id."
           }
         },
@@ -683,55 +1618,142 @@
           "name": "Daily Claim Status",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/wallet/daily-claim", "host": ["{{base_url}}"], "path": ["wallet", "daily-claim"] }
+            "url": {
+              "raw": "{{base_url}}/wallet/daily-claim",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "daily-claim"
+              ]
+            }
           }
         },
         {
           "name": "Claim Daily Reward",
           "request": {
             "method": "POST",
-            "url": { "raw": "{{base_url}}/wallet/daily-claim", "host": ["{{base_url}}"], "path": ["wallet", "daily-claim"] }
+            "url": {
+              "raw": "{{base_url}}/wallet/daily-claim",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "daily-claim"
+              ]
+            }
           }
         },
         {
           "name": "Get Wallet Transactions",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/wallet/transactions", "host": ["{{base_url}}"], "path": ["wallet", "transactions"] }
+            "url": {
+              "raw": "{{base_url}}/wallet/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "wallet",
+                "transactions"
+              ]
+            }
           }
         },
         {
           "name": "Create Razorpay Order",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"amount\": 99,\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}" },
-            "url": { "raw": "{{base_url}}/payments/razorpay/order", "host": ["{{base_url}}"], "path": ["payments", "razorpay", "order"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 99,\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/razorpay/order",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payments",
+                "razorpay",
+                "order"
+              ]
+            }
           }
         },
         {
           "name": "Verify Razorpay Payment",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"razorpay_order_id\": \"order_mock123\",\n  \"razorpay_payment_id\": \"pay_mock123\",\n  \"razorpay_signature\": \"mock_signature_123\",\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}" },
-            "url": { "raw": "{{base_url}}/payments/razorpay/verify", "host": ["{{base_url}}"], "path": ["payments", "razorpay", "verify"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_mock123\",\n  \"razorpay_payment_id\": \"pay_mock123\",\n  \"razorpay_signature\": \"mock_signature_123\",\n  \"plan_id\": 1,\n  \"coin_pack_id\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/razorpay/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "payments",
+                "razorpay",
+                "verify"
+              ]
+            }
           }
         },
         {
           "name": "Get Active Subscription",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/subscriptions", "host": ["{{base_url}}"], "path": ["subscriptions"] }
+            "url": {
+              "raw": "{{base_url}}/subscriptions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "subscriptions"
+              ]
+            }
           }
         },
         {
           "name": "Activate Subscription",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"plan_id\": 1,\n  \"duration_days\": 30\n}" },
-            "url": { "raw": "{{base_url}}/subscriptions", "host": ["{{base_url}}"], "path": ["subscriptions"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plan_id\": 1,\n  \"duration_days\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/subscriptions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "subscriptions"
+              ]
+            }
           }
         }
       ]
@@ -743,56 +1765,124 @@
           "name": "Get Config",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/config", "host": ["{{base_url}}"], "path": ["config"] }
+            "url": {
+              "raw": "{{base_url}}/config",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "config"
+              ]
+            }
           }
         },
         {
           "name": "Get Languages",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/languages", "host": ["{{base_url}}"], "path": ["languages"] }
+            "url": {
+              "raw": "{{base_url}}/languages",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "languages"
+              ]
+            }
           }
         },
         {
           "name": "Get FAQs",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/faqs", "host": ["{{base_url}}"], "path": ["faqs"] }
+            "url": {
+              "raw": "{{base_url}}/faqs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faqs"
+              ]
+            }
           }
         },
         {
           "name": "Get Support FAQs",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/support-faqs", "host": ["{{base_url}}"], "path": ["support-faqs"] }
+            "url": {
+              "raw": "{{base_url}}/support-faqs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "support-faqs"
+              ]
+            }
           }
         },
         {
           "name": "Copyright Policy",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/legal/copyright", "host": ["{{base_url}}"], "path": ["legal", "copyright"] }
+            "url": {
+              "raw": "{{base_url}}/legal/copyright",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal",
+                "copyright"
+              ]
+            }
           }
         },
         {
           "name": "Privacy Policy",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/legal/privacy", "host": ["{{base_url}}"], "path": ["legal", "privacy"] }
+            "url": {
+              "raw": "{{base_url}}/legal/privacy",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal",
+                "privacy"
+              ]
+            }
           }
         },
         {
           "name": "Terms of Service",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/legal/terms", "host": ["{{base_url}}"], "path": ["legal", "terms"] }
+            "url": {
+              "raw": "{{base_url}}/legal/terms",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal",
+                "terms"
+              ]
+            }
           }
         },
         {
           "name": "Security Advice",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{base_url}}/legal/security-advice", "host": ["{{base_url}}"], "path": ["legal", "security-advice"] }
+            "url": {
+              "raw": "{{base_url}}/legal/security-advice",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "legal",
+                "security-advice"
+              ]
+            }
           }
         }
       ]
@@ -804,8 +1894,27 @@
           "name": "Get All Countries",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/countries?search=", "host": ["{{base_url}}"], "path": ["countries"], "query": [{ "key": "search", "value": "" }] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/countries?search=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "countries"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
             "description": "Fetch all active countries. Optional search query `?search=...`"
           }
         },
@@ -813,8 +1922,22 @@
           "name": "Get Country By ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/countries/1", "host": ["{{base_url}}"], "path": ["countries", "1"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/countries/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "countries",
+                "1"
+              ]
+            },
             "description": "Fetch details of a specific country by ID."
           }
         },
@@ -822,8 +1945,21 @@
           "name": "Get All States",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/states", "host": ["{{base_url}}"], "path": ["states"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/states",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "states"
+              ]
+            },
             "description": "Fetch all states."
           }
         },
@@ -831,8 +1967,27 @@
           "name": "Get States (Filtered by Country ID - Query)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/states?country_id=1", "host": ["{{base_url}}"], "path": ["states"], "query": [{ "key": "country_id", "value": "1" }] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/states?country_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "states"
+              ],
+              "query": [
+                {
+                  "key": "country_id",
+                  "value": "1"
+                }
+              ]
+            },
             "description": "Fetch states filtered by country_id query parameter."
           }
         },
@@ -840,8 +1995,23 @@
           "name": "Get States (Filtered by Country ID - Path)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/countries/1/states", "host": ["{{base_url}}"], "path": ["countries", "1", "states"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/countries/1/states",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "countries",
+                "1",
+                "states"
+              ]
+            },
             "description": "Fetch states for country ID 1."
           }
         },
@@ -849,8 +2019,22 @@
           "name": "Get State By ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/states/1", "host": ["{{base_url}}"], "path": ["states", "1"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/states/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "states",
+                "1"
+              ]
+            },
             "description": "Fetch state details by ID."
           }
         },
@@ -858,8 +2042,21 @@
           "name": "Get All Cities",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/cities", "host": ["{{base_url}}"], "path": ["cities"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cities",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cities"
+              ]
+            },
             "description": "Fetch all cities."
           }
         },
@@ -867,8 +2064,27 @@
           "name": "Get Cities (Filtered by State ID - Query)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/cities?state_id=1", "host": ["{{base_url}}"], "path": ["cities"], "query": [{ "key": "state_id", "value": "1" }] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cities?state_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cities"
+              ],
+              "query": [
+                {
+                  "key": "state_id",
+                  "value": "1"
+                }
+              ]
+            },
             "description": "Fetch cities filtered by state_id query parameter."
           }
         },
@@ -876,8 +2092,23 @@
           "name": "Get Cities (Filtered by State ID - Path)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/states/1/cities", "host": ["{{base_url}}"], "path": ["states", "1", "cities"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/states/1/cities",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "states",
+                "1",
+                "cities"
+              ]
+            },
             "description": "Fetch cities for state ID 1."
           }
         },
@@ -885,8 +2116,27 @@
           "name": "Get Cities (Filtered by Country ID - Query)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/cities?country_id=1", "host": ["{{base_url}}"], "path": ["cities"], "query": [{ "key": "country_id", "value": "1" }] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cities?country_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cities"
+              ],
+              "query": [
+                {
+                  "key": "country_id",
+                  "value": "1"
+                }
+              ]
+            },
             "description": "Fetch cities filtered by country_id query parameter."
           }
         },
@@ -894,8 +2144,23 @@
           "name": "Get Cities (Filtered by Country ID - Path)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/countries/1/cities", "host": ["{{base_url}}"], "path": ["countries", "1", "cities"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/countries/1/cities",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "countries",
+                "1",
+                "cities"
+              ]
+            },
             "description": "Fetch cities for country ID 1."
           }
         },
@@ -903,8 +2168,22 @@
           "name": "Get City By ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
-            "url": { "raw": "{{base_url}}/cities/1", "host": ["{{base_url}}"], "path": ["cities", "1"] },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cities/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cities",
+                "1"
+              ]
+            },
             "description": "Fetch city details by ID."
           }
         }
@@ -917,14 +2196,29 @@
           "name": "List Episodes (All)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/episodes?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "List all episodes with pagination."
@@ -935,17 +2229,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episodes?filter=locked&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
               "query": [
-                { "key": "filter", "value": "locked" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "filter",
+                  "value": "locked"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "List only locked (premium, not yet unlocked) episodes. Pass auth token to exclude user-unlocked episodes from results."
@@ -956,17 +2269,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episodes?filter=unlocked&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
               "query": [
-                { "key": "filter", "value": "unlocked" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "filter",
+                  "value": "unlocked"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "List only unlocked (free or user-unlocked) episodes."
@@ -976,15 +2308,33 @@
           "name": "List Episodes - Filter: scheduled",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/episodes?filter=scheduled&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
               "query": [
-                { "key": "filter", "value": "scheduled" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "filter",
+                  "value": "scheduled"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "List only scheduled episodes (publish_as=schedule_for_later or scheduled_at in the future)."
@@ -994,15 +2344,33 @@
           "name": "List Episodes - Filter: downloadable",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/episodes?filter=downloadable&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
               "query": [
-                { "key": "filter", "value": "downloadable" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "filter",
+                  "value": "downloadable"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "List only downloadable episodes (is_downloadable=1 and audio_path set)."
@@ -1013,17 +2381,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episodes?filter=unlocked,downloadable&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
               "query": [
-                { "key": "filter", "value": "unlocked,downloadable" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "filter",
+                  "value": "unlocked,downloadable"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Combine multiple filters using comma separation. Returns episodes that match ALL specified filters."
@@ -1034,17 +2421,38 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/stories/1/episodes?filter=locked&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["stories", "1", "episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "episodes"
+              ],
               "query": [
-                { "key": "filter", "value": "locked" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "filter",
+                  "value": "locked"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "List episodes for a specific story with filter applied."
@@ -1055,17 +2463,36 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episodes?is_locked=true&page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
               "query": [
-                { "key": "is_locked", "value": "true" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "is_locked",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Alternative filter using individual boolean query parameters: is_locked, is_unlocked, is_scheduled, is_downloadable."
@@ -1081,13 +2508,25 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Optional. Pass to get is_following state." }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Optional. Pass to get is_following state."
+              }
             ],
             "url": {
               "raw": "{{base_url}}/users/1",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1"
+              ]
             },
             "description": "Fetch public profile for a user by ID. Returns name, username, handle (@username), profile_image, bio, is_verified, stats (plays, followers, following), stories list, reviews list, and is_following flag (if authenticated)."
           }
@@ -1097,13 +2536,26 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Optional." }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Optional."
+              }
             ],
             "url": {
               "raw": "{{base_url}}/users/1/profile",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1", "profile"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "profile"
+              ]
             },
             "description": "Alias endpoint for GET /users/:id — same response."
           }
@@ -1112,14 +2564,31 @@
           "name": "Get User Stories",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/users/1/stories?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1", "stories"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "stories"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Get paginated list of stories/series created by the user."
@@ -1129,14 +2598,31 @@
           "name": "Get User Reviews",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Accept", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{base_url}}/users/1/reviews?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1", "reviews"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "reviews"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Get paginated reviews written by or about the user's stories."
@@ -1147,13 +2633,25 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/users/1/follow",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1", "follow"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "follow"
+              ]
             },
             "description": "Explicitly follow a user. Returns is_following (true), followers_count, and followers_formatted. Requires authentication."
           }
@@ -1163,13 +2661,25 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/users/1/unfollow",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1", "unfollow"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "unfollow"
+              ]
             },
             "description": "Explicitly unfollow a user. Returns is_following (false), followers_count, and followers_formatted. Requires authentication."
           }
@@ -1179,13 +2689,25 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/users/1/toggle-follow",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1", "toggle-follow"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "toggle-follow"
+              ]
             },
             "description": "Toggle follow/unfollow status for a user. Returns is_following (bool), followers_count, and followers_formatted. Requires authentication."
           }
@@ -1195,16 +2717,35 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Optional." }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Optional."
+              }
             ],
             "url": {
               "raw": "{{base_url}}/users/1/followers?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1", "followers"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "followers"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Get paginated list of users following the specified user."
@@ -1215,16 +2756,35 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}", "description": "Optional." }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Optional."
+              }
             ],
             "url": {
               "raw": "{{base_url}}/users/1/following?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["users", "1", "following"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "following"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Get paginated list of users followed by the specified user."
@@ -1235,13 +2795,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/user/bank-details",
-              "host": ["{{base_url}}"],
-              "path": ["user", "bank-details"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "bank-details"
+              ]
             },
             "description": "Fetch bank details for the authenticated user."
           }
@@ -1251,9 +2822,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1261,8 +2841,13 @@
             },
             "url": {
               "raw": "{{base_url}}/user/bank-details",
-              "host": ["{{base_url}}"],
-              "path": ["user", "bank-details"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "bank-details"
+              ]
             },
             "description": "Add or update bank details for the authenticated user."
           }
@@ -1272,13 +2857,24 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/user/bank-details",
-              "host": ["{{base_url}}"],
-              "path": ["user", "bank-details"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "bank-details"
+              ]
             },
             "description": "Delete bank details for the authenticated user."
           }
@@ -1288,9 +2884,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1298,8 +2903,13 @@
             },
             "url": {
               "raw": "{{base_url}}/watch-history/track-progress",
-              "host": ["{{base_url}}"],
-              "path": ["watch-history", "track-progress"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch-history",
+                "track-progress"
+              ]
             },
             "description": "Track playing position, duration, completion %, status (playing/stopped/paused/completed), and active seconds listened."
           }
@@ -1309,9 +2919,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1319,8 +2938,13 @@
             },
             "url": {
               "raw": "{{base_url}}/watch-history/track-minutes",
-              "host": ["{{base_url}}"],
-              "path": ["watch-history", "track-minutes"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "watch-history",
+                "track-minutes"
+              ]
             },
             "description": "Incrementally track listening seconds/minutes during playback."
           }
@@ -1330,13 +2954,25 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episodes/1/progress",
-              "host": ["{{base_url}}"],
-              "path": ["episodes", "1", "progress"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "progress"
+              ]
             },
             "description": "Get watch/playback progress for a specific episode."
           }
@@ -1346,13 +2982,25 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/stories/1/progress",
-              "host": ["{{base_url}}"],
-              "path": ["stories", "1", "progress"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories",
+                "1",
+                "progress"
+              ]
             },
             "description": "Get last watched episode and progress position for a story."
           }
@@ -1362,13 +3010,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/user/listening-stats",
-              "host": ["{{base_url}}"],
-              "path": ["user", "listening-stats"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "listening-stats"
+              ]
             },
             "description": "Get total listening time (seconds, minutes, hours) and summary stats for authenticated user."
           }
@@ -1378,20 +3037,34 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"episode_id\": 1,\n  \"current_seconds\": 120,\n  \"total_duration_seconds\": 300\n}"
             },
             "url": {
-              "raw": "{{base_url}}/episodes/1/play-duration",
-              "host": ["{{base_url}}"],
-              "path": ["episodes", "1", "play-duration"]
+              "raw": "{{base_url}}/episodes/play-duration",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "play-duration"
+              ]
             },
-            "description": "Update current playback seconds out of total duration in integer for an episode for the logged in user."
+            "description": "Update current playback seconds out of total duration in integer for an episode for the logged in user. Updates watch history and progress."
           }
         }
       ]
@@ -1404,13 +3077,23 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/streak",
-              "host": ["{{base_url}}"],
-              "path": ["streak"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak"
+              ]
             },
             "description": "Fetch complete user streak overview, today goal, week calendar, next reward, journey milestones, shield info, achievements, FAQs, and bottom sheets data."
           }
@@ -1420,13 +3103,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/user/streak-summary",
-              "host": ["{{base_url}}"],
-              "path": ["user", "streak-summary"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "streak-summary"
+              ]
             },
             "description": "Fetch high-level hero card summary (current_streak_days, best_streak_days, total_energy, this_month_days, today_reward, next_milestone_reward)."
           }
@@ -1436,36 +3130,26 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/listening/today-status",
-              "host": ["{{base_url}}"],
-              "path": ["listening", "today-status"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "listening",
+                "today-status"
+              ]
             },
             "description": "Fetch today's listening goal progress, listened minutes/seconds, completion status, and reward claimed status."
-          }
-        },
-        {
-          "name": "Post Listening Heartbeat",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"seconds\": 15\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/listening/heartbeat",
-              "host": ["{{base_url}}"],
-              "path": ["listening", "heartbeat"]
-            },
-            "description": "Send periodic listening heartbeat from player (every 15-30 seconds). Updates listened time, completes daily goal automatically when target reached, and calculates streak."
           }
         },
         {
@@ -1473,13 +3157,24 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/streak/claim-daily",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "claim-daily"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "claim-daily"
+              ]
             },
             "description": "Claim today's completed daily goal energy reward (+5 Energy/Coins). Alias: /rewards/claim-daily."
           }
@@ -1489,13 +3184,24 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/rewards/claim-daily",
-              "host": ["{{base_url}}"],
-              "path": ["rewards", "claim-daily"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewards",
+                "claim-daily"
+              ]
             },
             "description": "Claim today's completed daily goal energy reward (+5 Energy/Coins). Alias endpoint."
           }
@@ -1505,9 +3211,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1515,8 +3230,13 @@
             },
             "url": {
               "raw": "{{base_url}}/streak/claim-milestone",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "claim-milestone"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "claim-milestone"
+              ]
             },
             "description": "Claim streak journey milestone reward (milestone_id 1=3 days, 2=7 days, 3=15 days, 4=30 days). Alias: /rewards/claim-milestone."
           }
@@ -1526,9 +3246,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1536,8 +3265,13 @@
             },
             "url": {
               "raw": "{{base_url}}/rewards/claim-milestone",
-              "host": ["{{base_url}}"],
-              "path": ["rewards", "claim-milestone"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "rewards",
+                "claim-milestone"
+              ]
             },
             "description": "Claim streak journey milestone reward. Alias endpoint."
           }
@@ -1547,9 +3281,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1557,8 +3300,13 @@
             },
             "url": {
               "raw": "{{base_url}}/streak/use-shield",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "use-shield"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "use-shield"
+              ]
             },
             "description": "Activate 1 available Streak Shield to protect a missed date without breaking streak. Alias: /streak/protect-day."
           }
@@ -1568,9 +3316,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1578,8 +3335,13 @@
             },
             "url": {
               "raw": "{{base_url}}/streak/protect-day",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "protect-day"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "protect-day"
+              ]
             },
             "description": "Protect a missed day using a Streak Shield. Alias endpoint."
           }
@@ -1589,13 +3351,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/streak/shield-status",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "shield-status"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "shield-status"
+              ]
             },
             "description": "Fetch streak shield count, max storage limit (2), current days progress, and days left to earn next shield."
           }
@@ -1605,13 +3378,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/user/weekly-activity",
-              "host": ["{{base_url}}"],
-              "path": ["user", "weekly-activity"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "weekly-activity"
+              ]
             },
             "description": "Fetch 7-day weekly activity strip data (Monday to Sunday) with day status, listened minutes, and rewards."
           }
@@ -1621,13 +3405,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/streak/next-milestone",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "next-milestone"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "next-milestone"
+              ]
             },
             "description": "Fetch current target unclaimed milestone and days left to unlock."
           }
@@ -1637,13 +3432,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/streak/milestones",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "milestones"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "milestones"
+              ]
             },
             "description": "Fetch all milestone statuses (3, 7, 15, 30 days), requirements, rewards, and claim statuses."
           }
@@ -1653,16 +3459,33 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/streak/activity?year=2026&month=9",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "activity"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "activity"
+              ],
               "query": [
-                { "key": "year", "value": "2026" },
-                { "key": "month", "value": "9" }
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "month",
+                  "value": "9"
+                }
               ]
             },
             "description": "Fetch calendar activity grid for a specific month. Alias: /user/streak-calendar."
@@ -1673,16 +3496,33 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/user/streak-calendar?year=2026&month=9",
-              "host": ["{{base_url}}"],
-              "path": ["user", "streak-calendar"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "streak-calendar"
+              ],
               "query": [
-                { "key": "year", "value": "2026" },
-                { "key": "month", "value": "9" }
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "month",
+                  "value": "9"
+                }
               ]
             },
             "description": "Fetch calendar activity grid for a specific month. Alias endpoint."
@@ -1693,15 +3533,29 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/streak/date-details?date=2026-09-11",
-              "host": ["{{base_url}}"],
-              "path": ["streak", "date-details"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "streak",
+                "date-details"
+              ],
               "query": [
-                { "key": "date", "value": "2026-09-11" }
+                {
+                  "key": "date",
+                  "value": "2026-09-11"
+                }
               ]
             },
             "description": "Fetch date detail summary for calendar bottom sheet."
@@ -1712,13 +3566,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/user/achievements",
-              "host": ["{{base_url}}"],
-              "path": ["user", "achievements"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "achievements"
+              ]
             },
             "description": "Fetch user's earned and locked streak achievements list."
           }
@@ -1733,16 +3598,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/notifications?page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["notifications"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "List notifications for authenticated user with formatted time_ago and unread status."
@@ -1753,13 +3634,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/notifications/unread-count",
-              "host": ["{{base_url}}"],
-              "path": ["notifications", "unread-count"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
             },
             "description": "Get total unread notification count badge for header or tab bar."
           }
@@ -1769,13 +3661,24 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/notifications/mark-all-read",
-              "host": ["{{base_url}}"],
-              "path": ["notifications", "mark-all-read"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "mark-all-read"
+              ]
             },
             "description": "Mark all notifications for current user as read."
           }
@@ -1785,13 +3688,25 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/notifications/1/read",
-              "host": ["{{base_url}}"],
-              "path": ["notifications", "1", "read"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "1",
+                "read"
+              ]
             },
             "description": "Mark a single notification as read by ID."
           }
@@ -1801,13 +3716,24 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/notifications/1",
-              "host": ["{{base_url}}"],
-              "path": ["notifications", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "1"
+              ]
             },
             "description": "Delete a single notification item by ID."
           }
@@ -1817,13 +3743,23 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/notifications",
-              "host": ["{{base_url}}"],
-              "path": ["notifications"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications"
+              ]
             },
             "description": "Clear all notification history for current user."
           }

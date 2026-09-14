@@ -59,7 +59,7 @@ router.get('/cities', LocationController.getCities);
 router.get('/cities/:id', LocationController.getCityById);
 
 // Home, Banners, Plans & Categories
-router.get('/home', HomeController.index);
+router.get('/home', authMiddleware.optional, HomeController.index);
 router.get('/banners', BannerController.index);
 router.get('/categories', CategoryController.index);
 router.get('/plans', PlanController.index);
@@ -171,23 +171,23 @@ router.post('/watch-history/track-minutes', WatchHistoryController.trackMinutes)
 router.delete('/watch-history', WatchHistoryController.clear);
 router.delete('/watch-history/:id', WatchHistoryController.destroy);
 
-router.post('/episodes/:id/track-progress', WatchHistoryController.trackProgress);
-router.post('/episodes/:id/play-duration', WatchHistoryController.updatePlayDuration);
+// Static episode routes MUST come before dynamic :id routes
 router.post('/episodes/play-duration', WatchHistoryController.updatePlayDuration);
-router.post('/episodes/:id/update-play-duration', WatchHistoryController.updatePlayDuration);
 router.post('/episodes/update-play-duration', WatchHistoryController.updatePlayDuration);
 router.post('/episode/play-duration', WatchHistoryController.updatePlayDuration);
+// Dynamic :id routes
+router.post('/episodes/:id/track-progress', WatchHistoryController.trackProgress);
 router.get('/episodes/:id/progress', WatchHistoryController.getEpisodeProgress);
+router.post('/episodes/:id/unlock', EpisodeController.unlock);
 router.get('/stories/:id/progress', WatchHistoryController.getStoryProgress);
 router.get('/user/listening-stats', WatchHistoryController.getUserListeningStats);
-router.post('/episodes/:id/unlock', EpisodeController.unlock);
 
 // Streak & Daily Goal API (My-Streak-Complete-Guide compliant)
 router.get('/streak', StreakController.index);
 router.get('/user/streak-summary', StreakController.getSummary);
 
 router.get('/listening/today-status', StreakController.getTodayStatus);
-router.post('/listening/heartbeat', StreakController.heartbeat);
+
 
 router.post('/streak/claim-daily', StreakController.claimDailyReward);
 router.post('/rewards/claim-daily', StreakController.claimDailyReward);

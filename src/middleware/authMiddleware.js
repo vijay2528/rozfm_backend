@@ -2,14 +2,36 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 
+function extractToken(req) {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  if (authHeader) {
+    const str = authHeader.toString().trim();
+    if (/^bearer\s+/i.test(str)) {
+      return str.replace(/^bearer\s+/i, '').trim();
+    }
+    return str;
+  }
+  if (req.headers['x-access-token']) {
+    return req.headers['x-access-token'].toString().trim();
+  }
+  if (req.query) {
+    if (req.query.token) return req.query.token.toString().trim();
+    if (req.query.auth_token) return req.query.auth_token.toString().trim();
+    if (req.query.authorization) {
+      const str = req.query.authorization.toString().trim();
+      return /^bearer\s+/i.test(str) ? str.replace(/^bearer\s+/i, '').trim() : str;
+    }
+  }
+  if (req.body) {
+    if (req.body.token) return req.body.token.toString().trim();
+    if (req.body.auth_token) return req.body.auth_token.toString().trim();
+  }
+  return null;
+}
+
 async function authMiddleware(req, res, next) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ApiResponse.error(res, 'Unauthenticated.', 401);
-    }
-
-    const token = authHeader.split(' ')[1];
+    const token = extractToken(req);
     if (!token) {
       return ApiResponse.error(res, 'Unauthenticated.', 401);
     }
@@ -39,12 +61,7 @@ async function authMiddleware(req, res, next) {
 
 async function optionalAuth(req, res, next) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next();
-    }
-
-    const token = authHeader.split(' ')[1];
+    const token = extractToken(req);
     if (!token) {
       return next();
     }

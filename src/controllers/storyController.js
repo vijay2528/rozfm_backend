@@ -132,20 +132,24 @@ class StoryController {
 
       const story = storyRows[0];
 
-      // Increment views count
-      await pool.query('UPDATE stories SET total_views = total_views + 1 WHERE id = ?', [storyId]);
-
-      // Fetch episodes
-      const [episodes] = await pool.query(
-        'SELECT * FROM episodes WHERE story_id = ? ORDER BY position ASC',
-        [storyId]
-      );
-
       let isLiked = false;
       let isBookmarked = false;
       let userUnlockedEpisodeIds = new Set();
+      let hasActiveMembership = false;
 
       if (userId) {
+        const [subRows] = await pool.query(
+          "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1",
+          [userId]
+        );
+        const [userRows] = await pool.query(
+          "SELECT subscription_type, role FROM users WHERE id = ? LIMIT 1",
+          [userId]
+        );
+        if (subRows.length > 0 || (userRows.length > 0 && (userRows[0].subscription_type === 'vip' || userRows[0].role === 'vip'))) {
+          hasActiveMembership = true;
+        }
+
         const [likeRow] = await pool.query(
           'SELECT id FROM story_likes WHERE user_id = ? AND story_id = ? LIMIT 1',
           [userId, storyId]
@@ -162,10 +166,98 @@ class StoryController {
           'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ?',
           [userId]
         );
-        unlocks.forEach((u) => userUnlockedEpisodeIds.add(u.episode_id));
+        unlocks.forEach((u) => {
+          if (u.episode_id !== null && u.episode_id !== undefined) {
+            userUnlockedEpisodeIds.add(Number(u.episode_id));
+            userUnlockedEpisodeIds.add(String(u.episode_id));
+          }
+        });
       }
 
-      // Calculate completion rate, avg listening time, and performance metrics dynamically from DB
+      // Fetch user's last watched history for this story
+      let lastWatchedHistory = null;
+      if (userId) {
+        try {
+          const [historyRows] = await pool.query(
+            `SELECT w.*, e.title as episode_title, COALESCE(e.position, 1) as episode_position
+             FROM watch_histories w
+             INNER JOIN episodes e ON w.episode_id = e.id
+             WHERE w.user_id = ? AND w.story_id = ? AND w.episode_id IS NOT NULL
+             ORDER BY GREATEST(COALESCE(w.last_watched_at, '1970-01-01'), COALESCE(w.updated_at, '1970-01-01'), COALESCE(w.created_at, '1970-01-01')) DESC, w.id DESC
+             LIMIT 1`,
+            [userId, storyId]
+          );
+
+          if (historyRows.length > 0) {
+            lastWatchedHistory = historyRows[0];
+          }
+        } catch (err) {
+          console.error('Fetch user last watched history error:', err);
+        }
+      }
+
+      // Determine target episode (last played episode or 1st episode as fallback)
+      let targetEpisode = null;
+      if (lastWatchedHistory && lastWatchedHistory.episode_id) {
+        const [epRows] = await pool.query(
+          `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path
+           FROM episodes e
+           LEFT JOIN stories s ON e.story_id = s.id
+           WHERE e.id = ? LIMIT 1`,
+          [lastWatchedHistory.episode_id]
+        );
+        if (epRows.length > 0) {
+          targetEpisode = epRows[0];
+        }
+      }
+
+      if (!targetEpisode) {
+        const [firstEpRows] = await pool.query(
+          `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path
+           FROM episodes e
+           LEFT JOIN stories s ON e.story_id = s.id
+           WHERE e.story_id = ?
+           ORDER BY e.position ASC, e.id ASC
+           LIMIT 1`,
+          [storyId]
+        );
+        if (firstEpRows.length > 0) {
+          targetEpisode = firstEpRows[0];
+        }
+      }
+
+      let lastPlayedEpisodeData = null;
+      if (targetEpisode) {
+        const isUnlocked = !targetEpisode.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(targetEpisode.id)) || userUnlockedEpisodeIds.has(String(targetEpisode.id));
+        const { toEpisodeFieldsArray } = require('../utils/storyPresenter');
+
+        const progressData = lastWatchedHistory ? {
+          progress_seconds: Number(lastWatchedHistory.progress_seconds || 0),
+          total_duration_seconds: Number(lastWatchedHistory.total_duration_seconds || targetEpisode.duration_seconds || 0),
+          completion_percentage: Number(lastWatchedHistory.completion_percentage || 0),
+          status: lastWatchedHistory.status || (lastWatchedHistory.completed ? 'completed' : 'playing'),
+          completed: Boolean(lastWatchedHistory.completed),
+          is_last_watched: true,
+          last_watched_at: lastWatchedHistory.last_watched_at ? new Date(lastWatchedHistory.last_watched_at).toISOString() : null,
+        } : {
+          progress_seconds: 0,
+          total_duration_seconds: Number(targetEpisode.duration_seconds || 0),
+          completion_percentage: 0,
+          status: 'unwatched',
+          completed: false,
+          is_last_watched: false,
+          last_watched_at: null,
+        };
+
+        lastPlayedEpisodeData = toEpisodeFieldsArray(
+          targetEpisode,
+          story.title,
+          isUnlocked,
+          progressData
+        );
+      }
+
+      // Calculate performance & completion metrics dynamically
       let completionRate = 0;
       let avgListeningTime = 0;
       let performanceObj = null;
@@ -218,12 +310,11 @@ class StoryController {
           return pct >= 0 ? `+${pct}%` : `${pct}%`;
         };
 
+        const { formatNumber } = require('../utils/storyPresenter');
         const totalPlays = Math.max(Number(story.total_views || 0), totalHistories);
         const totalListeners = Math.max(Number(story.listeners_count || 0), Number(ws.total_listeners || 0));
         const totalLikes = Number(ls.total_likes || 0);
         const totalShares = Number(story.shares_count || 0);
-
-        const { formatNumber } = require('../utils/storyPresenter');
 
         performanceObj = {
           plays: {
@@ -251,17 +342,31 @@ class StoryController {
         console.error('Calculate Story Performance Error:', err);
       }
 
+      const watchHistorySummary = lastWatchedHistory ? {
+        episode_id: lastWatchedHistory.episode_id,
+        episode_no: Number(lastWatchedHistory.episode_position || 1),
+        episode_title: lastWatchedHistory.episode_title,
+        progress_seconds: Number(lastWatchedHistory.progress_seconds || 0),
+        total_duration_seconds: Number(lastWatchedHistory.total_duration_seconds || 0),
+        completion_percentage: Number(lastWatchedHistory.completion_percentage || 0),
+        last_watched_at: lastWatchedHistory.last_watched_at ? new Date(lastWatchedHistory.last_watched_at).toISOString() : null,
+      } : null;
+
       const result = toStoryFieldsArray(story, {
         isLiked,
         isBookmarked,
-        episodes,
+        lastPlayedEpisode: lastPlayedEpisodeData,
         userUnlockedEpisodeIds,
+        hasActiveMembership,
         performance: performanceObj,
         completionRate,
         avgListeningTime,
+        watchHistory: watchHistorySummary,
       });
 
-      return ApiResponse.success(res, { story: result });
+      return ApiResponse.success(res, {
+        story: result,
+      });
     } catch (error) {
       console.error('Get Story Error:', error);
       return ApiResponse.error(res, 'Failed to fetch story details.', 500);
