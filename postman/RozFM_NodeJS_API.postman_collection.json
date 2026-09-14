@@ -4087,6 +4087,38 @@
           }
         }
       ]
+    },
+    {
+      "name": "Writer Dashboard API",
+      "item": [
+        {
+          "name": "Get Writer Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/writer/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "dashboard"
+              ]
+            },
+            "description": "Fetch Writer Studio dashboard statistics including profile info, unread notifications, earnings (today, month, total), today overview metrics (plays, likes, comments, shares), quick actions, and story summary."
+          }
+        }
+      ]
     }
   ]
 }

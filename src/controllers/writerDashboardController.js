@@ -53,8 +53,6 @@ function calculateGrowth(current, previous) {
 class WriterDashboardController {
   /**
    * GET /api/v1/writer/dashboard
-   * GET /api/v1/writer-dashboard
-   * GET /api/v1/user/writer-dashboard
    * Writer Studio Dashboard summary endpoint
    */
   static async index(req, res) {

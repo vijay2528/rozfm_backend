@@ -123,8 +123,6 @@ router.post('/user/notifications/settings', MeController.updateNotificationSetti
 
 // Writer Dashboard API
 router.get('/writer/dashboard', WriterDashboardController.index);
-router.get('/writer-dashboard', WriterDashboardController.index);
-router.get('/user/writer-dashboard', WriterDashboardController.index);
 
 // Notifications API
 router.get('/notifications', NotificationController.index);
