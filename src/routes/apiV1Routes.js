@@ -26,6 +26,7 @@ const StreakController = require('../controllers/streakController');
 const NotificationController = require('../controllers/notificationController');
 const LeaderboardController = require('../controllers/leaderboardController');
 const AudienceController = require('../controllers/audienceController');
+const BadgeController = require('../controllers/badgeController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -135,6 +136,15 @@ router.get('/user/following', UserController.getFollowing);
 router.get('/user/audience-stats', AudienceController.getAudienceStats);
 router.get('/audience/stats', AudienceController.getAudienceStats);
 router.get('/users/:id/audience-stats', AudienceController.getAudienceStats);
+
+// Writer Badges API
+router.get('/user/writer-badges', BadgeController.getBadges);
+router.get('/user/badges', BadgeController.getBadges);
+router.get('/writer/badges', BadgeController.getBadges);
+router.get('/writers/:id/badges', BadgeController.getBadges);
+router.get('/badges/writer', BadgeController.getBadges);
+router.get('/badges', BadgeController.getBadges);
+router.post('/user/writer-badges/claim', BadgeController.claimBadge);
 
 // User Follow / Unfollow
 router.post('/users/:id/follow', UserController.follow);

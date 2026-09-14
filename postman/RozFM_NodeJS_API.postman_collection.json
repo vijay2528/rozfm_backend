@@ -3964,6 +3964,129 @@
           }
         }
       ]
+    },
+    {
+      "name": "Writer Badges API",
+      "item": [
+        {
+          "name": "Get Writer Badges",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/writer-badges",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "writer-badges"
+              ]
+            },
+            "description": "Fetch writer badges with real-time criteria progress, unlocked status, requirement text, and theme colors."
+          }
+        },
+        {
+          "name": "Get Writer Badges (Alias Route)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/writer/badges",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "badges"
+              ]
+            },
+            "description": "Fetch writer badges via alias route."
+          }
+        },
+        {
+          "name": "Get Target Writer Badges",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/writers/1/badges",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writers",
+                "1",
+                "badges"
+              ]
+            },
+            "description": "Fetch writer badges for a specific writer user ID."
+          }
+        },
+        {
+          "name": "Claim / Unlock Writer Badge",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"badge_key\": \"top_creator\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user/writer-badges/claim",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "writer-badges",
+                "claim"
+              ]
+            },
+            "description": "Manually claim / unlock a writer badge for current user."
+          }
+        }
+      ]
     }
   ]
 }

@@ -837,6 +837,57 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 36. Writer Badges table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`writer_badges\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`badge_key\` VARCHAR(100) NOT NULL UNIQUE,
+        \`title\` VARCHAR(255) NOT NULL,
+        \`description\` VARCHAR(512) NOT NULL,
+        \`requirement_text\` VARCHAR(512) NOT NULL,
+        \`target_value\` INT DEFAULT 0,
+        \`icon_type\` VARCHAR(50) DEFAULT 'star',
+        \`theme_color\` VARCHAR(50) DEFAULT 'purple',
+        \`badge_color_hex\` VARCHAR(20) DEFAULT '#8B5CF6',
+        \`sort_order\` INT DEFAULT 0,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 37. User Writer Badges table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`user_writer_badges\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`badge_key\` VARCHAR(100) NOT NULL,
+        \`earned_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY \`user_badge_unique\` (\`user_id\`, \`badge_key\`),
+        CONSTRAINT \`fk_user_writer_badges_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // Seed default writer badges if table is empty
+    const [[{ badgeCount }]] = await connection.query('SELECT COUNT(*) as badgeCount FROM `writer_badges`');
+    if (badgeCount === 0) {
+      const defaultBadges = [
+        { key: 'premium_writer', title: 'Premium Writer', description: 'You are a Premium Writer', requirement: 'You are a Premium Writer', target: 1, icon: 'star', color: 'purple', hex: '#8B5CF6', order: 1 },
+        { key: 'rising_star', title: 'Rising Star', description: 'Reach 10K listeners', requirement: 'Reach 10K listeners', target: 10000, icon: 'star', color: 'purple', hex: '#A855F7', order: 2 },
+        { key: 'top_creator', title: 'Top Creator', description: 'Earn 50K plays in a month', requirement: 'Earn 50K plays in a month', target: 50000, icon: 'crown', color: 'gold', hex: '#F59E0B', order: 3 },
+        { key: 'consistent_writer', title: 'Consistent Writer', description: 'Upload 10 episodes in a month', requirement: 'Upload 10 episodes in a month', target: 10, icon: 'check', color: 'teal', hex: '#14B8A6', order: 4 },
+        { key: 'fan_favorite', title: 'Fan Favorite', description: 'Get 1000+ likes in a story', requirement: 'Get 1000+ likes in a story', target: 1000, icon: 'heart', color: 'orange', hex: '#F97316', order: 5 }
+      ];
+
+      for (const b of defaultBadges) {
+        await connection.query(
+          `INSERT INTO \`writer_badges\` (\`badge_key\`, \`title\`, \`description\`, \`requirement_text\`, \`target_value\`, \`icon_type\`, \`theme_color\`, \`badge_color_hex\`, \`sort_order\`)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [b.key, b.title, b.description, b.requirement, b.target, b.icon, b.color, b.hex, b.order]
+        );
+      }
+      console.log('🌱 Default writer badges seeded successfully!');
+    }
+
     // Seed default sample notifications for users if notifications table is empty
     const [[{ notifCount }]] = await connection.query('SELECT COUNT(*) as notifCount FROM `notifications`');
     if (notifCount === 0) {
