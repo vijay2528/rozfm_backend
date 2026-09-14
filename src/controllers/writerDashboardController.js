@@ -85,6 +85,24 @@ class WriterDashboardController {
         return ApiResponse.error(res, 'Writer user not found.', 404);
       }
 
+      // Check if user is a creator/writer
+      let userStoriesCount = 0;
+      try {
+        const [[storyCntRow]] = await pool.query(
+          'SELECT COUNT(*) AS cnt FROM stories WHERE user_id = ?',
+          [userIdNum]
+        );
+        if (storyCntRow) userStoriesCount = Number(storyCntRow.cnt || 0);
+      } catch (_) {}
+
+      const userRole = user.role ? String(user.role).toLowerCase() : 'user';
+      const isCreatorRole = ['creator', 'writer', 'admin', 'moderator'].includes(userRole);
+      const isCreator = isCreatorRole || userStoriesCount > 0;
+
+      if (!isCreator) {
+        return ApiResponse.success(res, null, 'User is not a creator yet.');
+      }
+
       // Determine Writer Badge Title
       let badgeText = 'Writer';
       if (user.subscription_type && String(user.subscription_type).toLowerCase() === 'premium') {
