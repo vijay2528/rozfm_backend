@@ -57,33 +57,28 @@ class WriterDashboardController {
    */
   static async index(req, res) {
     try {
-      const targetUserId =
-        req.query.user_id ||
-        req.query.id ||
-        (req.user ? req.user.id : null);
+      // 1. Determine User / Writer Details
+      let user = req.user || null;
 
-      if (!targetUserId) {
-        return ApiResponse.error(res, 'User ID is required.', 400);
-      }
-
-      const userIdNum = Number(targetUserId);
-
-      // 1. Fetch User / Writer Details
-      let user = null;
-      try {
-        const [[userRow]] = await pool.query(
-          `SELECT id, name, username, email, avatar_path, bio, role, subscription_type, is_verified
-           FROM users WHERE id = ? LIMIT 1`,
-          [userIdNum]
-        );
-        user = userRow;
-      } catch (err) {
-        console.error('Error fetching writer user:', err.message);
+      const requestedUserId = (req && req.query) ? (req.query.user_id || req.query.id) : null;
+      if (requestedUserId) {
+        try {
+          const [[userRow]] = await pool.query(
+            `SELECT id, name, username, email, avatar_path, bio, role, subscription_type, is_verified
+             FROM users WHERE id = ? LIMIT 1`,
+            [Number(requestedUserId)]
+          );
+          if (userRow) user = userRow;
+        } catch (err) {
+          console.error('Error fetching target writer user:', err.message);
+        }
       }
 
       if (!user) {
-        return ApiResponse.error(res, 'Writer user not found.', 404);
+        return ApiResponse.error(res, 'User not found.', 404);
       }
+
+      const userIdNum = Number(user.id);
 
       // Check if user is a creator/writer
       let userStoriesCount = 0;
