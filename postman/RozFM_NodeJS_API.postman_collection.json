@@ -3122,7 +3122,7 @@
                 "streak-summary"
               ]
             },
-            "description": "Fetch high-level hero card summary (current_streak_days, best_streak_days, total_energy, this_month_days, today_reward, next_milestone_reward)."
+            "description": "Fetch screen_data containing streak_overview, today_goal, week_calendar, next_reward, journey_milestones, streak_shield, achievements, and help_faqs with OK message."
           }
         },
         {
@@ -3762,6 +3762,205 @@
               ]
             },
             "description": "Clear all notification history for current user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard API",
+      "item": [
+        {
+          "name": "Get Unified Leaderboard (All 3 Sections)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/leaderboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaderboard"
+              ]
+            },
+            "description": "Fetch unified leaderboard containing Writers, Stories, and Listeners in a single payload."
+          }
+        },
+        {
+          "name": "Get Writers Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/leaderboard/writers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaderboard",
+                "writers"
+              ]
+            },
+            "description": "Fetch top writers ranked by total plays across their created stories."
+          }
+        },
+        {
+          "name": "Get Stories Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/leaderboard/stories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaderboard",
+                "stories"
+              ]
+            },
+            "description": "Fetch top audio stories ranked by views, listeners count, and ratings."
+          }
+        },
+        {
+          "name": "Get Listeners Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/leaderboard/listeners",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "leaderboard",
+                "listeners"
+              ]
+            },
+            "description": "Fetch top listeners ranked by total listening time, current streak, and energy."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audience Statistics API",
+      "item": [
+        {
+          "name": "Get Audience Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/audience-stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "audience-stats"
+              ]
+            },
+            "description": "Fetch creator audience analytics including total followers, growth metrics, top cities breakdown, age groups, and gender demographics."
+          }
+        },
+        {
+          "name": "Get Audience Statistics (Alias Route)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/audience/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audience",
+                "stats"
+              ]
+            },
+            "description": "Fetch audience statistics via alias route."
+          }
+        },
+        {
+          "name": "Get Target User Audience Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/1/audience-stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "1",
+                "audience-stats"
+              ]
+            },
+            "description": "Fetch audience statistics for a specific target user ID."
           }
         }
       ]
