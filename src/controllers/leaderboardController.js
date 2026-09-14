@@ -55,8 +55,8 @@ class LeaderboardController {
         COALESCE(SUM(s.total_views), 0) + COALESCE(SUM(s.listeners_count), 0) AS total_plays
        FROM users u
        INNER JOIN stories s ON s.user_id = u.id
-       WHERE u.is_blocked = 0
-       GROUP BY u.id
+       WHERE (u.is_blocked = 0 OR u.is_blocked IS NULL)
+       GROUP BY u.id, u.name, u.username, u.avatar_path
        ORDER BY total_plays DESC, stories_count DESC, u.id ASC
        LIMIT ? OFFSET ?`,
       [limitNum, offsetNum]
@@ -64,12 +64,15 @@ class LeaderboardController {
 
     let followedUserIds = new Set();
     if (currentUserId && rows.length > 0) {
-      const targetUserIds = rows.map((r) => r.user_id);
-      const [followRows] = await pool.query(
-        `SELECT following_id FROM user_follows WHERE follower_id = ? AND following_id IN (?)`,
-        [currentUserId, targetUserIds]
-      );
-      followedUserIds = new Set(followRows.map((f) => f.following_id));
+      const targetUserIds = rows.map((r) => Number(r.user_id)).filter((id) => Boolean(id) && !isNaN(id));
+      if (targetUserIds.length > 0) {
+        const placeholders = targetUserIds.map(() => '?').join(',');
+        const [followRows] = await pool.query(
+          `SELECT following_id FROM user_follows WHERE follower_id = ? AND following_id IN (${placeholders})`,
+          [currentUserId, ...targetUserIds]
+        );
+        followedUserIds = new Set(followRows.map((f) => Number(f.following_id)));
+      }
     }
 
     const allRankings = rows.map((r, index) => {
@@ -90,7 +93,7 @@ class LeaderboardController {
         stories_count: Number(r.stories_count || 0),
         total_plays: totalPlays,
         plays_formatted: formatPlaysText(totalPlays),
-        is_following: followedUserIds.has(r.user_id),
+        is_following: followedUserIds.has(Number(r.user_id)),
       };
     });
 
@@ -210,7 +213,8 @@ class LeaderboardController {
          GROUP BY user_id
        ) da ON da.user_id = u.id
        LEFT JOIN user_streaks st ON st.user_id = u.id
-       WHERE u.is_blocked = 0
+       WHERE (u.is_blocked = 0 OR u.is_blocked IS NULL)
+       GROUP BY u.id, u.name, u.username, u.avatar_path, wh.total_listened_secs, da.total_da_secs, st.current_streak_days, st.total_energy
        ORDER BY total_listened_seconds DESC, total_energy DESC, current_streak_days DESC, u.id ASC
        LIMIT ? OFFSET ?`,
       [limitNum, offsetNum]
@@ -257,9 +261,9 @@ class LeaderboardController {
    */
   static async index(req, res) {
     try {
-      const type = (req.query.type || 'all').toString().trim().toLowerCase();
-      const limit = parseInt(req.query.limit || '20', 10);
-      const page = parseInt(req.query.page || '1', 10);
+      const type = (req.query?.type || 'all').toString().trim().toLowerCase();
+      const limit = Math.max(1, parseInt(req.query?.limit || '20', 10) || 20);
+      const page = Math.max(1, parseInt(req.query?.page || '1', 10) || 1);
       const offset = (page - 1) * limit;
       const currentUserId = req.user ? req.user.id : null;
 
@@ -305,8 +309,8 @@ class LeaderboardController {
    */
   static async writers(req, res) {
     try {
-      const limit = parseInt(req.query.limit || '20', 10);
-      const page = parseInt(req.query.page || '1', 10);
+      const limit = Math.max(1, parseInt(req.query?.limit || '20', 10) || 20);
+      const page = Math.max(1, parseInt(req.query?.page || '1', 10) || 1);
       const offset = (page - 1) * limit;
       const currentUserId = req.user ? req.user.id : null;
 
@@ -323,8 +327,8 @@ class LeaderboardController {
    */
   static async stories(req, res) {
     try {
-      const limit = parseInt(req.query.limit || '20', 10);
-      const page = parseInt(req.query.page || '1', 10);
+      const limit = Math.max(1, parseInt(req.query?.limit || '20', 10) || 20);
+      const page = Math.max(1, parseInt(req.query?.page || '1', 10) || 1);
       const offset = (page - 1) * limit;
 
       const data = await LeaderboardController.fetchStories(limit, offset);
@@ -340,8 +344,8 @@ class LeaderboardController {
    */
   static async listeners(req, res) {
     try {
-      const limit = parseInt(req.query.limit || '20', 10);
-      const page = parseInt(req.query.page || '1', 10);
+      const limit = Math.max(1, parseInt(req.query?.limit || '20', 10) || 20);
+      const page = Math.max(1, parseInt(req.query?.page || '1', 10) || 1);
       const offset = (page - 1) * limit;
 
       const data = await LeaderboardController.fetchListeners(limit, offset);

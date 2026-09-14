@@ -48,11 +48,16 @@ class AudienceController {
       const todayGrowthCount = Number(todayFollowers || 0);
       const newCount = Number(newFollowersCount || 0);
 
-      // Fallback defaults for rich mobile preview if new account with 0 followers
-      const displayTotalCount = totalCount > 0 ? totalCount : 24500;
-      const displayTodayGrowth = todayGrowthCount > 0 ? todayGrowthCount : 310;
-      const displayNewCount = newCount > 0 ? newCount : 1200;
-      const displayUnfollowers = Math.round(displayNewCount * 0.1);
+      // Growth percentage for new followers in last 30 days
+      let newGrowthPct = 0;
+      if (totalCount > 0 && newCount > 0) {
+        const previousTotal = totalCount - newCount;
+        if (previousTotal > 0) {
+          newGrowthPct = parseFloat(((newCount / previousTotal) * 100).toFixed(1));
+        } else {
+          newGrowthPct = 100;
+        }
+      }
 
       // 4. Query Top Cities from actual follower profile data
       const [cityRows] = await pool.query(
@@ -81,15 +86,6 @@ class AudienceController {
             count: cCount,
           };
         });
-      } else {
-        // Default top cities structure matching UI specification
-        topCities = [
-          { city: 'Delhi', percentage: 25.6, percentage_text: '25.6%', count: Math.round(displayTotalCount * 0.256) },
-          { city: 'Mumbai', percentage: 20.3, percentage_text: '20.3%', count: Math.round(displayTotalCount * 0.203) },
-          { city: 'Lucknow', percentage: 12.6, percentage_text: '12.6%', count: Math.round(displayTotalCount * 0.126) },
-          { city: 'Bengaluru', percentage: 10.5, percentage_text: '10.5%', count: Math.round(displayTotalCount * 0.105) },
-          { city: 'Kolkata', percentage: 8.7, percentage_text: '8.7%', count: Math.round(displayTotalCount * 0.087) },
-        ];
       }
 
       // 5. Query Age Groups from actual follower profile data
@@ -118,13 +114,6 @@ class AudienceController {
             count: aCount,
           };
         });
-      } else {
-        // Default age groups structure matching UI specification
-        ageGroups = [
-          { group: '18-24', percentage: 45, percentage_text: '45%', count: Math.round(displayTotalCount * 0.45) },
-          { group: '25-34', percentage: 35, percentage_text: '35%', count: Math.round(displayTotalCount * 0.35) },
-          { group: '35-44', percentage: 20, percentage_text: '20%', count: Math.round(displayTotalCount * 0.20) },
-        ];
       }
 
       // 6. Query Gender Demographics
@@ -154,12 +143,6 @@ class AudienceController {
             count: gCount,
           };
         });
-      } else {
-        genderDemographics = [
-          { gender: 'Male', percentage: 58, percentage_text: '58%' },
-          { gender: 'Female', percentage: 40, percentage_text: '40%' },
-          { gender: 'Other', percentage: 2, percentage_text: '2%' },
-        ];
       }
 
       return ApiResponse.success(
@@ -167,22 +150,22 @@ class AudienceController {
         {
           overview: {
             total_followers: {
-              count: displayTotalCount,
-              formatted: formatNumber(displayTotalCount),
-              today_growth_count: displayTodayGrowth,
-              today_growth_text: `+${displayTodayGrowth} today`,
+              count: totalCount,
+              formatted: formatNumber(totalCount),
+              today_growth_count: todayGrowthCount,
+              today_growth_text: `+${todayGrowthCount} today`,
             },
             new_followers: {
-              count: displayNewCount,
-              formatted: formatNumber(displayNewCount),
-              growth_percentage: 15.8,
-              growth_percentage_text: '+15.8%',
+              count: newCount,
+              formatted: formatNumber(newCount),
+              growth_percentage: newGrowthPct,
+              growth_percentage_text: newGrowthPct > 0 ? `+${newGrowthPct}%` : `${newGrowthPct}%`,
             },
             unfollowers: {
-              count: displayUnfollowers,
-              formatted: formatNumber(displayUnfollowers),
-              growth_percentage: -4.2,
-              growth_percentage_text: '-4.2%',
+              count: 0,
+              formatted: '0',
+              growth_percentage: 0,
+              growth_percentage_text: '0%',
             },
           },
           top_cities: topCities,
