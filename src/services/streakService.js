@@ -285,8 +285,8 @@ class StreakService {
 
     return {
       current_streak_days: currentStreakDays,
-      best_streak_days: Number(userStreak.best_streak_days || 0),
       total_energy: Number(userStreak.total_energy || 0),
+      best_streak_days: Number(userStreak.best_streak_days || 0),
       this_month_days: Number(thisMonthDays || 0),
       today_reward: settings.daily_reward_coins,
       next_milestone_reward: nextMilestone.reward_coins,
@@ -407,11 +407,10 @@ class StreakService {
       return {
         day_name: dayNames[idx],
         date_number: dateNum,
-        date: dStr,
         status: status,
         status_label: statusLabel,
         energy: energy,
-        reward: idx === 6 ? 'Sunday Bonus' : 'Standard Day',
+        reward: 'Standard Day',
         listening: `${Math.min(actListenedMins, goalMinutes)}/${goalMinutes}`,
       };
     });
@@ -580,6 +579,7 @@ class StreakService {
         streak_overview: summary,
         today_goal: {
           today_listened_seconds: listenedSeconds,
+          today_goal_minutes: goalMinutes,
           today_goal_seconds: goalSeconds,
           today_reward_energy: settings.daily_reward_coins,
           is_claimed: isClaimed,

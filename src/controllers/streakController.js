@@ -24,8 +24,8 @@ class StreakController {
   static async getSummary(req, res) {
     try {
       const userId = req.user.id;
-      const summary = await StreakService.getSummary(userId);
-      return ApiResponse.success(res, summary, 'Streak summary fetched successfully.');
+      const fullData = await StreakService.getFullStreakData(userId);
+      return ApiResponse.success(res, { screen_data: fullData.screen_data }, 'OK');
     } catch (error) {
       console.error('Get Streak Summary Error:', error);
       return ApiResponse.error(res, 'Failed to fetch streak summary.', 500);
