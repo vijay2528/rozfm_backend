@@ -141,7 +141,44 @@ class WalletController {
         [userId]
       );
 
-      return ApiResponse.success(res, { transactions });
+      const debitTypes = ['spend', 'debit', 'unlock', 'withdrawal', 'spent', 'admin_debit'];
+
+      let totalEarned = 0;
+      let totalSpent = 0;
+
+      const formattedTransactions = transactions.map((tx) => {
+        const coinVal = Math.abs(Number(tx.coins || 0));
+        const isDebit = debitTypes.includes(String(tx.type || '').toLowerCase()) || Number(tx.coins || 0) < 0;
+
+        if (isDebit) {
+          totalSpent += coinVal;
+        } else {
+          totalEarned += coinVal;
+        }
+
+        const transactionType = isDebit ? 'debit' : 'credit';
+
+        return {
+          id: tx.id,
+          user_id: tx.user_id,
+          type: tx.type,
+          transaction_type: transactionType,
+          coins: Number(tx.coins || 0),
+          amount: Number(tx.coins || 0),
+          description: tx.description,
+          reference_id: tx.reference_id,
+          created_at: tx.created_at,
+        };
+      });
+
+      return ApiResponse.success(
+        res,
+        {
+          total_earned: totalEarned,
+          transactions: formattedTransactions,
+        },
+        'Coin transactions fetched successfully.'
+      );
     } catch (error) {
       console.error('List Transactions Error:', error);
       return ApiResponse.error(res, 'Failed to fetch coin transactions.', 500);
