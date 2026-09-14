@@ -52,26 +52,30 @@ class LeaderboardController {
         u.username,
         u.avatar_path,
         COUNT(DISTINCT s.id) AS stories_count,
-        COALESCE(SUM(s.total_views), 0) + COALESCE(SUM(s.listeners_count), 0) AS total_plays
+        (COALESCE(SUM(COALESCE(s.total_views, 0)), 0) + COALESCE(SUM(COALESCE(s.listeners_count, 0)), 0)) AS total_plays
        FROM users u
        INNER JOIN stories s ON s.user_id = u.id
        WHERE (u.is_blocked = 0 OR u.is_blocked IS NULL)
        GROUP BY u.id, u.name, u.username, u.avatar_path
-       ORDER BY total_plays DESC, stories_count DESC, u.id ASC
-       LIMIT ? OFFSET ?`,
-      [limitNum, offsetNum]
+       ORDER BY (COALESCE(SUM(COALESCE(s.total_views, 0)), 0) + COALESCE(SUM(COALESCE(s.listeners_count, 0)), 0)) DESC, COUNT(DISTINCT s.id) DESC, u.id ASC
+       LIMIT ${limitNum} OFFSET ${offsetNum}`
     );
 
     let followedUserIds = new Set();
     if (currentUserId && rows.length > 0) {
-      const targetUserIds = rows.map((r) => Number(r.user_id)).filter((id) => Boolean(id) && !isNaN(id));
-      if (targetUserIds.length > 0) {
-        const placeholders = targetUserIds.map(() => '?').join(',');
-        const [followRows] = await pool.query(
-          `SELECT following_id FROM user_follows WHERE follower_id = ? AND following_id IN (${placeholders})`,
-          [currentUserId, ...targetUserIds]
-        );
-        followedUserIds = new Set(followRows.map((f) => Number(f.following_id)));
+      try {
+        const userIdNum = Number(typeof currentUserId === 'object' ? (currentUserId.id || currentUserId.user_id) : currentUserId);
+        const targetUserIds = rows.map((r) => Number(r.user_id)).filter((id) => Boolean(id) && !isNaN(id));
+        if (userIdNum && !isNaN(userIdNum) && targetUserIds.length > 0) {
+          const placeholders = targetUserIds.map(() => '?').join(',');
+          const [followRows] = await pool.query(
+            `SELECT following_id FROM user_follows WHERE follower_id = ? AND following_id IN (${placeholders})`,
+            [userIdNum, ...targetUserIds]
+          );
+          followedUserIds = new Set(followRows.map((f) => Number(f.following_id)));
+        }
+      } catch (err) {
+        console.error('Writers Leaderboard follow-status warning:', err.message);
       }
     }
 
@@ -135,8 +139,7 @@ class LeaderboardController {
        LEFT JOIN categories c ON c.id = s.category_id
        LEFT JOIN users u ON u.id = s.user_id
        ORDER BY (COALESCE(s.total_views, 0) + COALESCE(s.listeners_count, 0)) DESC, s.rating DESC, s.id ASC
-       LIMIT ? OFFSET ?`,
-      [limitNum, offsetNum]
+       LIMIT ${limitNum} OFFSET ${offsetNum}`
     );
 
     const allRankings = rows.map((r, index) => {
@@ -216,8 +219,7 @@ class LeaderboardController {
        WHERE (u.is_blocked = 0 OR u.is_blocked IS NULL)
        GROUP BY u.id, u.name, u.username, u.avatar_path, wh.total_listened_secs, da.total_da_secs, st.current_streak_days, st.total_energy
        ORDER BY total_listened_seconds DESC, total_energy DESC, current_streak_days DESC, u.id ASC
-       LIMIT ? OFFSET ?`,
-      [limitNum, offsetNum]
+       LIMIT ${limitNum} OFFSET ${offsetNum}`
     );
 
     const allRankings = rows.map((r, index) => {
