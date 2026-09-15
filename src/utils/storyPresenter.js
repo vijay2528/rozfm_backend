@@ -101,6 +101,7 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, pro
   const lastWatchedAtStr = progressData && progressData.last_watched_at ? new Date(progressData.last_watched_at).toISOString() : null;
 
   return {
+    id: Number(episode.id),
     episode_id: Number(episode.id),
     story_id: Number(episode.story_id),
     created_by: episode.created_by ? Number(episode.created_by) : null,
@@ -243,6 +244,7 @@ function toStoryFieldsArray(story, options = {}) {
   }
 
   const data = {
+    id: Number(story.id),
     story_id: Number(story.id),
     title: story.title,
     description: story.description || null,
