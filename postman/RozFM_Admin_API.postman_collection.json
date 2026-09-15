@@ -479,8 +479,139 @@
               "path": [
                 "admin",
                 "stories"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status: scheduled, draft, published, ongoing, completed",
+                  "disabled": true
+                },
+                {
+                  "key": "is_scheduled",
+                  "value": "1",
+                  "description": "Filter scheduled stories (1 or true)",
+                  "disabled": true
+                },
+                {
+                  "key": "is_draft",
+                  "value": "1",
+                  "description": "Filter draft stories (1 or true)",
+                  "disabled": true
+                },
+                {
+                  "key": "category_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "language",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             }
+          }
+        },
+        {
+          "name": "List Scheduled Stories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/stories?status=scheduled&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "description": "Filter scheduled stories (scheduled, schedule_release, etc.)"
+                },
+                {
+                  "key": "is_scheduled",
+                  "value": "1",
+                  "description": "Alternative query parameter flag for scheduled stories",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Fetch paginated list of scheduled stories with release dates."
+          }
+        },
+        {
+          "name": "List Draft Stories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/stories?status=draft&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "draft",
+                  "description": "Filter draft stories (draft, save_as_draft, etc.)"
+                },
+                {
+                  "key": "is_draft",
+                  "value": "1",
+                  "description": "Alternative query parameter flag for draft stories",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Fetch paginated list of unpublished draft stories."
           }
         },
         {

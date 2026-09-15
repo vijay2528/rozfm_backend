@@ -1229,6 +1229,46 @@
               ]
             }
           }
+        },
+        {
+          "name": "List Scheduled Stories",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/stories?status=scheduled&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "stories"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "description": "Filter scheduled stories"
+                },
+                {
+                  "key": "is_scheduled",
+                  "value": "1",
+                  "description": "Filter scheduled stories flag",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Fetch paginated list of scheduled stories for public / mobile app."
+          }
         }
       ]
     },
