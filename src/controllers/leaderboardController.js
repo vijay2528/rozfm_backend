@@ -49,14 +49,13 @@ class LeaderboardController {
       `SELECT 
         u.id AS user_id,
         u.name,
-        u.username,
         u.avatar_path,
         COUNT(DISTINCT s.id) AS stories_count,
         (COALESCE(SUM(COALESCE(s.total_views, 0)), 0) + COALESCE(SUM(COALESCE(s.listeners_count, 0)), 0)) AS total_plays
        FROM users u
        INNER JOIN stories s ON s.user_id = u.id
        WHERE (u.is_blocked = 0 OR u.is_blocked IS NULL)
-       GROUP BY u.id, u.name, u.username, u.avatar_path
+       GROUP BY u.id, u.name, u.avatar_path
        ORDER BY (COALESCE(SUM(COALESCE(s.total_views, 0)), 0) + COALESCE(SUM(COALESCE(s.listeners_count, 0)), 0)) DESC, COUNT(DISTINCT s.id) DESC, u.id ASC
        LIMIT ${limitNum} OFFSET ${offsetNum}`
     );
@@ -82,7 +81,6 @@ class LeaderboardController {
     const allRankings = rows.map((r, index) => {
       const rank = offsetNum + index + 1;
       const rawName = r.name && r.name.trim() !== '' ? r.name.trim() : 'Writer';
-      const rawUsername = r.username ? r.username.trim().replace(/^@/, '') : `writer_${r.user_id}`;
       const totalPlays = Number(r.total_plays || 0);
       const imgUrl = formatImageUrl(r.avatar_path);
 
@@ -90,8 +88,8 @@ class LeaderboardController {
         rank: rank,
         user_id: Number(r.user_id),
         name: rawName,
-        username: rawUsername,
-        handle: `@${rawUsername}`,
+        username: rawName,
+        handle: `@${rawName}`,
         profile_image: imgUrl,
         avatar_path: imgUrl,
         stories_count: Number(r.stories_count || 0),
@@ -133,7 +131,6 @@ class LeaderboardController {
         c.category_name,
         u.id AS writer_id,
         u.name AS writer_name,
-        u.username AS writer_username,
         u.avatar_path AS writer_avatar
        FROM stories s
        LEFT JOIN categories c ON c.id = s.category_id
@@ -148,6 +145,7 @@ class LeaderboardController {
       const coverUrl = formatImageUrl(r.cover_image_path);
       const bannerUrl = formatImageUrl(r.banner_image_path);
       const writerAvatarUrl = formatImageUrl(r.writer_avatar);
+      const writerName = r.writer_name ? r.writer_name.trim() : 'Unknown Writer';
 
       return {
         rank: rank,
@@ -167,8 +165,8 @@ class LeaderboardController {
         episodes_count: Number(r.episodes_count || 0),
         writer: {
           user_id: r.writer_id ? Number(r.writer_id) : null,
-          name: r.writer_name ? r.writer_name.trim() : 'Unknown Writer',
-          username: r.writer_username ? r.writer_username.trim() : null,
+          name: writerName,
+          username: writerName,
           profile_image: writerAvatarUrl,
           avatar_path: writerAvatarUrl,
         },
@@ -196,7 +194,6 @@ class LeaderboardController {
       `SELECT 
         u.id AS user_id,
         u.name,
-        u.username,
         u.avatar_path,
         GREATEST(
           COALESCE(wh.total_listened_secs, 0),
@@ -217,7 +214,7 @@ class LeaderboardController {
        ) da ON da.user_id = u.id
        LEFT JOIN user_streaks st ON st.user_id = u.id
        WHERE (u.is_blocked = 0 OR u.is_blocked IS NULL)
-       GROUP BY u.id, u.name, u.username, u.avatar_path, wh.total_listened_secs, da.total_da_secs, st.current_streak_days, st.total_energy
+       GROUP BY u.id, u.name, u.avatar_path, wh.total_listened_secs, da.total_da_secs, st.current_streak_days, st.total_energy
        ORDER BY total_listened_seconds DESC, total_energy DESC, current_streak_days DESC, u.id ASC
        LIMIT ${limitNum} OFFSET ${offsetNum}`
     );
@@ -225,7 +222,6 @@ class LeaderboardController {
     const allRankings = rows.map((r, index) => {
       const rank = offsetNum + index + 1;
       const rawName = r.name && r.name.trim() !== '' ? r.name.trim() : 'Listener';
-      const rawUsername = r.username ? r.username.trim().replace(/^@/, '') : `listener_${r.user_id}`;
       const listenedSecs = Number(r.total_listened_seconds || 0);
       const listenedMins = Math.floor(listenedSecs / 60);
       const imgUrl = formatImageUrl(r.avatar_path);
@@ -234,8 +230,8 @@ class LeaderboardController {
         rank: rank,
         user_id: Number(r.user_id),
         name: rawName,
-        username: rawUsername,
-        handle: `@${rawUsername}`,
+        username: rawName,
+        handle: `@${rawName}`,
         profile_image: imgUrl,
         avatar_path: imgUrl,
         total_listened_seconds: listenedSecs,
