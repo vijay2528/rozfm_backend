@@ -49,7 +49,7 @@ router.post('/users/:id', AdminUserController.update);
 router.delete('/users/:id', AdminUserController.destroy);
 router.post('/users/:id/wallet', AdminUserController.updateWallet);
 
-// ── 3. Content Management (Stories & Episodes) ───────────────────────────────
+// ── 3. Content Management (Stories & Episode Management) ───────────────────────────────
 router.get('/stories', AdminContentController.listStories);
 router.get('/stories/:id', AdminContentController.showStory);
 router.post('/stories', upload.storyMedia, AdminContentController.storeStory);
@@ -59,6 +59,10 @@ router.put('/stories/:id/status', AdminContentController.updateStoryStatus);
 router.post('/stories/:id/status', AdminContentController.updateStoryStatus);
 router.delete('/stories/:id', AdminContentController.deleteStory);
 router.get('/episodes', AdminContentController.listEpisodes);
+router.get('/episodes/:id', AdminContentController.showEpisode);
+router.post('/episodes', upload.episodeMedia, AdminContentController.storeEpisode);
+router.put('/episodes/:id', upload.episodeMedia, AdminContentController.updateEpisode);
+router.post('/episodes/:id', upload.episodeMedia, AdminContentController.updateEpisode);
 router.delete('/episodes/:id', AdminContentController.deleteEpisode);
 
 // ── 4. Category Management ───────────────────────────────────────────────────

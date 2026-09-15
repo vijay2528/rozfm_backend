@@ -230,6 +230,18 @@ function toStoryFieldsArray(story, options = {}) {
   const completionPct = watchHistory ? Number(watchHistory.completion_percentage || 0) : 0;
   const avgProgressPct = watchHistory ? Number(watchHistory.average_progress_percentage || completionPct || 0) : 0;
 
+  let publishDateVal = null;
+  if (story.publish_date) {
+    if (story.publish_date instanceof Date) {
+      const y = story.publish_date.getFullYear();
+      const m = String(story.publish_date.getMonth() + 1).padStart(2, '0');
+      const d = String(story.publish_date.getDate()).padStart(2, '0');
+      publishDateVal = `${y}-${m}-${d}`;
+    } else {
+      publishDateVal = String(story.publish_date).split('T')[0];
+    }
+  }
+
   const data = {
     story_id: Number(story.id),
     title: story.title,
@@ -252,6 +264,7 @@ function toStoryFieldsArray(story, options = {}) {
     status: statusStr,
     release_status: story.release_status || null,
     release: story.release_status || null,
+    publish_date: publishDateVal,
     is_live: isLive,
     rating: Number(story.rating || 0.0),
     is_premium: Boolean(story.is_premium),

@@ -372,6 +372,201 @@ class StoryController {
       return ApiResponse.error(res, 'Failed to fetch story details.', 500);
     }
   }
+        try {
+          const [historyRows] = await pool.query(
+            `SELECT w.*, e.title as episode_title, COALESCE(e.position, 1) as episode_position
+             FROM watch_histories w
+             INNER JOIN episodes e ON w.episode_id = e.id
+             WHERE w.user_id = ? AND w.story_id = ? AND w.episode_id IS NOT NULL
+             ORDER BY GREATEST(COALESCE(w.last_watched_at, '1970-01-01'), COALESCE(w.updated_at, '1970-01-01'), COALESCE(w.created_at, '1970-01-01')) DESC, w.id DESC
+             LIMIT 1`,
+            [userId, storyId]
+          );
+
+          if (historyRows.length > 0) {
+            lastWatchedHistory = historyRows[0];
+          }
+        } catch (err) {
+          console.error('Fetch user last watched history error:', err);
+        }
+      }
+
+      // Determine target episode (last played episode or 1st episode as fallback)
+      let targetEpisode = null;
+      if (lastWatchedHistory && lastWatchedHistory.episode_id) {
+        const [epRows] = await pool.query(
+          `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path
+           FROM episodes e
+           LEFT JOIN stories s ON e.story_id = s.id
+           WHERE e.id = ? LIMIT 1`,
+          [lastWatchedHistory.episode_id]
+        );
+        if (epRows.length > 0) {
+          targetEpisode = epRows[0];
+        }
+      }
+
+      if (!targetEpisode) {
+        const [firstEpRows] = await pool.query(
+          `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path
+           FROM episodes e
+           LEFT JOIN stories s ON e.story_id = s.id
+           WHERE e.story_id = ?
+           ORDER BY e.position ASC, e.id ASC
+           LIMIT 1`,
+          [storyId]
+        );
+        if (firstEpRows.length > 0) {
+          targetEpisode = firstEpRows[0];
+        }
+      }
+
+      let lastPlayedEpisodeData = null;
+      if (targetEpisode) {
+        const isUnlocked = !targetEpisode.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(targetEpisode.id)) || userUnlockedEpisodeIds.has(String(targetEpisode.id));
+        const { toEpisodeFieldsArray } = require('../utils/storyPresenter');
+
+        const progressData = lastWatchedHistory ? {
+          progress_seconds: Number(lastWatchedHistory.progress_seconds || 0),
+          total_duration_seconds: Number(lastWatchedHistory.total_duration_seconds || targetEpisode.duration_seconds || 0),
+          completion_percentage: Number(lastWatchedHistory.completion_percentage || 0),
+          status: lastWatchedHistory.status || (lastWatchedHistory.completed ? 'completed' : 'playing'),
+          completed: Boolean(lastWatchedHistory.completed),
+          is_last_watched: true,
+          last_watched_at: lastWatchedHistory.last_watched_at ? new Date(lastWatchedHistory.last_watched_at).toISOString() : null,
+        } : {
+          progress_seconds: 0,
+          total_duration_seconds: Number(targetEpisode.duration_seconds || 0),
+          completion_percentage: 0,
+          status: 'unwatched',
+          completed: false,
+          is_last_watched: false,
+          last_watched_at: null,
+        };
+
+        lastPlayedEpisodeData = toEpisodeFieldsArray(
+          targetEpisode,
+          story.title,
+          isUnlocked,
+          progressData
+        );
+      }
+
+      // Calculate performance & completion metrics dynamically
+      let completionRate = 0;
+      let avgListeningTime = 0;
+      let performanceObj = null;
+
+      try {
+        const [watchStats] = await pool.query(
+          `SELECT 
+             COUNT(id) as total_histories,
+             SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_count,
+             AVG(progress_seconds) as avg_progress,
+             SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN 1 ELSE 0 END) as cur_plays,
+             SUM(CASE WHEN created_at >= DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m-01 00:00:00') 
+                       AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN 1 ELSE 0 END) as prev_plays,
+             COUNT(DISTINCT user_id) as total_listeners,
+             COUNT(DISTINCT CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN user_id END) as cur_listeners,
+             COUNT(DISTINCT CASE WHEN created_at >= DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m-01 00:00:00') 
+                                 AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN user_id END) as prev_listeners
+           FROM watch_histories WHERE story_id = ?`,
+          [storyId]
+        );
+
+        const [likeStats] = await pool.query(
+          `SELECT 
+             COUNT(*) as total_likes,
+             SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN 1 ELSE 0 END) as cur_likes,
+             SUM(CASE WHEN created_at >= DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m-01 00:00:00') 
+                       AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN 1 ELSE 0 END) as prev_likes
+           FROM story_likes WHERE story_id = ?`,
+          [storyId]
+        );
+
+        const ws = watchStats[0] || {};
+        const ls = likeStats[0] || {};
+
+        const totalHistories = Number(ws.total_histories || 0);
+        const completedCount = Number(ws.completed_count || 0);
+
+        if (totalHistories > 0) {
+          completionRate = Math.round((completedCount / totalHistories) * 100);
+        }
+        if (ws.avg_progress) {
+          avgListeningTime = Math.round(ws.avg_progress);
+        }
+
+        const calcGrowth = (cur, prev) => {
+          const c = Number(cur) || 0;
+          const p = Number(prev) || 0;
+          if (p === 0) return c > 0 ? '+100%' : '0%';
+          const pct = Number((((c - p) / p) * 100).toFixed(1));
+          return pct >= 0 ? `+${pct}%` : `${pct}%`;
+        };
+
+        const { formatNumber } = require('../utils/storyPresenter');
+        const totalPlays = Math.max(Number(story.total_views || 0), totalHistories);
+        const totalListeners = Math.max(Number(story.listeners_count || 0), Number(ws.total_listeners || 0));
+        const totalLikes = Number(ls.total_likes || 0);
+        const totalShares = Number(story.shares_count || 0);
+
+        performanceObj = {
+          plays: {
+            count: totalPlays,
+            formatted: formatNumber(totalPlays),
+            growth: calcGrowth(ws.cur_plays, ws.prev_plays),
+          },
+          listeners: {
+            count: totalListeners,
+            formatted: formatNumber(totalListeners),
+            growth: calcGrowth(ws.cur_listeners, ws.prev_listeners),
+          },
+          likes: {
+            count: totalLikes,
+            formatted: formatNumber(totalLikes),
+            growth: calcGrowth(ls.cur_likes, ls.prev_likes),
+          },
+          shares: {
+            count: totalShares,
+            formatted: formatNumber(totalShares),
+            growth: '0%',
+          },
+        };
+      } catch (err) {
+        console.error('Calculate Story Performance Error:', err);
+      }
+
+      const watchHistorySummary = lastWatchedHistory ? {
+        episode_id: lastWatchedHistory.episode_id,
+        episode_no: Number(lastWatchedHistory.episode_position || 1),
+        episode_title: lastWatchedHistory.episode_title,
+        progress_seconds: Number(lastWatchedHistory.progress_seconds || 0),
+        total_duration_seconds: Number(lastWatchedHistory.total_duration_seconds || 0),
+        completion_percentage: Number(lastWatchedHistory.completion_percentage || 0),
+        last_watched_at: lastWatchedHistory.last_watched_at ? new Date(lastWatchedHistory.last_watched_at).toISOString() : null,
+      } : null;
+
+      const result = toStoryFieldsArray(story, {
+        isLiked,
+        isBookmarked,
+        lastPlayedEpisode: lastPlayedEpisodeData,
+        userUnlockedEpisodeIds,
+        hasActiveMembership,
+        performance: performanceObj,
+        completionRate,
+        avgListeningTime,
+        watchHistory: watchHistorySummary,
+      });
+
+      return ApiResponse.success(res, {
+        story: result,
+      });
+    } catch (error) {
+      console.error('Get Story Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch story details.', 500);
+    }
+  }
 
   /**
    * POST /api/v1/stories & POST /api/v1/stories/upload
@@ -379,7 +574,7 @@ class StoryController {
    */
   static async store(req, res) {
     try {
-      const { title, description, category_id, language, tags, is_premium, status } = req.body;
+      const { title, description, category_id, language, tags, is_premium, status, publish_date, publishDate, release_date, releaseDate } = req.body;
       const userId = req.user ? req.user.id : null;
 
       if (!title || title.trim() === '') {
@@ -460,9 +655,28 @@ class StoryController {
         : null;
       const categoryIdVal = isNaN(parsedCatId) ? null : parsedCatId;
 
+      const rawPublishDate = publish_date !== undefined ? publish_date : (publishDate !== undefined ? publishDate : (release_date !== undefined ? release_date : releaseDate));
+      let finalPublishDate = null;
+      if (rawPublishDate !== undefined && rawPublishDate !== null && String(rawPublishDate).trim() !== '' && String(rawPublishDate).toLowerCase() !== 'null' && String(rawPublishDate).toLowerCase() !== 'undefined') {
+        const str = String(rawPublishDate).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+          finalPublishDate = str;
+        } else {
+          const d = new Date(str);
+          if (!isNaN(d.getTime())) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            finalPublishDate = `${y}-${m}-${day}`;
+          } else {
+            finalPublishDate = str;
+          }
+        }
+      }
+
       const [result] = await pool.query(
-        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status, publish_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           title.trim(),
@@ -474,6 +688,7 @@ class StoryController {
           tags || null,
           isPremiumBool ? 1 : 0,
           storyStatus,
+          finalPublishDate,
         ]
       );
 
@@ -511,7 +726,7 @@ class StoryController {
         return ApiResponse.error(res, 'Story not found.', 444);
       }
 
-      const { title, description, category_id, language, tags, is_premium, status } = req.body;
+      const { title, description, category_id, language, tags, is_premium, status, publish_date, publishDate, release_date, releaseDate } = req.body;
       const updateFields = [];
       const queryParams = [];
 
@@ -546,155 +761,27 @@ class StoryController {
         queryParams.push(status);
       }
 
-      let coverImagePath = null;
-      let bannerImagePath = null;
-
-      if (req.files) {
-        if (Array.isArray(req.files)) {
-          const coverFile = req.files.find((f) => ['cover_image', 'image', 'cover'].includes(f.fieldname));
-          if (coverFile) {
-            try {
-              coverImagePath = await uploadToR2(coverFile, 'covers');
-            } catch (err) {
-              console.error('Cover image update upload error:', err.message);
-            }
-          }
-
-          const bannerFile = req.files.find((f) => ['banner_image', 'banner'].includes(f.fieldname));
-          if (bannerFile) {
-            try {
-              bannerImagePath = await uploadToR2(bannerFile, 'banners');
-            } catch (err) {
-              console.error('Banner image update upload error:', err.message);
+      const rawPublishDate = publish_date !== undefined ? publish_date : (publishDate !== undefined ? publishDate : (release_date !== undefined ? release_date : releaseDate));
+      if (rawPublishDate !== undefined) {
+        updateFields.push('`publish_date` = ?');
+        if (rawPublishDate !== null && String(rawPublishDate).trim() !== '' && String(rawPublishDate).toLowerCase() !== 'null' && String(rawPublishDate).toLowerCase() !== 'undefined') {
+          const str = String(rawPublishDate).trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            queryParams.push(str);
+          } else {
+            const d = new Date(str);
+            if (!isNaN(d.getTime())) {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              queryParams.push(`${y}-${m}-${day}`);
+            } else {
+              queryParams.push(str);
             }
           }
         } else {
-          const coverFile = (req.files.cover_image && req.files.cover_image[0]) ||
-            (req.files.image && req.files.image[0]) ||
-            (req.files.cover && req.files.cover[0]);
-          if (coverFile) {
-            try {
-              coverImagePath = await uploadToR2(coverFile, 'covers');
-            } catch (err) {
-              console.error('Cover image update upload error:', err.message);
-            }
-          }
-
-          const bannerFile = (req.files.banner_image && req.files.banner_image[0]) ||
-            (req.files.banner && req.files.banner[0]);
-          if (bannerFile) {
-            try {
-              bannerImagePath = await uploadToR2(bannerFile, 'banners');
-            } catch (err) {
-              console.error('Banner image update upload error:', err.message);
-            }
-          }
+          queryParams.push(null);
         }
-      } else if (req.file) {
-        const field = req.file.fieldname;
-        if (['cover_image', 'image', 'cover'].includes(field)) {
-          try {
-            coverImagePath = await uploadToR2(req.file, 'covers');
-          } catch (err) {
-            console.error('Cover file update upload error:', err.message);
-          }
-        } else if (['banner_image', 'banner'].includes(field)) {
-          try {
-            bannerImagePath = await uploadToR2(req.file, 'banners');
-          } catch (err) {
-            console.error('Banner file update upload error:', err.message);
-          }
-        }
-      }
-
-      if (coverImagePath) {
-        updateFields.push('`cover_image_path` = ?');
-        queryParams.push(coverImagePath);
-      } else if (req.body.cover_image || req.body.image || req.body.cover) {
-        updateFields.push('`cover_image_path` = ?');
-        queryParams.push(req.body.cover_image || req.body.image || req.body.cover);
-      }
-
-      if (bannerImagePath) {
-        updateFields.push('`banner_image_path` = ?');
-        queryParams.push(bannerImagePath);
-      } else if (req.body.banner_image || req.body.banner) {
-        updateFields.push('`banner_image_path` = ?');
-        queryParams.push(req.body.banner_image || req.body.banner);
-      }
-      if (updateFields.length > 0) {
-        queryParams.push(storyId);
-        await pool.query(
-          `UPDATE stories SET ${updateFields.join(', ')}, updated_at = NOW() WHERE id = ?`,
-          queryParams
-        );
-      }
-
-      const [updatedRows] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name FROM stories s
-         LEFT JOIN categories c ON s.category_id = c.id
-         LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.id = ? LIMIT 1`,
-        [storyId]
-      );
-
-      return ApiResponse.success(
-        res,
-        { story: toStoryFieldsArray(updatedRows[0]) },
-        'Story updated successfully.'
-      );
-    } catch (error) {
-      console.error('Update Story Error:', error);
-      return ApiResponse.error(res, 'Failed to update story.', 500);
-    }
-  }
-
-  /**
-   * PUT / POST /api/v1/stories/:id
-   * Edit / Update an existing story (supports multipart/form-data & application/json)
-   */
-  static async update(req, res) {
-    try {
-      const storyId = req.params.id || req.params.story;
-      const [storyRows] = await pool.query('SELECT * FROM stories WHERE id = ? LIMIT 1', [storyId]);
-
-      if (storyRows.length === 0) {
-        return ApiResponse.error(res, 'Story not found.', 444);
-      }
-
-      const { title, description, category_id, language, tags, is_premium, status } = req.body;
-      const updateFields = [];
-      const queryParams = [];
-
-      if (title !== undefined && title !== null && title.trim() !== '') {
-        updateFields.push('`title` = ?');
-        queryParams.push(title.trim());
-      }
-      if (description !== undefined) {
-        updateFields.push('`description` = ?');
-        queryParams.push(description);
-      }
-      if (category_id !== undefined && category_id !== null && category_id !== '') {
-        updateFields.push('`category_id` = ?');
-        const parsedCat = parseInt(category_id, 10);
-        queryParams.push(isNaN(parsedCat) ? null : parsedCat);
-      }
-      if (language !== undefined) {
-        updateFields.push('`language` = ?');
-        queryParams.push(language);
-      }
-      if (tags !== undefined) {
-        updateFields.push('`tags` = ?');
-        queryParams.push(tags);
-      }
-      if (is_premium !== undefined) {
-        updateFields.push('`is_premium` = ?');
-        const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
-        queryParams.push(isPremiumBool ? 1 : 0);
-      }
-      if (status !== undefined) {
-        updateFields.push('`status` = ?');
-        queryParams.push(status);
       }
 
       let coverImagePath = null;

@@ -910,6 +910,12 @@
                   "key": "banner_image",
                   "type": "file",
                   "src": []
+                },
+                {
+                  "key": "publish_date",
+                  "value": "2026-09-15",
+                  "type": "text",
+                  "description": "Publish date YYYY-MM-DD or null"
                 }
               ]
             },

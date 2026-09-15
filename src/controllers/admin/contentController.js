@@ -254,10 +254,29 @@ class ContentController {
 
       const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
 
+      const rawPublishDate = req.body.publish_date !== undefined ? req.body.publish_date : (req.body.publishDate !== undefined ? req.body.publishDate : (req.body.release_date !== undefined ? req.body.release_date : req.body.releaseDate));
+      let finalPublishDate = null;
+      if (rawPublishDate !== undefined && rawPublishDate !== null && String(rawPublishDate).trim() !== '' && String(rawPublishDate).toLowerCase() !== 'null' && String(rawPublishDate).toLowerCase() !== 'undefined') {
+        const str = String(rawPublishDate).trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+          finalPublishDate = str;
+        } else {
+          const d = new Date(str);
+          if (!isNaN(d.getTime())) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            finalPublishDate = `${y}-${m}-${day}`;
+          } else {
+            finalPublishDate = str;
+          }
+        }
+      }
+
       // 5. Insert Story
       const [result] = await pool.query(
-        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status, release_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status, release_status, publish_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           finalUserId,
           title.trim(),
@@ -270,6 +289,7 @@ class ContentController {
           isPremiumBool ? 1 : 0,
           finalStatus,
           finalReleaseStatus,
+          finalPublishDate,
         ]
       );
 
@@ -398,6 +418,29 @@ class ContentController {
       if (rawRelease !== undefined && rawRelease !== null && rawRelease !== '') {
         updateFields.push('`release_status` = ?');
         queryParams.push(String(rawRelease));
+      }
+
+      const rawPublishDate = req.body.publish_date !== undefined ? req.body.publish_date : (req.body.publishDate !== undefined ? req.body.publishDate : (req.body.release_date !== undefined ? req.body.release_date : req.body.releaseDate));
+      if (rawPublishDate !== undefined) {
+        updateFields.push('`publish_date` = ?');
+        if (rawPublishDate !== null && String(rawPublishDate).trim() !== '' && String(rawPublishDate).toLowerCase() !== 'null' && String(rawPublishDate).toLowerCase() !== 'undefined') {
+          const str = String(rawPublishDate).trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            queryParams.push(str);
+          } else {
+            const d = new Date(str);
+            if (!isNaN(d.getTime())) {
+              const y = d.getFullYear();
+              const m = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              queryParams.push(`${y}-${m}-${day}`);
+            } else {
+              queryParams.push(str);
+            }
+          }
+        } else {
+          queryParams.push(null);
+        }
       }
 
       const rawStatus = (status || story_status || '').toString().toLowerCase();
@@ -651,6 +694,280 @@ class ContentController {
     } catch (error) {
       console.error('Admin List Episodes Error:', error);
       return ApiResponse.error(res, 'Failed to fetch admin episodes list.', 500);
+    }
+  }
+
+  /**
+   * GET /api/v1/admin/episodes/:id
+   * Get single episode details by ID
+   */
+  static async showEpisode(req, res) {
+    try {
+      const episodeId = req.params.id;
+
+      const [epRows] = await pool.query(
+        'SELECT e.*, s.title as story_title FROM episodes e LEFT JOIN stories s ON e.story_id = s.id WHERE e.id = ? LIMIT 1',
+        [episodeId]
+      );
+
+      if (epRows.length === 0) {
+        return ApiResponse.error(res, 'Episode not found.', 444);
+      }
+
+      return ApiResponse.success(
+        res,
+        { episode: toEpisodeFieldsArray(epRows[0], epRows[0].story_title, true) },
+        'Episode details fetched successfully.'
+      );
+    } catch (error) {
+      console.error('Admin Show Episode Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch episode details.', 500);
+    }
+  }
+
+  /**
+   * POST /api/v1/admin/episodes
+   * Create a new episode (Title, Story list selection, Audio file, Duration, is_premium, Published date with time)
+   */
+  static async storeEpisode(req, res) {
+    try {
+      const {
+        title,
+        story_id,
+        storyId,
+        story,
+        description,
+        duration,
+        duration_seconds,
+        duration_minutes,
+        is_premium,
+        is_downloadable,
+        coins,
+        published_at,
+        publish_date,
+        published_date,
+        publishedDate,
+        scheduled_at,
+        schedule_date_time,
+        audio_file,
+        audio_path,
+        audio_title,
+      } = req.body || {};
+
+      const targetStoryId = story_id || storyId || story;
+      if (!targetStoryId || !title || !String(title).trim()) {
+        return ApiResponse.error(res, 'Story ID and episode title are required.', 422);
+      }
+
+      const [storyRows] = await pool.query('SELECT id, title FROM stories WHERE id = ? LIMIT 1', [targetStoryId]);
+      if (storyRows.length === 0) {
+        return ApiResponse.error(res, 'Selected story not found.', 444);
+      }
+
+      let audioFilePath = typeof audio_file === 'string' ? audio_file : (audio_path || null);
+      const uploadedFile = req.file || (req.files && req.files.length > 0 ? (req.files.find(f => f.fieldname === 'audio_file' || f.fieldname === 'audio') || req.files[0]) : null);
+      if (uploadedFile) {
+        const { uploadToR2 } = require('../../services/r2StorageService');
+        audioFilePath = await uploadToR2(uploadedFile, 'episodes');
+      }
+
+      let durSecs = 0;
+      if (duration_seconds !== undefined && duration_seconds !== null && duration_seconds !== '') {
+        durSecs = parseInt(duration_seconds, 10) || 0;
+      } else if (duration !== undefined && duration !== null && duration !== '') {
+        durSecs = parseInt(duration, 10) || 0;
+      } else if (duration_minutes !== undefined && duration_minutes !== null && duration_minutes !== '') {
+        durSecs = Math.round(parseFloat(duration_minutes) * 60) || 0;
+      }
+      const durMins = durSecs ? parseFloat((durSecs / 60).toFixed(2)) : null;
+
+      const rawDate = published_at || publish_date || published_date || publishedDate || scheduled_at || schedule_date_time || null;
+      let publishedAt = new Date();
+      if (rawDate && String(rawDate).trim() !== '' && String(rawDate).toLowerCase() !== 'null') {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          publishedAt = d;
+        }
+      }
+
+      const createdById = req.user ? req.user.id : null;
+      const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
+      const isDownloadableVal = (is_downloadable === undefined || is_downloadable === null || is_downloadable === '1' || is_downloadable === 1 || is_downloadable === 'true' || is_downloadable === true) ? 1 : 0;
+      const coinCost = coins !== undefined && coins !== null && coins !== '' ? parseInt(coins, 10) : 25;
+      const finalAudioTitle = audio_title && String(audio_title).trim() !== '' ? String(audio_title).trim() : String(title).trim();
+
+      const [maxPos] = await pool.query('SELECT MAX(position) as max_pos FROM episodes WHERE story_id = ?', [targetStoryId]);
+      const epPosition = (maxPos[0].max_pos || 0) + 1;
+
+      const [result] = await pool.query(
+        `INSERT INTO episodes (
+          story_id, created_by, title, position, description, publish_as, scheduled_at,
+          audio_title, duration_seconds, duration_minutes, is_premium, is_downloadable,
+          coins, audio_path, published_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          targetStoryId,
+          createdById,
+          String(title).trim(),
+          epPosition,
+          description || null,
+          'publish_now',
+          rawDate ? publishedAt : null,
+          finalAudioTitle,
+          durSecs,
+          durMins,
+          isPremiumVal,
+          isDownloadableVal,
+          coinCost,
+          audioFilePath,
+          publishedAt,
+        ]
+      );
+
+      const episodeId = result.insertId;
+      const [[{ cnt }]] = await pool.query('SELECT COUNT(*) as cnt FROM episodes WHERE story_id = ?', [targetStoryId]);
+      await pool.query('UPDATE stories SET episodes_count = ? WHERE id = ?', [cnt, targetStoryId]);
+
+      const [newEp] = await pool.query(
+        'SELECT e.*, s.title as story_title FROM episodes e JOIN stories s ON e.story_id = s.id WHERE e.id = ? LIMIT 1',
+        [episodeId]
+      );
+
+      return ApiResponse.success(
+        res,
+        { episode: toEpisodeFieldsArray(newEp[0], storyRows[0].title, true) },
+        'Episode created successfully.',
+        201
+      );
+    } catch (error) {
+      console.error('Admin Create Episode Error:', error);
+      return ApiResponse.error(res, 'Failed to create episode.', 500);
+    }
+  }
+
+  /**
+   * PUT / POST /api/v1/admin/episodes/:id
+   * Update an existing episode
+   */
+  static async updateEpisode(req, res) {
+    try {
+      const episodeId = req.params.id;
+      const [existingRows] = await pool.query('SELECT * FROM episodes WHERE id = ? LIMIT 1', [episodeId]);
+      if (existingRows.length === 0) {
+        return ApiResponse.error(res, 'Episode not found.', 444);
+      }
+
+      const {
+        title,
+        story_id,
+        storyId,
+        story,
+        description,
+        duration,
+        duration_seconds,
+        duration_minutes,
+        is_premium,
+        is_downloadable,
+        coins,
+        published_at,
+        publish_date,
+        published_date,
+        publishedDate,
+        scheduled_at,
+        schedule_date_time,
+        audio_file,
+        audio_path,
+        audio_title,
+      } = req.body || {};
+
+      const updateFields = [];
+      const queryParams = [];
+
+      const targetStoryId = story_id || storyId || story;
+      if (targetStoryId !== undefined && targetStoryId !== null && targetStoryId !== '') {
+        updateFields.push('`story_id` = ?');
+        queryParams.push(targetStoryId);
+      }
+
+      if (title !== undefined && String(title).trim() !== '') {
+        updateFields.push('`title` = ?');
+        queryParams.push(String(title).trim());
+      }
+
+      if (description !== undefined) {
+        updateFields.push('`description` = ?');
+        queryParams.push(description);
+      }
+
+      if (is_premium !== undefined) {
+        updateFields.push('`is_premium` = ?');
+        const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
+        queryParams.push(isPremiumVal);
+      }
+
+      if (is_downloadable !== undefined) {
+        updateFields.push('`is_downloadable` = ?');
+        const isDownVal = (is_downloadable === '1' || is_downloadable === 1 || is_downloadable === 'true' || is_downloadable === true) ? 1 : 0;
+        queryParams.push(isDownVal);
+      }
+
+      let durSecs = undefined;
+      if (duration_seconds !== undefined && duration_seconds !== null && duration_seconds !== '') {
+        durSecs = parseInt(duration_seconds, 10) || 0;
+      } else if (duration !== undefined && duration !== null && duration !== '') {
+        durSecs = parseInt(duration, 10) || 0;
+      }
+      if (durSecs !== undefined) {
+        updateFields.push('`duration_seconds` = ?');
+        queryParams.push(durSecs);
+        updateFields.push('`duration_minutes` = ?');
+        queryParams.push(durSecs ? parseFloat((durSecs / 60).toFixed(2)) : null);
+      }
+
+      const rawDate = published_at || publish_date || published_date || publishedDate || scheduled_at || schedule_date_time;
+      if (rawDate !== undefined && rawDate !== null && String(rawDate).trim() !== '' && String(rawDate).toLowerCase() !== 'null') {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          updateFields.push('`published_at` = ?');
+          queryParams.push(d);
+        }
+      }
+
+      let audioFilePath = null;
+      const uploadedFile = req.file || (req.files && req.files.length > 0 ? (req.files.find(f => f.fieldname === 'audio_file' || f.fieldname === 'audio') || req.files[0]) : null);
+      if (uploadedFile) {
+        const { uploadToR2 } = require('../../services/r2StorageService');
+        audioFilePath = await uploadToR2(uploadedFile, 'episodes');
+      } else if (typeof audio_file === 'string' && audio_file.trim() !== '') {
+        audioFilePath = audio_file;
+      } else if (typeof audio_path === 'string' && audio_path.trim() !== '') {
+        audioFilePath = audio_path;
+      }
+
+      if (audioFilePath) {
+        updateFields.push('`audio_path` = ?');
+        queryParams.push(audioFilePath);
+      }
+
+      if (updateFields.length > 0) {
+        updateFields.push('`updated_at` = NOW()');
+        queryParams.push(episodeId);
+        await pool.query(`UPDATE episodes SET ${updateFields.join(', ')} WHERE id = ?`, queryParams);
+      }
+
+      const [updatedEp] = await pool.query(
+        'SELECT e.*, s.title as story_title FROM episodes e LEFT JOIN stories s ON e.story_id = s.id WHERE e.id = ? LIMIT 1',
+        [episodeId]
+      );
+
+      return ApiResponse.success(
+        res,
+        { episode: toEpisodeFieldsArray(updatedEp[0], updatedEp[0].story_title, true) },
+        'Episode updated successfully.'
+      );
+    } catch (error) {
+      console.error('Admin Update Episode Error:', error);
+      return ApiResponse.error(res, 'Failed to update episode.', 500);
     }
   }
 

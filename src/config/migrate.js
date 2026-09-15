@@ -134,6 +134,7 @@ async function runMigrations() {
         \`tags\` VARCHAR(512) NULL,
         \`status\` VARCHAR(50) NULL DEFAULT NULL,
         \`release_status\` VARCHAR(50) NULL DEFAULT NULL,
+        \`publish_date\` DATE NULL DEFAULT NULL,
         \`episodes_count\` INT DEFAULT 0,
         \`listeners_count\` INT DEFAULT 0,
         \`total_views\` INT DEFAULT 0,
@@ -152,8 +153,14 @@ async function runMigrations() {
       // Column already exists
     }
     try {
+      await connection.query(`ALTER TABLE \`stories\` ADD COLUMN \`publish_date\` DATE NULL DEFAULT NULL AFTER \`release_status\`;`);
+    } catch (e) {
+      // Column already exists
+    }
+    try {
       await connection.query(`ALTER TABLE \`stories\` MODIFY COLUMN \`status\` VARCHAR(50) NULL DEFAULT NULL;`);
       await connection.query(`ALTER TABLE \`stories\` MODIFY COLUMN \`release_status\` VARCHAR(50) NULL DEFAULT NULL;`);
+      await connection.query(`ALTER TABLE \`stories\` MODIFY COLUMN \`publish_date\` DATE NULL DEFAULT NULL;`);
     } catch (e) {}
 
     // 7. Episodes table
@@ -500,7 +507,7 @@ async function runMigrations() {
         {
           name: 'creator',
           display_name: 'Content Creator',
-          description: 'Access to upload and manage audio stories and episodes.',
+          description: 'Access to Episode Management and story creation.',
           permissions: JSON.stringify(['content.read', 'content.manage']),
           is_system: 1,
           status: 1
