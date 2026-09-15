@@ -796,20 +796,22 @@ class ContentController {
       const coinCost = coins !== undefined && coins !== null && coins !== '' ? parseInt(coins, 10) : 25;
       const finalAudioTitle = audio_title && String(audio_title).trim() !== '' ? String(audio_title).trim() : String(title).trim();
 
-      const [maxPos] = await pool.query('SELECT MAX(position) as max_pos FROM episodes WHERE story_id = ?', [targetStoryId]);
-      const epPosition = (maxPos[0].max_pos || 0) + 1;
+      // Episode number calculation: 0 episodes -> 1, 2 episodes -> 3
+      const [[{ ep_count }]] = await pool.query('SELECT COUNT(*) as ep_count FROM episodes WHERE story_id = ?', [targetStoryId]);
+      const nextEpisodeNumber = (ep_count || 0) + 1;
 
       const [result] = await pool.query(
         `INSERT INTO episodes (
-          story_id, created_by, title, position, description, publish_as, scheduled_at,
+          story_id, created_by, title, episode_number, position, description, publish_as, scheduled_at,
           audio_title, duration_seconds, duration_minutes, is_premium, is_downloadable,
           coins, audio_path, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           targetStoryId,
           createdById,
           String(title).trim(),
-          epPosition,
+          nextEpisodeNumber,
+          nextEpisodeNumber,
           description || null,
           'publish_now',
           rawDate ? publishedAt : null,

@@ -193,6 +193,8 @@ async function runMigrations() {
       "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `tags` VARCHAR(512) NULL",
       "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `shares_count` INT DEFAULT 0",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `created_by` INT NULL",
+      "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `episode_number` INT DEFAULT 1",
+      "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `position` INT DEFAULT 1",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `description` TEXT NULL",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `publish_as` VARCHAR(50) DEFAULT 'publish_now'",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `scheduled_at` DATETIME NULL",

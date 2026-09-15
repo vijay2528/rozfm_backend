@@ -322,8 +322,8 @@ class EpisodeController {
       let epPosition = episode_number || episode_no || position;
       epPosition = epPosition ? parseInt(epPosition, 10) : null;
       if (!epPosition) {
-        const [maxPos] = await pool.query('SELECT MAX(position) as max_pos FROM episodes WHERE story_id = ?', [targetStoryId]);
-        epPosition = (maxPos[0].max_pos || 0) + 1;
+        const [[{ ep_count }]] = await pool.query('SELECT COUNT(*) as ep_count FROM episodes WHERE story_id = ?', [targetStoryId]);
+        epPosition = (ep_count || 0) + 1;
       }
 
       // Default coins to 25 if not provided or empty
@@ -352,14 +352,15 @@ class EpisodeController {
 
       const [result] = await pool.query(
         `INSERT INTO episodes (
-          story_id, created_by, title, position, description, publish_as, scheduled_at,
+          story_id, created_by, title, episode_number, position, description, publish_as, scheduled_at,
           audio_title, duration_seconds, duration_minutes, is_premium, is_downloadable,
           coins, audio_path, published_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           targetStoryId,
           createdById,
           String(title).trim(),
+          epPosition,
           epPosition,
           description || null,
           publishAsMode,
