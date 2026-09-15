@@ -10,7 +10,7 @@ class StoryController {
    */
   static async index(req, res) {
     try {
-      const { category_id, search, language, sort, status, release_status, release, is_draft, page = 1, limit = 10 } = req.query;
+      const { category_id, search, language, sort, status, release_status, release, is_draft, is_scheduled, page = 1, limit = 10 } = req.query;
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
       const offset = (pageNum - 1) * limitNum;
@@ -19,12 +19,16 @@ class StoryController {
       let queryParams = [];
 
       const filterStatus = status || release_status || release;
-      if (filterStatus || is_draft) {
+      const isSchedReq = is_scheduled === '1' || is_scheduled === 'true';
+
+      if (isSchedReq) {
+        whereClauses.push("(LOWER(s.status) = 'scheduled' OR LOWER(s.release_status) = 'scheduled' OR LOWER(s.status) LIKE '%schedule%' OR LOWER(s.release_status) LIKE '%schedule%')");
+      } else if (filterStatus || is_draft) {
         const lowerVal = String(filterStatus || '').trim().toLowerCase();
         if (lowerVal === 'draft' || is_draft === '1' || is_draft === 'true') {
           whereClauses.push("(LOWER(s.status) = 'draft' OR LOWER(s.release_status) = 'draft' OR LOWER(s.release_status) LIKE '%draft%')");
-        } else if (lowerVal === 'scheduled' || lowerVal === 'schedule') {
-          whereClauses.push("(LOWER(s.status) = 'scheduled' OR LOWER(s.release_status) = 'scheduled' OR LOWER(s.release_status) LIKE '%schedule%')");
+        } else if (lowerVal.includes('schedule')) {
+          whereClauses.push("(LOWER(s.status) = 'scheduled' OR LOWER(s.release_status) = 'scheduled' OR LOWER(s.status) LIKE '%schedule%' OR LOWER(s.release_status) LIKE '%schedule%')");
         } else if (lowerVal === 'all') {
           // No status restriction
         } else if (lowerVal) {

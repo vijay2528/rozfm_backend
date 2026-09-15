@@ -10,7 +10,7 @@ class ContentController {
    */
   static async listStories(req, res) {
     try {
-      const { status, release_status, release, is_draft, category_id, language, search, page = 1, limit = 20 } = req.query;
+      const { status, release_status, release, is_draft, is_scheduled, category_id, language, search, page = 1, limit = 20 } = req.query;
       const offset = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
 
@@ -18,12 +18,16 @@ class ContentController {
       let queryParams = [];
 
       const filterStatus = status || release_status || release;
-      if (filterStatus) {
+      const isSchedReq = is_scheduled === '1' || is_scheduled === 'true';
+
+      if (isSchedReq) {
+        whereClauses.push("(LOWER(s.status) = 'scheduled' OR LOWER(s.release_status) = 'scheduled' OR LOWER(s.status) LIKE '%schedule%' OR LOWER(s.release_status) LIKE '%schedule%')");
+      } else if (filterStatus) {
         const lowerVal = String(filterStatus).trim().toLowerCase();
         if (lowerVal === 'draft' || is_draft === '1' || is_draft === 'true') {
           whereClauses.push("(LOWER(s.status) = 'draft' OR LOWER(s.release_status) = 'draft' OR LOWER(s.release_status) LIKE '%draft%')");
-        } else if (lowerVal === 'scheduled' || lowerVal === 'schedule') {
-          whereClauses.push("(LOWER(s.status) = 'scheduled' OR LOWER(s.release_status) = 'scheduled' OR LOWER(s.release_status) LIKE '%schedule%')");
+        } else if (lowerVal.includes('schedule')) {
+          whereClauses.push("(LOWER(s.status) = 'scheduled' OR LOWER(s.release_status) = 'scheduled' OR LOWER(s.status) LIKE '%schedule%' OR LOWER(s.release_status) LIKE '%schedule%')");
         } else {
           whereClauses.push('(LOWER(s.status) = ? OR LOWER(s.release_status) = ?)');
           queryParams.push(lowerVal, lowerVal);
