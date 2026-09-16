@@ -109,7 +109,6 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, pro
     story_image: storyImageUrl,
     story_cover_image: storyImageUrl,
     cover_image: storyImageUrl,
-    episode_number: Number(episode.episode_number || episode.position || 1),
     episode_no: Number(episode.episode_number || episode.position || 1),
     position: Number(episode.position || episode.episode_number || 1),
     title: episode.title,

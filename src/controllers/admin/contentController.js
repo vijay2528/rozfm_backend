@@ -696,8 +696,19 @@ class ContentController {
 
       const result = episodes.map((ep) => toEpisodeFieldsArray(ep, ep.story_title, true));
 
+      let nextEpQuery = 'SELECT COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) as max_ep FROM episodes';
+      let nextEpParams = [];
+      if (story_id) {
+        nextEpQuery = 'SELECT COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) as max_ep FROM episodes WHERE story_id = ?';
+        nextEpParams = [story_id];
+      }
+      const [[{ max_ep }]] = await pool.query(nextEpQuery, nextEpParams);
+      const nextEpisodeNum = (max_ep || 0) + 1;
+
       return ApiResponse.success(res, {
+        next_episode_number: nextEpisodeNum,
         episodes: result,
+        total: count,
         pagination: {
           total: count,
           page: parseInt(page, 10),

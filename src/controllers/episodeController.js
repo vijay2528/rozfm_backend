@@ -188,7 +188,17 @@ class EpisodeController {
         lastWatchedEpisodeObj = toEpisodeFieldsArray(firstEp, firstEp.story_title, isUnlocked, { is_last_watched: true });
       }
 
+      let nextEpQuery = 'SELECT COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) as max_ep FROM episodes';
+      let nextEpParams = [];
+      if (storyId) {
+        nextEpQuery = 'SELECT COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) as max_ep FROM episodes WHERE story_id = ?';
+        nextEpParams = [storyId];
+      }
+      const [[{ max_ep }]] = await pool.query(nextEpQuery, nextEpParams);
+      const nextEpisodeNum = (max_ep || 0) + 1;
+
       return ApiResponse.success(res, {
+        next_episode_number: nextEpisodeNum,
         last_watched_episode: lastWatchedEpisodeObj,
         last_resume_episode: lastWatchedEpisodeObj,
         episodes: result,
