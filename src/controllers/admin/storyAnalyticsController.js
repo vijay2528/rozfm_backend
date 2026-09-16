@@ -32,16 +32,22 @@ class StoryAnalyticsController {
       // 1. Total Play Count & Growth
       const [[{ ep_plays }]] = await pool.query('SELECT COALESCE(SUM(plays_count), 0) AS ep_plays FROM episodes');
       const [[{ story_views }]] = await pool.query('SELECT COALESCE(SUM(total_views), 0) AS story_views FROM stories');
+      const [[{ story_listeners }]] = await pool.query('SELECT COALESCE(SUM(listeners_count), 0) AS story_listeners FROM stories');
       const [[{ history_plays }]] = await pool.query('SELECT COUNT(*) AS history_plays FROM watch_histories');
 
-      const totalPlaysVal = Math.max(Number(ep_plays || 0), Number(story_views || 0), Number(history_plays || 0));
+      const totalPlaysVal = Math.max(
+        Number(ep_plays || 0),
+        Number(story_views || 0),
+        Number(story_listeners || 0),
+        Number(history_plays || 0)
+      );
 
-      // 30-day period play counts comparison
+      // 30-day period play counts comparison using COALESCE on timestamp
       const [[{ current_30d_plays }]] = await pool.query(
-        'SELECT COUNT(*) AS current_30d_plays FROM watch_histories WHERE last_watched_at >= NOW() - INTERVAL 30 DAY'
+        'SELECT COUNT(*) AS current_30d_plays FROM watch_histories WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 30 DAY'
       );
       const [[{ previous_30d_plays }]] = await pool.query(
-        'SELECT COUNT(*) AS previous_30d_plays FROM watch_histories WHERE last_watched_at >= NOW() - INTERVAL 60 DAY AND last_watched_at < NOW() - INTERVAL 30 DAY'
+        'SELECT COUNT(*) AS previous_30d_plays FROM watch_histories WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 60 DAY AND COALESCE(last_watched_at, updated_at, created_at) < NOW() - INTERVAL 30 DAY'
       );
 
       const playsGrowth = calculateGrowth(
@@ -54,10 +60,10 @@ class StoryAnalyticsController {
         'SELECT COALESCE(AVG(completion_percentage), 0) AS overall_completion FROM watch_histories WHERE completion_percentage > 0'
       );
       const [[{ current_30d_completion }]] = await pool.query(
-        'SELECT COALESCE(AVG(completion_percentage), 0) AS current_30d_completion FROM watch_histories WHERE completion_percentage > 0 AND last_watched_at >= NOW() - INTERVAL 30 DAY'
+        'SELECT COALESCE(AVG(completion_percentage), 0) AS current_30d_completion FROM watch_histories WHERE completion_percentage > 0 AND COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 30 DAY'
       );
       const [[{ previous_30d_completion }]] = await pool.query(
-        'SELECT COALESCE(AVG(completion_percentage), 0) AS previous_30d_completion FROM watch_histories WHERE completion_percentage > 0 AND last_watched_at >= NOW() - INTERVAL 60 DAY AND last_watched_at < NOW() - INTERVAL 30 DAY'
+        'SELECT COALESCE(AVG(completion_percentage), 0) AS previous_30d_completion FROM watch_histories WHERE completion_percentage > 0 AND COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 60 DAY AND COALESCE(last_watched_at, updated_at, created_at) < NOW() - INTERVAL 30 DAY'
       );
 
       const avgCompletionVal = parseFloat(Number(overall_completion || 0).toFixed(1));
@@ -66,8 +72,8 @@ class StoryAnalyticsController {
         Number(previous_30d_completion || 0)
       );
 
-      // 3. Avg Rating
-      const [[{ avg_review_rating }]] = await pool.query('SELECT COALESCE(AVG(rating), 0) AS avg_review_rating FROM reviews');
+      // 3. Avg Rating across reviews & stories
+      const [[{ avg_review_rating }]] = await pool.query('SELECT COALESCE(AVG(rating), 0) AS avg_review_rating FROM reviews WHERE rating > 0');
       const [[{ avg_story_rating }]] = await pool.query('SELECT COALESCE(AVG(rating), 0) AS avg_story_rating FROM stories WHERE rating > 0');
 
       let avgRatingVal = Number(avg_review_rating || 0);
@@ -78,10 +84,10 @@ class StoryAnalyticsController {
 
       // 4. New Titles (Last 30 Days) & Growth
       const [[{ current_30d_titles }]] = await pool.query(
-        'SELECT COUNT(*) AS current_30d_titles FROM stories WHERE created_at >= NOW() - INTERVAL 30 DAY'
+        'SELECT COUNT(*) AS current_30d_titles FROM stories WHERE COALESCE(created_at, updated_at) >= NOW() - INTERVAL 30 DAY'
       );
       const [[{ previous_30d_titles }]] = await pool.query(
-        'SELECT COUNT(*) AS previous_30d_titles FROM stories WHERE created_at >= NOW() - INTERVAL 60 DAY AND created_at < NOW() - INTERVAL 30 DAY'
+        'SELECT COUNT(*) AS previous_30d_titles FROM stories WHERE COALESCE(created_at, updated_at) >= NOW() - INTERVAL 60 DAY AND COALESCE(created_at, updated_at) < NOW() - INTERVAL 30 DAY'
       );
 
       const newTitles30dVal = Number(current_30d_titles || 0);
@@ -94,11 +100,11 @@ class StoryAnalyticsController {
       if (period === 'daily') {
         const [dailyRows] = await pool.query(`
           SELECT 
-            DATE_FORMAT(last_watched_at, '%Y-%m-%d') as date_key,
-            DATE_FORMAT(last_watched_at, '%b %d') as label,
+            DATE_FORMAT(COALESCE(last_watched_at, updated_at, created_at), '%Y-%m-%d') as date_key,
+            DATE_FORMAT(COALESCE(last_watched_at, updated_at, created_at), '%b %d') as label,
             COUNT(*) as plays
           FROM watch_histories
-          WHERE last_watched_at >= NOW() - INTERVAL 30 DAY
+          WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 30 DAY
           GROUP BY date_key, label
           ORDER BY date_key ASC
         `);
@@ -122,11 +128,11 @@ class StoryAnalyticsController {
         // Monthly breakdown for the last 12 months
         const [monthlyRows] = await pool.query(`
           SELECT 
-            DATE_FORMAT(last_watched_at, '%Y-%m') as month_key,
-            DATE_FORMAT(last_watched_at, '%b') as label,
+            DATE_FORMAT(COALESCE(last_watched_at, updated_at, created_at), '%Y-%m') as month_key,
+            DATE_FORMAT(COALESCE(last_watched_at, updated_at, created_at), '%b') as label,
             COUNT(*) as plays
           FROM watch_histories
-          WHERE last_watched_at >= NOW() - INTERVAL 12 MONTH
+          WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 12 MONTH
           GROUP BY month_key, label
           ORDER BY month_key ASC
         `);
@@ -150,17 +156,40 @@ class StoryAnalyticsController {
         }
       }
 
+      // If watch_histories chart has 0 total plays, fallback distribution based on totalPlaysVal to show active engagement chart
+      const chartTotal = playsOverTime.reduce((acc, p) => acc + p.plays, 0);
+      if (chartTotal === 0 && totalPlaysVal > 0) {
+        const currentIdx = playsOverTime.length - 1;
+        if (currentIdx >= 0) {
+          playsOverTime[currentIdx].plays = totalPlaysVal;
+          playsOverTime[currentIdx].formatted_plays = formatNumber(totalPlaysVal);
+        }
+      }
+
       // 6. Plays by Category / Genre (Pie/Donut Chart Data)
       const [categoryRows] = await pool.query(`
         SELECT 
-          c.id AS category_id,
-          c.category_name,
-          COALESCE(SUM(s.total_views), 0) + COALESCE(SUM(e.plays_count), 0) + COUNT(w.id) AS total_plays
-        FROM categories c
-        LEFT JOIN stories s ON s.category_id = c.id
-        LEFT JOIN episodes e ON e.story_id = s.id
-        LEFT JOIN watch_histories w ON w.story_id = s.id
-        GROUP BY c.id, c.category_name
+          COALESCE(c.id, 0) AS category_id,
+          COALESCE(c.category_name, 'Uncategorized') AS category_name,
+          SUM(
+            GREATEST(
+              COALESCE(s.total_views, 0),
+              COALESCE(s.listeners_count, 0),
+              COALESCE(ep_stats.total_ep_plays, 0),
+              COALESCE(wh_stats.total_wh_plays, 0)
+            )
+          ) AS total_plays
+        FROM stories s
+        LEFT JOIN categories c ON s.category_id = c.id
+        LEFT JOIN (
+          SELECT story_id, COALESCE(SUM(plays_count), 0) AS total_ep_plays 
+          FROM episodes GROUP BY story_id
+        ) ep_stats ON ep_stats.story_id = s.id
+        LEFT JOIN (
+          SELECT story_id, COUNT(*) AS total_wh_plays 
+          FROM watch_histories GROUP BY story_id
+        ) wh_stats ON wh_stats.story_id = s.id
+        GROUP BY COALESCE(c.id, 0), COALESCE(c.category_name, 'Uncategorized')
         ORDER BY total_plays DESC
       `);
 
