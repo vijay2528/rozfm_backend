@@ -365,6 +365,7 @@ class StoryController {
 
       const watchHistorySummary = lastWatchedHistory ? {
         episode_id: lastWatchedHistory.episode_id,
+        episode_number: Number(lastWatchedHistory.episode_position || 1),
         episode_no: Number(lastWatchedHistory.episode_position || 1),
         episode_title: lastWatchedHistory.episode_title,
         progress_seconds: Number(lastWatchedHistory.progress_seconds || 0),

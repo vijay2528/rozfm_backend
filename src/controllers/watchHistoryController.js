@@ -44,6 +44,7 @@ class WatchHistoryController {
           episode_id: h.episode_id ? Number(h.episode_id) : null,
           story_title: h.story_title,
           episode_title: h.episode_title || null,
+          episode_number: h.episode_position || 1,
           episode_no: h.episode_position || 1,
           progress_seconds: progress,
           progress_formatted: formatTime(progress),
@@ -270,7 +271,8 @@ class WatchHistoryController {
         return ApiResponse.success(res, {
           episode_id: Number(episodeId),
           story_id: Number(ep.story_id),
-          episode_no: Number(ep.episode_number),
+          episode_number: Number(ep.episode_number || 1),
+          episode_no: Number(ep.episode_number || 1),
           title: ep.title,
           progress_seconds: 0,
           progress_formatted: '00:00',
@@ -294,7 +296,8 @@ class WatchHistoryController {
       return ApiResponse.success(res, {
         episode_id: Number(episodeId),
         story_id: Number(ep.story_id),
-        episode_no: Number(ep.episode_number),
+        episode_number: Number(ep.episode_number || 1),
+        episode_no: Number(ep.episode_number || 1),
         title: ep.title,
         progress_seconds: progress,
         progress_formatted: formatTime(progress),
@@ -351,6 +354,7 @@ class WatchHistoryController {
         has_history: true,
         last_watched_episode: {
           episode_id: h.episode_id ? Number(h.episode_id) : null,
+          episode_number: h.episode_position || 1,
           episode_no: h.episode_position || 1,
           title: h.episode_title || null,
           progress_seconds: progress,
@@ -491,6 +495,7 @@ class WatchHistoryController {
         user_id: Number(userId),
         story_id: Number(storyId),
         episode_id: Number(episodeId),
+        episode_number: Number(episode.episode_number || 1),
         episode_no: Number(episode.episode_number || 1),
         title: episode.title,
         current_seconds: currentSeconds,

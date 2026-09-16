@@ -116,6 +116,7 @@ class HomeController {
 
           const watchHistoryData = {
             episode_id: s.wh_episode_id ? Number(s.wh_episode_id) : null,
+            episode_number: s.ep_position ? Number(s.ep_position) : 1,
             episode_no: s.ep_position ? Number(s.ep_position) : 1,
             episode_title: s.ep_title || null,
             progress_seconds: progressSecs,
