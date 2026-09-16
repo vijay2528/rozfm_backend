@@ -60,7 +60,7 @@ function formatRemainingTime(seconds) {
   return `${secs}s remaining`;
 }
 
-function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, progressData = null) {
+function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, progressData = null, nextEpisodeNum = null) {
   const durationMins = episode.duration_minutes !== null && episode.duration_minutes !== undefined
     ? Number(episode.duration_minutes)
     : (episode.duration_seconds ? Number((episode.duration_seconds / 60).toFixed(2)) : null);
@@ -100,6 +100,12 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, pro
 
   const lastWatchedAtStr = progressData && progressData.last_watched_at ? new Date(progressData.last_watched_at).toISOString() : null;
 
+  const calculatedNextEp = nextEpisodeNum !== null && nextEpisodeNum !== undefined
+    ? Number(nextEpisodeNum)
+    : (episode.next_episode_number !== undefined && episode.next_episode_number !== null
+      ? Number(episode.next_episode_number)
+      : null);
+
   return {
     id: Number(episode.id),
     episode_id: Number(episode.id),
@@ -111,6 +117,7 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, pro
     cover_image: storyImageUrl,
     episode_no: Number(episode.episode_number || episode.position || 1),
     position: Number(episode.position || episode.episode_number || 1),
+    next_episode_number: calculatedNextEp,
     title: episode.title,
     audio_title: episode.audio_title || episode.title,
     description: episode.description || null,

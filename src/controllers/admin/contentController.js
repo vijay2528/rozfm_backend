@@ -694,32 +694,29 @@ class ContentController {
         [...queryParams, limitNum, offset]
       );
 
-      const result = episodes.map((ep) => toEpisodeFieldsArray(ep, ep.story_title, true));
+      // Calculate story-wise next episode numbers for all stories in the list
+      const storyIdsInList = [...new Set(episodes.map((e) => e.story_id).filter(Boolean))];
+      let storyNextEpMap = {};
 
-      let targetStoryId = story_id || req.query.storyId || req.query.story;
-      if (!targetStoryId && episodes.length > 0) {
-        const uniqueStoryIds = [...new Set(episodes.map(e => e.story_id))];
-        if (uniqueStoryIds.length === 1) {
-          targetStoryId = uniqueStoryIds[0];
-        }
+      if (storyIdsInList.length > 0) {
+        const [maxRows] = await pool.query(
+          `SELECT story_id, COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) AS max_ep
+           FROM episodes
+           WHERE story_id IN (?)
+           GROUP BY story_id`,
+          [storyIdsInList]
+        );
+        maxRows.forEach((r) => {
+          storyNextEpMap[r.story_id] = (Number(r.max_ep) || 0) + 1;
+        });
       }
 
-      let nextEpisodeNum = 1;
-      if (targetStoryId) {
-        const [[{ max_ep }]] = await pool.query(
-          'SELECT COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) as max_ep FROM episodes WHERE story_id = ?',
-          [targetStoryId]
-        );
-        nextEpisodeNum = (Number(max_ep) || 0) + 1;
-      } else {
-        const [[{ max_ep }]] = await pool.query(
-          'SELECT COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) as max_ep FROM episodes'
-        );
-        nextEpisodeNum = (Number(max_ep) || 0) + 1;
-      }
+      const result = episodes.map((ep) => {
+        const nextEpNum = storyNextEpMap[ep.story_id] || ((Number(ep.position || ep.episode_number || 0)) + 1);
+        return toEpisodeFieldsArray(ep, ep.story_title, true, null, nextEpNum);
+      });
 
       return ApiResponse.success(res, {
-        next_episode_number: nextEpisodeNum,
         episodes: result,
         total: count,
         pagination: {

@@ -153,13 +153,31 @@ class EpisodeController {
         }
       }
 
+      // Calculate story-wise next episode numbers for all stories present in current result
+      const storyIdsInList = [...new Set(episodes.map((e) => e.story_id).filter(Boolean))];
+      let storyNextEpMap = {};
+
+      if (storyIdsInList.length > 0) {
+        const [maxRows] = await pool.query(
+          `SELECT story_id, COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) AS max_ep
+           FROM episodes
+           WHERE story_id IN (?)
+           GROUP BY story_id`,
+          [storyIdsInList]
+        );
+        maxRows.forEach((r) => {
+          storyNextEpMap[r.story_id] = (Number(r.max_ep) || 0) + 1;
+        });
+      }
+
       const result = episodes.map((ep) => {
         const isUnlocked = !ep.is_premium || hasActiveMembership || Boolean(userId && (userUnlockedEpisodeIds.has(Number(ep.id)) || userUnlockedEpisodeIds.has(String(ep.id))));
         const wh = watchHistoryMap[ep.id] || null;
         const isLastW = Boolean(lastWatchedEpisodeId && ep.id === lastWatchedEpisodeId);
         const progressData = wh ? { ...wh, is_last_watched: isLastW } : { is_last_watched: isLastW };
+        const nextEpNum = storyNextEpMap[ep.story_id] || ((Number(ep.position || ep.episode_number || 0)) + 1);
 
-        return toEpisodeFieldsArray(ep, ep.story_title, isUnlocked, progressData);
+        return toEpisodeFieldsArray(ep, ep.story_title, isUnlocked, progressData, nextEpNum);
       });
 
       // Construct last resume / last watched episode object for top-level response
@@ -179,39 +197,18 @@ class EpisodeController {
           const wh = watchHistoryMap[targetEp.id] || null;
           const isUnlocked = !targetEp.is_premium || hasActiveMembership || Boolean(userId && (userUnlockedEpisodeIds.has(Number(targetEp.id)) || userUnlockedEpisodeIds.has(String(targetEp.id))));
           const progressData = wh ? { ...wh, is_last_watched: true } : { is_last_watched: true };
-          lastWatchedEpisodeObj = toEpisodeFieldsArray(targetEp, targetEp.story_title, isUnlocked, progressData);
+          const nextEpNum = storyNextEpMap[targetEp.story_id] || null;
+          lastWatchedEpisodeObj = toEpisodeFieldsArray(targetEp, targetEp.story_title, isUnlocked, progressData, nextEpNum);
         }
       } else if (episodes.length > 0) {
         // Fallback default: If no watch history exists, offer first episode as starting point
         const firstEp = episodes[0];
         const isUnlocked = !firstEp.is_premium || hasActiveMembership || Boolean(userId && (userUnlockedEpisodeIds.has(Number(firstEp.id)) || userUnlockedEpisodeIds.has(String(firstEp.id))));
-        lastWatchedEpisodeObj = toEpisodeFieldsArray(firstEp, firstEp.story_title, isUnlocked, { is_last_watched: true });
-      }
-
-      let targetStoryId = storyId || req.query.storyId || req.query.story;
-      if (!targetStoryId && episodes.length > 0) {
-        const uniqueStoryIds = [...new Set(episodes.map(e => e.story_id))];
-        if (uniqueStoryIds.length === 1) {
-          targetStoryId = uniqueStoryIds[0];
-        }
-      }
-
-      let nextEpisodeNum = 1;
-      if (targetStoryId) {
-        const [[{ max_ep }]] = await pool.query(
-          'SELECT COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) as max_ep FROM episodes WHERE story_id = ?',
-          [targetStoryId]
-        );
-        nextEpisodeNum = (Number(max_ep) || 0) + 1;
-      } else {
-        const [[{ max_ep }]] = await pool.query(
-          'SELECT COALESCE(MAX(position), MAX(episode_number), COUNT(*), 0) as max_ep FROM episodes'
-        );
-        nextEpisodeNum = (Number(max_ep) || 0) + 1;
+        const nextEpNum = storyNextEpMap[firstEp.story_id] || null;
+        lastWatchedEpisodeObj = toEpisodeFieldsArray(firstEp, firstEp.story_title, isUnlocked, { is_last_watched: true }, nextEpNum);
       }
 
       return ApiResponse.success(res, {
-        next_episode_number: nextEpisodeNum,
         last_watched_episode: lastWatchedEpisodeObj,
         last_resume_episode: lastWatchedEpisodeObj,
         episodes: result,
