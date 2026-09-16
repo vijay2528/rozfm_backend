@@ -14,6 +14,7 @@ const AdminRoleController = require('../controllers/admin/roleController');
 const AdminAuthController = require('../controllers/admin/authController');
 const AdminLocationController = require('../controllers/admin/locationController');
 const AdminStreakSettingsController = require('../controllers/admin/streakSettingsController');
+const AdminStoryAnalyticsController = require('../controllers/admin/storyAnalyticsController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -31,8 +32,11 @@ router.use(adminMiddleware);
 router.post('/logout', AdminAuthController.logout);
 router.post('/auth/logout', AdminAuthController.logout);
 
-// ── 1. Admin Dashboard ────────────────────────────────────────────────────────
+// ── 1. Admin Dashboard & Analytics ───────────────────────────────────────────
 router.get('/dashboard', AdminDashboardController.index);
+router.get('/story-analytics', AdminStoryAnalyticsController.getStoryAnalytics);
+router.get('/stories/analytics', AdminStoryAnalyticsController.getStoryAnalytics);
+router.get('/analytics/stories', AdminStoryAnalyticsController.getStoryAnalytics);
 
 // ── 2. User Management ────────────────────────────────────────────────────────
 router.get('/users', AdminUserController.index);

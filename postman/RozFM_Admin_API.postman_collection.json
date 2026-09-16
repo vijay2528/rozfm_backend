@@ -111,6 +111,35 @@
             },
             "description": "Fetch overall metrics (total users, active stories, episodes, play counts, revenue, recent registrations, and top stories)."
           }
+        },
+        {
+          "name": "Get Story Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/story-analytics?period=monthly",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "story-analytics"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "monthly"
+                }
+              ]
+            },
+            "description": "Fetch story performance metrics (Total Plays, Avg Completion Rate, Avg Rating, New Titles in last 30d, Plays Over Time chart data, and Plays By Category breakdown)."
+          }
         }
       ]
     },
