@@ -1,30 +1,23 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
-const { toStoryFieldsArray, toEpisodeFieldsArray } = require('../utils/storyPresenter');
+const { toStoryFieldsArray, toEpisodeFieldsArray, formatNumber } = require('../utils/storyPresenter');
+
+function formatFollowersCount(num) {
+  const val = Number(num) || 0;
+  if (val >= 1000000) {
+    return (val / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (val >= 1000) {
+    return (val / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  return val.toString();
+}
 
 class HomeController {
   static async index(req, res) {
     try {
       const { search } = req.query;
       const userId = req.user ? req.user.id : null;
-
-      // Handle Search query
-      if (search) {
-        const [searchResults] = await pool.query(
-          `SELECT s.*, c.category_name, u.name as author_name,
-                  (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
-           FROM stories s
-           LEFT JOIN categories c ON s.category_id = c.id
-           LEFT JOIN users u ON s.user_id = u.id
-           WHERE s.status IN ('ongoing', 'completed', 'published') AND (s.title LIKE ? OR s.description LIKE ?)
-           ORDER BY s.listeners_count DESC, s.total_views DESC
-           LIMIT 30`,
-          [`%${search}%`, `%${search}%`]
-        );
-
-        const results = searchResults.map((s) => toStoryFieldsArray(s));
-        return ApiResponse.success(res, { 'Top Results': results });
-      }
 
       // Fetch user liked & bookmarked story IDs if authenticated
       let userLikedIds = new Set();
@@ -40,6 +33,93 @@ class HomeController {
 
         const [prefCats] = await pool.query('SELECT category_id FROM user_categories WHERE user_id = ?', [userId]);
         preferredCategoryIds = prefCats.map((c) => c.category_id);
+      }
+
+      // Handle Search query (returns Stories, Genres/Categories, and Writers/Creators)
+      if (search) {
+        const searchPattern = `%${search}%`;
+
+        // 1. Stories matching title, description, category, or author name
+        const [searchResults] = await pool.query(
+          `SELECT s.*, c.category_name, u.name as author_name,
+                  (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
+           FROM stories s
+           LEFT JOIN categories c ON s.category_id = c.id
+           LEFT JOIN users u ON s.user_id = u.id
+           WHERE s.status IN ('ongoing', 'completed', 'published') 
+             AND (s.title LIKE ? OR s.description LIKE ? OR c.category_name LIKE ? OR u.name LIKE ?)
+           ORDER BY s.listeners_count DESC, s.total_views DESC
+           LIMIT 30`,
+          [searchPattern, searchPattern, searchPattern, searchPattern]
+        );
+
+        const stories = searchResults.map((s) =>
+          toStoryFieldsArray(s, {
+            isLiked: userLikedIds.has(s.id),
+            isBookmarked: userBookmarkedIds.has(s.id),
+          })
+        );
+
+        // 2. Categories matching category_name
+        const [categoryRows] = await pool.query(
+          `SELECT c.*, 
+                  (SELECT COUNT(*) FROM stories s WHERE s.category_id = c.id AND s.status IN ('ongoing', 'completed', 'published')) as stories_count
+           FROM categories c
+           WHERE c.category_name LIKE ?
+           ORDER BY stories_count DESC
+           LIMIT 20`,
+          [searchPattern]
+        );
+
+        const categories = categoryRows.map((c) => ({
+          id: Number(c.id),
+          category_name: c.category_name,
+          name: c.category_name,
+          image_path: c.image_path || null,
+          image_url: c.image_path || null,
+          stories_count: Number(c.stories_count || 0),
+        }));
+
+        // 3. Writers / Creators matching name, email, or bio
+        const [writerRows] = await pool.query(
+          `SELECT u.id, u.name, u.email, u.phone, u.bio, u.avatar_path, u.is_verified, u.is_blocked,
+                  (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id AND s.status IN ('ongoing', 'completed', 'published')) as stories_count,
+                  (SELECT COUNT(*) FROM user_follows uf WHERE uf.following_id = u.id) as followers_count
+           FROM users u
+           WHERE (u.role = 'creator' OR u.role = 'Creator' OR u.id IN (SELECT DISTINCT user_id FROM stories WHERE user_id IS NOT NULL))
+             AND (u.name LIKE ? OR u.bio LIKE ? OR u.email LIKE ?)
+           ORDER BY stories_count DESC, followers_count DESC
+           LIMIT 20`,
+          [searchPattern, searchPattern, searchPattern]
+        );
+
+        const writers = writerRows.map((w) => {
+          const followersVal = Number(w.followers_count || 0);
+          return {
+            id: Number(w.id),
+            name: w.name || 'Unnamed Writer',
+            writer_name: w.name || 'Unnamed Writer',
+            email: w.email || null,
+            bio: w.bio || null,
+            avatar_path: w.avatar_path || null,
+            avatar_url: w.avatar_path || null,
+            is_verified: Boolean(w.is_verified),
+            is_blocked: Boolean(w.is_blocked),
+            status: w.is_blocked === 1 ? 'InActive' : 'active',
+            stories_count: Number(w.stories_count || 0),
+            followers_count: followersVal,
+            formatted_followers: formatFollowersCount(followersVal),
+          };
+        });
+
+        return ApiResponse.success(res, {
+          stories,
+          categories,
+          genres: categories,
+          writers,
+          creators: writers,
+          'Top Results': stories,
+        }, 'Search results fetched successfully.');
       }
 
       const mapStory = (s) =>
