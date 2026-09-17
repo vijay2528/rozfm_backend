@@ -94,7 +94,7 @@ class StoryAnalyticsController {
       const newTitlesGrowth = calculateGrowth(newTitles30dVal, Number(previous_30d_titles || 0));
 
       // 5. Plays Over Time (Line Chart Data)
-      const period = req.query.period || 'monthly'; // 'monthly' | 'daily'
+      const period = (req.query.period || 'monthly').toLowerCase(); // 'daily' | 'weekly' | 'monthly' | 'yearly'
       let playsOverTime = [];
 
       if (period === 'daily') {
@@ -114,7 +114,7 @@ class StoryAnalyticsController {
         for (let i = 29; i >= 0; i--) {
           const d = new Date();
           d.setDate(d.getDate() - i);
-          const dateKey = d.toISOString().split('T')[0];
+          const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           const playsCount = dailyMap.get(dateKey) || 0;
           playsOverTime.push({
@@ -124,8 +124,67 @@ class StoryAnalyticsController {
             formatted_plays: formatNumber(playsCount),
           });
         }
+      } else if (period === 'weekly') {
+        // Last 12 weeks breakdown
+        const [weeklyRows] = await pool.query(`
+          SELECT 
+            DATE_FORMAT(DATE_SUB(COALESCE(last_watched_at, updated_at, created_at), INTERVAL WEEKDAY(COALESCE(last_watched_at, updated_at, created_at)) DAY), '%Y-%m-%d') as week_start,
+            COUNT(*) as plays
+          FROM watch_histories
+          WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 12 WEEK
+          GROUP BY week_start
+          ORDER BY week_start ASC
+        `);
+
+        const weeklyMap = new Map(weeklyRows.map(r => [r.week_start, Number(r.plays)]));
+        const now = new Date();
+        const currentMonday = new Date(now);
+        const day = currentMonday.getDay();
+        const diffToMon = currentMonday.getDate() - day + (day === 0 ? -6 : 1);
+        currentMonday.setDate(diffToMon);
+        currentMonday.setHours(0, 0, 0, 0);
+
+        for (let i = 11; i >= 0; i--) {
+          const wDate = new Date(currentMonday);
+          wDate.setDate(wDate.getDate() - (i * 7));
+          const weekStartKey = `${wDate.getFullYear()}-${String(wDate.getMonth() + 1).padStart(2, '0')}-${String(wDate.getDate()).padStart(2, '0')}`;
+          const startLabel = wDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const playsCount = weeklyMap.get(weekStartKey) || 0;
+
+          playsOverTime.push({
+            week_key: weekStartKey,
+            label: `W${12 - i} (${startLabel})`,
+            plays: playsCount,
+            formatted_plays: formatNumber(playsCount),
+          });
+        }
+      } else if (period === 'yearly') {
+        // Last 5 years breakdown
+        const [yearlyRows] = await pool.query(`
+          SELECT 
+            DATE_FORMAT(COALESCE(last_watched_at, updated_at, created_at), '%Y') as year_key,
+            COUNT(*) as plays
+          FROM watch_histories
+          WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 5 YEAR
+          GROUP BY year_key
+          ORDER BY year_key ASC
+        `);
+
+        const yearlyMap = new Map(yearlyRows.map(r => [r.year_key, Number(r.plays)]));
+        const currentYear = new Date().getFullYear();
+
+        for (let i = 4; i >= 0; i--) {
+          const yr = String(currentYear - i);
+          const playsCount = yearlyMap.get(yr) || 0;
+          playsOverTime.push({
+            year_key: yr,
+            label: yr,
+            plays: playsCount,
+            formatted_plays: formatNumber(playsCount),
+          });
+        }
       } else {
-        // Monthly breakdown for the last 12 months
+        // Monthly breakdown for the last 12 months (default)
         const [monthlyRows] = await pool.query(`
           SELECT 
             DATE_FORMAT(COALESCE(last_watched_at, updated_at, created_at), '%Y-%m') as month_key,
