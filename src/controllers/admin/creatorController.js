@@ -53,8 +53,8 @@ class AdminCreatorController {
       let queryParams = [];
 
       if (search) {
-        whereClauses.push('(u.name LIKE ? OR u.username LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)');
-        queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        whereClauses.push('(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)');
+        queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
       }
 
       if (status && status !== 'all') {
@@ -95,7 +95,6 @@ class AdminCreatorController {
         `SELECT 
           u.id,
           u.name,
-          u.username,
           u.email,
           u.phone,
           u.avatar_path,
@@ -133,7 +132,6 @@ class AdminCreatorController {
         return {
           id: c.id,
           name: c.name || 'Unnamed Creator',
-          username: c.username || null,
           email: c.email || null,
           phone: c.phone || null,
           avatar_path: c.avatar_path || null,
@@ -188,7 +186,6 @@ class AdminCreatorController {
         `SELECT 
           u.id,
           u.name,
-          u.username,
           u.email,
           u.phone,
           u.bio,
@@ -249,7 +246,6 @@ class AdminCreatorController {
       const creatorDetails = {
         id: c.id,
         name: c.name || 'Unnamed Creator',
-        username: c.username || null,
         email: c.email || null,
         phone: c.phone || null,
         bio: c.bio || null,
@@ -294,7 +290,6 @@ class AdminCreatorController {
         name,
         email,
         phone,
-        username,
         password,
         bio,
         is_verified = 0,
@@ -342,13 +337,12 @@ class AdminCreatorController {
 
       const [result] = await pool.query(
         `INSERT INTO users 
-         (name, email, phone, username, password, bio, avatar_path, role, role_id, is_verified, is_blocked, rev_share_percentage) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'creator', 3, ?, ?, ?)`,
+         (name, email, phone, password, bio, avatar_path, role, role_id, is_verified, is_blocked, rev_share_percentage) 
+         VALUES (?, ?, ?, ?, ?, ?, 'creator', 3, ?, ?, ?)`,
         [
           name,
           email || null,
           phone || null,
-          username || null,
           hashedPassword,
           bio || null,
           avatarPath,
@@ -383,7 +377,6 @@ class AdminCreatorController {
         name,
         email,
         phone,
-        username,
         bio,
         is_verified,
         status,
@@ -410,10 +403,6 @@ class AdminCreatorController {
       if (phone !== undefined) {
         updateFields.push('phone = ?');
         queryParams.push(phone || null);
-      }
-      if (username !== undefined) {
-        updateFields.push('username = ?');
-        queryParams.push(username || null);
       }
       if (bio !== undefined) {
         updateFields.push('bio = ?');
