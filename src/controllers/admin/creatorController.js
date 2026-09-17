@@ -59,12 +59,10 @@ class AdminCreatorController {
 
       if (status && status !== 'all') {
         const lowerStatus = status.toLowerCase();
-        if (lowerStatus === 'suspended') {
+        if (lowerStatus === 'inactive' || lowerStatus === 'suspended') {
           whereClauses.push('u.is_blocked = 1');
         } else if (lowerStatus === 'active') {
-          whereClauses.push('u.is_blocked = 0 AND COALESCE(u.is_verified, 0) = 1');
-        } else if (lowerStatus === 'pending') {
-          whereClauses.push('u.is_blocked = 0 AND COALESCE(u.is_verified, 0) = 0');
+          whereClauses.push('u.is_blocked = 0');
         }
       }
 
@@ -76,18 +74,15 @@ class AdminCreatorController {
         queryParams
       );
 
-      // Summary statistics derived from is_blocked and is_verified
+      // Summary statistics derived from is_blocked
       const [[{ total_creators }]] = await pool.query(
         `SELECT COUNT(*) as total_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator')`
       );
       const [[{ active_creators }]] = await pool.query(
-        `SELECT COUNT(*) as active_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0 AND COALESCE(u.is_verified, 0) = 1`
+        `SELECT COUNT(*) as active_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0`
       );
-      const [[{ pending_creators }]] = await pool.query(
-        `SELECT COUNT(*) as pending_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0 AND COALESCE(u.is_verified, 0) = 0`
-      );
-      const [[{ suspended_creators }]] = await pool.query(
-        `SELECT COUNT(*) as suspended_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 1`
+      const [[{ inactive_creators }]] = await pool.query(
+        `SELECT COUNT(*) as inactive_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 1`
       );
 
       // Paginated list query
@@ -115,14 +110,7 @@ class AdminCreatorController {
       // Format output items
       const creators = rows.map((c) => {
         const revShareVal = defaultRevShare;
-
-        let effectiveStatus = 'active';
-        if (c.is_blocked === 1) {
-          effectiveStatus = 'suspended';
-        } else if (!c.is_verified) {
-          effectiveStatus = 'pending';
-        }
-
+        const effectiveStatus = c.is_blocked === 1 ? 'InActive' : 'active';
         const earningsVal = Number(c.earnings || 0);
         const followersVal = Number(c.followers_count || 0);
 
@@ -154,8 +142,7 @@ class AdminCreatorController {
         summary: {
           total: Number(total_creators || 0),
           active: Number(active_creators || 0),
-          pending: Number(pending_creators || 0),
-          suspended: Number(suspended_creators || 0),
+          inactive: Number(inactive_creators || 0),
         },
         pagination: {
           total: count,
@@ -212,14 +199,7 @@ class AdminCreatorController {
 
       const c = rows[0];
       const revShareVal = defaultRevShare;
-
-      let effectiveStatus = 'active';
-      if (c.is_blocked === 1) {
-        effectiveStatus = 'suspended';
-      } else if (!c.is_verified) {
-        effectiveStatus = 'pending';
-      }
-
+      const effectiveStatus = c.is_blocked === 1 ? 'InActive' : 'active';
       const earningsVal = Number(c.earnings || 0);
       const followersVal = Number(c.followers_count || 0);
 
@@ -311,18 +291,9 @@ class AdminCreatorController {
       const hashedPassword = password ? await bcrypt.hash(password, 10) : await bcrypt.hash('RozFM@Creator123', 10);
       const avatarPath = req.file ? req.file.path : null;
       
-      let verifiedVal = is_verified === '1' || is_verified === 'true' || is_verified === 1 || is_verified === true ? 1 : 0;
-      let isBlockedVal = 0;
-
-      if (status === 'suspended') {
-        isBlockedVal = 1;
-      } else if (status === 'pending') {
-        verifiedVal = 0;
-        isBlockedVal = 0;
-      } else if (status === 'active') {
-        verifiedVal = 1;
-        isBlockedVal = 0;
-      }
+      const verifiedVal = is_verified === '1' || is_verified === 'true' || is_verified === 1 || is_verified === true ? 1 : 0;
+      const isBlockedVal = (status && (status.toLowerCase() === 'inactive' || status.toLowerCase() === 'suspended')) ? 1 : 0;
+      const effectiveStatus = isBlockedVal === 1 ? 'InActive' : 'active';
 
       const defaultRevShare = await AdminCreatorController.getGlobalRevShareSetting();
 
@@ -346,7 +317,7 @@ class AdminCreatorController {
 
       return ApiResponse.success(
         res,
-        { id: newCreatorId, name, email, phone, role: 'creator', status: status || (verifiedVal ? 'active' : 'pending'), rev_share: defaultRevShare, formatted_rev_share: `${defaultRevShare}%` },
+        { id: newCreatorId, name, email, phone, role: 'creator', status: effectiveStatus, rev_share: defaultRevShare, formatted_rev_share: `${defaultRevShare}%` },
         'Creator created successfully.',
         201
       );
@@ -404,12 +375,10 @@ class AdminCreatorController {
       }
       if (status !== undefined) {
         const lowerStatus = status.toLowerCase();
-        if (lowerStatus === 'suspended') {
+        if (lowerStatus === 'inactive' || lowerStatus === 'suspended') {
           updateFields.push('is_blocked = 1');
-        } else if (lowerStatus === 'pending') {
-          updateFields.push('is_blocked = 0', 'is_verified = 0');
         } else if (lowerStatus === 'active') {
-          updateFields.push('is_blocked = 0', 'is_verified = 1');
+          updateFields.push('is_blocked = 0');
         }
       }
       if (password) {
@@ -436,7 +405,7 @@ class AdminCreatorController {
 
   /**
    * PUT /api/v1/admin/creators/:id/status
-   * Quick status change (active, pending, suspended)
+   * Quick status change (active, inactive)
    */
   static async updateStatus(req, res) {
     try {
@@ -444,32 +413,23 @@ class AdminCreatorController {
       const { status } = req.body;
 
       if (!status) {
-        return ApiResponse.error(res, 'Status is required (active, pending, suspended).', 420);
+        return ApiResponse.error(res, 'Status is required (active, inactive).', 420);
       }
 
-      const validStatuses = ['active', 'pending', 'suspended'];
       const normalizedStatus = status.toLowerCase();
-      if (!validStatuses.includes(normalizedStatus)) {
-        return ApiResponse.error(res, `Invalid status. Must be one of: ${validStatuses.join(', ')}`, 400);
-      }
-
-      let updateAssignments = 'is_blocked = 0, is_verified = 1';
-      if (normalizedStatus === 'suspended') {
-        updateAssignments = 'is_blocked = 1';
-      } else if (normalizedStatus === 'pending') {
-        updateAssignments = 'is_blocked = 0, is_verified = 0';
-      }
+      const isBlocked = (normalizedStatus === 'inactive' || normalizedStatus === 'suspended') ? 1 : 0;
+      const effectiveStatus = isBlocked === 1 ? 'InActive' : 'active';
 
       const [result] = await pool.query(
-        `UPDATE users SET ${updateAssignments}, updated_at = NOW() WHERE id = ?`,
-        [creatorId]
+        'UPDATE users SET is_blocked = ?, updated_at = NOW() WHERE id = ?',
+        [isBlocked, creatorId]
       );
 
       if (result.affectedRows === 0) {
         return ApiResponse.error(res, 'Creator not found.', 404);
       }
 
-      return ApiResponse.success(res, { id: creatorId, status: normalizedStatus }, 'Creator status updated successfully.');
+      return ApiResponse.success(res, { id: creatorId, status: effectiveStatus, is_blocked: Boolean(isBlocked) }, 'Creator status updated successfully.');
     } catch (error) {
       console.error('Admin Update Creator Status Error:', error);
       return ApiResponse.error(res, 'Failed to update creator status.', 500);
