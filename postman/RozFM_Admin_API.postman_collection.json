@@ -2468,6 +2468,135 @@
           }
         }
       ]
+    },
+    {
+      "name": "13. Withdrawal Management",
+      "item": [
+        {
+          "name": "List Withdrawal Requests (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/withdrawals?search=&status=pending&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "withdrawals"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by writer name, email, phone, bank account, or upi_id"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "Filter by status: all, pending, paid, approved, rejected"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Fetch paginated list of writer withdrawal requests including writer info, requested amount, bank/UPI details, status, transaction ref, and summary metrics."
+          }
+        },
+        {
+          "name": "Get Withdrawal Request Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/withdrawals/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "withdrawals",
+                "1"
+              ]
+            },
+            "description": "Fetch details of a single withdrawal request along with writer profile, saved bank/UPI details, and writer's financial summary."
+          }
+        },
+        {
+          "name": "Process Withdrawal / Manual Payout Action",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paid\",\n  \"payment_method\": \"bank_transfer\",\n  \"transaction_reference\": \"UTR9876543210\",\n  \"admin_notes\": \"Paid manually via HDFC NetBanking\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/withdrawals/1/action",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "withdrawals",
+                "1",
+                "action"
+              ]
+            },
+            "description": "Process withdrawal request by marking status as 'paid', 'approved', or 'rejected', specifying paid payment method (bank_transfer, upi, gpay, etc.), transaction reference (UTR), and notes."
+          }
+        },
+        {
+          "name": "Delete Withdrawal Request",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/withdrawals/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "withdrawals",
+                "1"
+              ]
+            },
+            "description": "Delete a withdrawal request record."
+          }
+        }
+      ]
     }
   ]
 }

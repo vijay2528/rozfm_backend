@@ -901,6 +901,45 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 39. User Bank Details table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`user_bank_details\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`account_holder_name\` VARCHAR(255) NULL,
+        \`account_number\` VARCHAR(100) NULL,
+        \`bank_name\` VARCHAR(255) NULL,
+        \`ifsc_code\` VARCHAR(50) NULL,
+        \`branch_name\` VARCHAR(255) NULL,
+        \`upi_id\` VARCHAR(255) NULL,
+        \`account_type\` VARCHAR(50) DEFAULT 'savings',
+        \`is_verified\` TINYINT(1) DEFAULT 0,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY \`user_bank_details_user_unique\` (\`user_id\`),
+        CONSTRAINT \`fk_user_bank_details_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // 40. Writer Withdrawals table (Simplified Option A)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`writer_withdrawals\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`amount\` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+        \`description\` TEXT NULL,
+        \`status\` ENUM('pending', 'paid', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+        \`transaction_reference\` VARCHAR(255) NULL,
+        \`admin_notes\` TEXT NULL,
+        \`rejection_reason\` TEXT NULL,
+        \`requested_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`processed_at\` DATETIME NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT \`fk_writer_withdrawals_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // Seed default writer badges if table is empty
     const [[{ badgeCount }]] = await connection.query('SELECT COUNT(*) as badgeCount FROM `writer_badges`');
     if (badgeCount === 0) {

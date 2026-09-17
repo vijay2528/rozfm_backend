@@ -4165,6 +4165,356 @@
           }
         }
       ]
+    },
+    {
+      "name": "13. Withdrawal Management",
+      "item": [
+        {
+          "name": "13.1 Get All Withdrawal Requests (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/withdrawals?page=1&limit=20&status=all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "withdrawals"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "all | pending | paid | rejected"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Admin endpoint to list writer withdrawal requests with search, status filters & summary metrics."
+          }
+        },
+        {
+          "name": "13.2 Get Single Withdrawal Request (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/withdrawals/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "withdrawals",
+                "1"
+              ]
+            },
+            "description": "Admin endpoint to get detailed information for a single withdrawal request."
+          }
+        },
+        {
+          "name": "13.3 Process Withdrawal (Admin Payout / Reject / Approve)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"paid\",\n  \"transaction_reference\": \"UTR9876543210\",\n  \"admin_notes\": \"Paid manually via Bank Transfer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/withdrawals/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "withdrawals",
+                "1"
+              ]
+            },
+            "description": "Admin manually processes a payout, setting status to 'paid', 'approved', or 'rejected' and optional UTR transaction reference number."
+          }
+        },
+        {
+          "name": "13.4 Delete Withdrawal Request (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/withdrawals/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "withdrawals",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.5 Get Writer Withdrawal Summary (Writer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/writer/withdrawals/summary",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "withdrawals",
+                "summary"
+              ]
+            },
+            "description": "Writer fetches total earnings, paid withdrawals, pending withdrawals, available balance, and bank details status."
+          }
+        },
+        {
+          "name": "13.6 Request Withdrawal (Writer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000,\n  \"description\": \"Withdrawal request for story earnings\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/writer/withdrawals",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "withdrawals"
+              ]
+            },
+            "description": "Writer submits a new withdrawal request (amount & description). Backend checks bank details existence and available balance."
+          }
+        },
+        {
+          "name": "13.7 Get Writer Withdrawal History (Writer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/writer/withdrawals",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "withdrawals"
+              ]
+            },
+            "description": "Writer views list of past withdrawal requests and status."
+          }
+        },
+        {
+          "name": "13.8 Get Saved Bank Details (Writer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/writer/bank-details",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "bank-details"
+              ]
+            },
+            "description": "Writer fetches saved bank account and UPI details."
+          }
+        },
+        {
+          "name": "13.9 Save / Update Bank Details (Writer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_holder_name\": \"Writer Name\",\n  \"account_number\": \"98765432101234\",\n  \"bank_name\": \"HDFC Bank\",\n  \"ifsc_code\": \"HDFC0001234\",\n  \"branch_name\": \"Mumbai Branch\",\n  \"upi_id\": \"writer@hdfc\",\n  \"account_type\": \"savings\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/writer/bank-details",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "bank-details"
+              ]
+            },
+            "description": "Writer saves or updates bank account / UPI details."
+          }
+        },
+        {
+          "name": "13.10 Get Writer Earnings Overview (Writer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/writer/earnings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "earnings"
+              ]
+            },
+            "description": "Writer fetches complete earnings overview (total earnings, % vs last month, this month, last month, this week, pending payout, and earnings breakdown)."
+          }
+        },
+        {
+          "name": "13.11 Get Writer Earnings Transactions (Writer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/writer/earnings/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "writer",
+                "earnings",
+                "transactions"
+              ]
+            },
+            "description": "Writer fetches detailed transaction history for earned royalties and gifts."
+          }
+        }
+      ]
     }
   ]
 }

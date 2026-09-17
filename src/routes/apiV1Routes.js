@@ -28,6 +28,8 @@ const LeaderboardController = require('../controllers/leaderboardController');
 const AudienceController = require('../controllers/audienceController');
 const BadgeController = require('../controllers/badgeController');
 const WriterDashboardController = require('../controllers/writerDashboardController');
+const WriterWithdrawalController = require('../controllers/writerWithdrawalController');
+const WriterEarningsController = require('../controllers/writerEarningsController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -257,5 +259,19 @@ router.post('/payments/razorpay/order', RazorpayController.createOrder);
 router.post('/payments/razorpay/verify', RazorpayController.verifyPayment);
 router.get('/subscriptions', SubscriptionController.index);
 router.post('/subscriptions', SubscriptionController.store);
+
+// Writer Earnings Overview & Transactions
+router.get('/writer/earnings', WriterEarningsController.getOverview);
+router.get('/writer/earnings/overview', WriterEarningsController.getOverview);
+router.get('/writer/earnings/breakdown', WriterEarningsController.getOverview);
+router.get('/writer/earnings/transactions', WriterEarningsController.getTransactions);
+
+// Writer Withdrawal Requests & Bank Details
+router.get('/writer/withdrawals/summary', WriterWithdrawalController.getSummary);
+router.get('/writer/withdrawals', WriterWithdrawalController.listWithdrawals);
+router.post('/writer/withdrawals', WriterWithdrawalController.requestWithdrawal);
+router.get('/writer/bank-details', WriterWithdrawalController.getBankDetails);
+router.post('/writer/bank-details', WriterWithdrawalController.saveBankDetails);
+router.put('/writer/bank-details', WriterWithdrawalController.saveBankDetails);
 
 module.exports = router;

@@ -115,10 +115,7 @@ class HomeController {
         return ApiResponse.success(res, {
           stories,
           categories,
-          genres: categories,
-          writers,
           creators: writers,
-          'Top Results': stories,
         }, 'Search results fetched successfully.');
       }
 

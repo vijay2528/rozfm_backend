@@ -16,6 +16,7 @@ const AdminLocationController = require('../controllers/admin/locationController
 const AdminStreakSettingsController = require('../controllers/admin/streakSettingsController');
 const AdminStoryAnalyticsController = require('../controllers/admin/storyAnalyticsController');
 const AdminCreatorController = require('../controllers/admin/creatorController');
+const AdminWithdrawalController = require('../controllers/admin/withdrawalController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -148,5 +149,14 @@ router.post('/creators/:id', upload.single('avatar'), AdminCreatorController.upd
 router.put('/creators/:id/status', AdminCreatorController.updateStatus);
 router.post('/creators/:id/status', AdminCreatorController.updateStatus);
 router.delete('/creators/:id', AdminCreatorController.destroy);
+
+// ── 13. Withdrawal Management ────────────────────────────────────────────────
+router.get('/withdrawals', AdminWithdrawalController.index);
+router.get('/withdrawals/:id', AdminWithdrawalController.show);
+router.put('/withdrawals/:id', AdminWithdrawalController.processWithdrawal);
+router.post('/withdrawals/:id', AdminWithdrawalController.processWithdrawal);
+router.post('/withdrawals/:id/action', AdminWithdrawalController.processWithdrawal);
+router.put('/withdrawals/:id/action', AdminWithdrawalController.processWithdrawal);
+router.delete('/withdrawals/:id', AdminWithdrawalController.destroy);
 
 module.exports = router;
