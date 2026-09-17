@@ -48,7 +48,7 @@ class AdminCreatorController {
 
       const defaultRevShare = await AdminCreatorController.getGlobalRevShareSetting();
 
-      // Creators have role = 'creator' OR role = 'Creator' OR role_id = 3
+      // Creators have role = 'creator' OR role = 'Creator'
       let whereClauses = ["(u.role = 'creator' OR u.role = 'Creator')"];
       let queryParams = [];
 
@@ -60,14 +60,11 @@ class AdminCreatorController {
       if (status && status !== 'all') {
         const lowerStatus = status.toLowerCase();
         if (lowerStatus === 'suspended') {
-          whereClauses.push("(u.is_blocked = 1 OR u.status = 'suspended')");
+          whereClauses.push('u.is_blocked = 1');
         } else if (lowerStatus === 'active') {
-          whereClauses.push("(u.is_blocked = 0 AND COALESCE(u.status, 'active') = 'active')");
+          whereClauses.push('u.is_blocked = 0 AND COALESCE(u.is_verified, 0) = 1');
         } else if (lowerStatus === 'pending') {
-          whereClauses.push("(u.is_blocked = 0 AND u.status = 'pending')");
-        } else {
-          whereClauses.push('u.status = ?');
-          queryParams.push(lowerStatus);
+          whereClauses.push('u.is_blocked = 0 AND COALESCE(u.is_verified, 0) = 0');
         }
       }
 
@@ -79,18 +76,18 @@ class AdminCreatorController {
         queryParams
       );
 
-      // Summary statistics
+      // Summary statistics derived from is_blocked and is_verified
       const [[{ total_creators }]] = await pool.query(
         `SELECT COUNT(*) as total_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator')`
       );
       const [[{ active_creators }]] = await pool.query(
-        `SELECT COUNT(*) as active_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0 AND COALESCE(u.status, 'active') = 'active'`
+        `SELECT COUNT(*) as active_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0 AND COALESCE(u.is_verified, 0) = 1`
       );
       const [[{ pending_creators }]] = await pool.query(
-        `SELECT COUNT(*) as pending_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0 AND u.status = 'pending'`
+        `SELECT COUNT(*) as pending_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0 AND COALESCE(u.is_verified, 0) = 0`
       );
       const [[{ suspended_creators }]] = await pool.query(
-        `SELECT COUNT(*) as suspended_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND (u.is_blocked = 1 OR u.status = 'suspended')`
+        `SELECT COUNT(*) as suspended_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 1`
       );
 
       // Paginated list query
@@ -104,7 +101,6 @@ class AdminCreatorController {
           u.avatar_path,
           u.is_verified,
           u.is_blocked,
-          COALESCE(u.status, 'active') as raw_status,
           u.rev_share_percentage,
           u.created_at,
           u.updated_at,
@@ -124,9 +120,11 @@ class AdminCreatorController {
           ? Number(c.rev_share_percentage)
           : defaultRevShare;
 
-        let effectiveStatus = c.raw_status;
+        let effectiveStatus = 'active';
         if (c.is_blocked === 1) {
           effectiveStatus = 'suspended';
+        } else if (!c.is_verified) {
+          effectiveStatus = 'pending';
         }
 
         const earningsVal = Number(c.earnings || 0);
@@ -203,7 +201,6 @@ class AdminCreatorController {
           u.facebook_link,
           u.is_verified,
           u.is_blocked,
-          COALESCE(u.status, 'active') as raw_status,
           u.rev_share_percentage,
           u.created_at,
           u.updated_at,
@@ -225,9 +222,11 @@ class AdminCreatorController {
         ? Number(c.rev_share_percentage)
         : defaultRevShare;
 
-      let effectiveStatus = c.raw_status;
+      let effectiveStatus = 'active';
       if (c.is_blocked === 1) {
         effectiveStatus = 'suspended';
+      } else if (!c.is_verified) {
+        effectiveStatus = 'pending';
       }
 
       const earningsVal = Number(c.earnings || 0);
@@ -307,7 +306,7 @@ class AdminCreatorController {
         return ApiResponse.error(res, 'Creator name is required.', 420);
       }
 
-      // Check duplicate email / phone / username if provided
+      // Check duplicate email / phone if provided
       if (email) {
         const [dupEmail] = await pool.query('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
         if (dupEmail.length > 0) {
@@ -323,17 +322,28 @@ class AdminCreatorController {
 
       const hashedPassword = password ? await bcrypt.hash(password, 10) : await bcrypt.hash('RozFM@Creator123', 10);
       const avatarPath = req.file ? req.file.path : null;
-      const verifiedVal = is_verified === '1' || is_verified === 'true' || is_verified === 1 || is_verified === true ? 1 : 0;
+      
+      let verifiedVal = is_verified === '1' || is_verified === 'true' || is_verified === 1 || is_verified === true ? 1 : 0;
+      let isBlockedVal = 0;
+
+      if (status === 'suspended') {
+        isBlockedVal = 1;
+      } else if (status === 'pending') {
+        verifiedVal = 0;
+        isBlockedVal = 0;
+      } else if (status === 'active') {
+        verifiedVal = 1;
+        isBlockedVal = 0;
+      }
+
       const revShareVal = rev_share_percentage !== undefined && rev_share_percentage !== '' && rev_share_percentage !== null
         ? parseInt(rev_share_percentage, 10)
         : null;
 
-      const isBlockedVal = status === 'suspended' ? 1 : 0;
-
       const [result] = await pool.query(
         `INSERT INTO users 
-         (name, email, phone, username, password, bio, avatar_path, role, role_id, is_verified, status, is_blocked, rev_share_percentage) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'creator', 3, ?, ?, ?, ?)`,
+         (name, email, phone, username, password, bio, avatar_path, role, role_id, is_verified, is_blocked, rev_share_percentage) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'creator', 3, ?, ?, ?)`,
         [
           name,
           email || null,
@@ -343,7 +353,6 @@ class AdminCreatorController {
           bio || null,
           avatarPath,
           verifiedVal,
-          status || 'active',
           isBlockedVal,
           revShareVal,
         ]
@@ -353,7 +362,7 @@ class AdminCreatorController {
 
       return ApiResponse.success(
         res,
-        { id: newCreatorId, name, email, phone, role: 'creator', status, rev_share_percentage: revShareVal },
+        { id: newCreatorId, name, email, phone, role: 'creator', status: status || (verifiedVal ? 'active' : 'pending'), rev_share_percentage: revShareVal },
         'Creator created successfully.',
         201
       );
@@ -416,11 +425,14 @@ class AdminCreatorController {
         queryParams.push(vVal);
       }
       if (status !== undefined) {
-        updateFields.push('status = ?');
-        queryParams.push(status);
-        const isBlocked = status === 'suspended' ? 1 : 0;
-        updateFields.push('is_blocked = ?');
-        queryParams.push(isBlocked);
+        const lowerStatus = status.toLowerCase();
+        if (lowerStatus === 'suspended') {
+          updateFields.push('is_blocked = 1');
+        } else if (lowerStatus === 'pending') {
+          updateFields.push('is_blocked = 0', 'is_verified = 0');
+        } else if (lowerStatus === 'active') {
+          updateFields.push('is_blocked = 0', 'is_verified = 1');
+        }
       }
       if (rev_share_percentage !== undefined) {
         const revVal = rev_share_percentage !== '' && rev_share_percentage !== null
@@ -470,18 +482,23 @@ class AdminCreatorController {
         return ApiResponse.error(res, `Invalid status. Must be one of: ${validStatuses.join(', ')}`, 400);
       }
 
-      const isBlocked = normalizedStatus === 'suspended' ? 1 : 0;
+      let updateAssignments = 'is_blocked = 0, is_verified = 1';
+      if (normalizedStatus === 'suspended') {
+        updateAssignments = 'is_blocked = 1';
+      } else if (normalizedStatus === 'pending') {
+        updateAssignments = 'is_blocked = 0, is_verified = 0';
+      }
 
       const [result] = await pool.query(
-        'UPDATE users SET status = ?, is_blocked = ?, updated_at = NOW() WHERE id = ?',
-        [normalizedStatus, isBlocked, creatorId]
+        `UPDATE users SET ${updateAssignments}, updated_at = NOW() WHERE id = ?`,
+        [creatorId]
       );
 
       if (result.affectedRows === 0) {
         return ApiResponse.error(res, 'Creator not found.', 404);
       }
 
-      return ApiResponse.success(res, { id: creatorId, status: normalizedStatus, is_blocked: Boolean(isBlocked) }, 'Creator status updated successfully.');
+      return ApiResponse.success(res, { id: creatorId, status: normalizedStatus }, 'Creator status updated successfully.');
     } catch (error) {
       console.error('Admin Update Creator Status Error:', error);
       return ApiResponse.error(res, 'Failed to update creator status.', 500);
