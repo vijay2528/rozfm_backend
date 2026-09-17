@@ -2276,6 +2276,198 @@
           }
         }
       ]
+    },
+    {
+      "name": "12. Creator Management",
+      "item": [
+        {
+          "name": "List Creators (Paginated & Filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators?search=&status=all&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search creators by name, username, email, or phone"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter by status: all, active, pending, suspended"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Fetch paginated list of creators including creator name, stories count, followers count, rev share %, earnings, status, and verification badge."
+          }
+        },
+        {
+          "name": "Get Creator Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1"
+              ]
+            },
+            "description": "Fetch master profile of a creator including published stories list, total views, followers count, lifetime earnings, rev share %, and status."
+          }
+        },
+        {
+          "name": "Invite / Create New Creator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Meera Iyer\",\n  \"email\": \"meera.iyer@rozfm.com\",\n  \"phone\": \"+91 9988776655\",\n  \"username\": \"meera_iyer\",\n  \"password\": \"CreatorPassword123!\",\n  \"rev_share_percentage\": 70,\n  \"is_verified\": true,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/creators",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators"
+              ]
+            },
+            "description": "Invite or create a new creator account with custom rev share percentage, verification badge, and initial status."
+          }
+        },
+        {
+          "name": "Update Creator Profile & Rev Share",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Meera Iyer (Updated)\",\n  \"email\": \"meera.iyer@rozfm.com\",\n  \"phone\": \"+91 9988776655\",\n  \"username\": \"meera_iyer\",\n  \"bio\": \"Original audio storyteller\",\n  \"rev_share_percentage\": 75,\n  \"is_verified\": true,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1"
+              ]
+            },
+            "description": "Update creator profile info, bio, verification checkmark, custom rev share %, or status."
+          }
+        },
+        {
+          "name": "Update Creator Status (Active / Pending / Suspended)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"suspended\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "status"
+              ]
+            },
+            "description": "Quick status update endpoint (active, pending, suspended)."
+          }
+        },
+        {
+          "name": "Delete Creator Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1"
+              ]
+            },
+            "description": "Permanently delete a creator account by ID."
+          }
+        }
+      ]
     }
   ]
 }

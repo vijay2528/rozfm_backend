@@ -15,6 +15,7 @@ const AdminAuthController = require('../controllers/admin/authController');
 const AdminLocationController = require('../controllers/admin/locationController');
 const AdminStreakSettingsController = require('../controllers/admin/streakSettingsController');
 const AdminStoryAnalyticsController = require('../controllers/admin/storyAnalyticsController');
+const AdminCreatorController = require('../controllers/admin/creatorController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -136,5 +137,16 @@ router.get('/cities', AdminLocationController.listCities);
 router.post('/cities', AdminLocationController.storeCity);
 router.put('/cities/:id', AdminLocationController.updateCity);
 router.delete('/cities/:id', AdminLocationController.deleteCity);
+
+// ── 12. Creator Management ───────────────────────────────────────────────────
+router.get('/creators', AdminCreatorController.index);
+router.get('/creators/:id', AdminCreatorController.show);
+router.post('/creators', upload.single('avatar'), AdminCreatorController.store);
+router.post('/creators/invite', AdminCreatorController.store);
+router.put('/creators/:id', upload.single('avatar'), AdminCreatorController.update);
+router.post('/creators/:id', upload.single('avatar'), AdminCreatorController.update);
+router.put('/creators/:id/status', AdminCreatorController.updateStatus);
+router.post('/creators/:id/status', AdminCreatorController.updateStatus);
+router.delete('/creators/:id', AdminCreatorController.destroy);
 
 module.exports = router;
