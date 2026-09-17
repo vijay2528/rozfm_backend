@@ -49,7 +49,7 @@ class AdminCreatorController {
       const defaultRevShare = await AdminCreatorController.getGlobalRevShareSetting();
 
       // Creators have role = 'creator' OR role = 'Creator' OR role_id = 3
-      let whereClauses = ["(u.role = 'creator' OR u.role = 'Creator' OR u.role_id = 3)"];
+      let whereClauses = ["(u.role = 'creator' OR u.role = 'Creator')"];
       let queryParams = [];
 
       if (search) {
@@ -81,16 +81,16 @@ class AdminCreatorController {
 
       // Summary statistics
       const [[{ total_creators }]] = await pool.query(
-        `SELECT COUNT(*) as total_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator' OR u.role_id = 3)`
+        `SELECT COUNT(*) as total_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator')`
       );
       const [[{ active_creators }]] = await pool.query(
-        `SELECT COUNT(*) as active_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator' OR u.role_id = 3) AND u.is_blocked = 0 AND COALESCE(u.status, 'active') = 'active'`
+        `SELECT COUNT(*) as active_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0 AND COALESCE(u.status, 'active') = 'active'`
       );
       const [[{ pending_creators }]] = await pool.query(
-        `SELECT COUNT(*) as pending_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator' OR u.role_id = 3) AND u.is_blocked = 0 AND u.status = 'pending'`
+        `SELECT COUNT(*) as pending_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND u.is_blocked = 0 AND u.status = 'pending'`
       );
       const [[{ suspended_creators }]] = await pool.query(
-        `SELECT COUNT(*) as suspended_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator' OR u.role_id = 3) AND (u.is_blocked = 1 OR u.status = 'suspended')`
+        `SELECT COUNT(*) as suspended_creators FROM users u WHERE (u.role = 'creator' OR u.role = 'Creator') AND (u.is_blocked = 1 OR u.status = 'suspended')`
       );
 
       // Paginated list query
@@ -211,7 +211,7 @@ class AdminCreatorController {
           (SELECT COUNT(*) FROM user_follows uf WHERE uf.following_id = u.id) as followers_count,
           (SELECT COALESCE(SUM(amount), 0) FROM writer_earnings we WHERE we.user_id = u.id) as earnings
          FROM users u
-         WHERE u.id = ? AND (u.role = 'creator' OR u.role = 'Creator' OR u.role_id = 3)
+         WHERE u.id = ? AND (u.role = 'creator' OR u.role = 'Creator')
          LIMIT 1`,
         [creatorId]
       );
