@@ -100,7 +100,6 @@ class AdminCreatorController {
           u.avatar_path,
           u.is_verified,
           u.is_blocked,
-          u.rev_share_percentage,
           u.created_at,
           u.updated_at,
           (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id) as stories_count,
@@ -115,9 +114,7 @@ class AdminCreatorController {
 
       // Format output items
       const creators = rows.map((c) => {
-        const revShareVal = c.rev_share_percentage !== null && c.rev_share_percentage !== undefined
-          ? Number(c.rev_share_percentage)
-          : defaultRevShare;
+        const revShareVal = defaultRevShare;
 
         let effectiveStatus = 'active';
         if (c.is_blocked === 1) {
@@ -198,7 +195,6 @@ class AdminCreatorController {
           u.facebook_link,
           u.is_verified,
           u.is_blocked,
-          u.rev_share_percentage,
           u.created_at,
           u.updated_at,
           (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id) as stories_count,
@@ -215,9 +211,7 @@ class AdminCreatorController {
       }
 
       const c = rows[0];
-      const revShareVal = c.rev_share_percentage !== null && c.rev_share_percentage !== undefined
-        ? Number(c.rev_share_percentage)
-        : defaultRevShare;
+      const revShareVal = defaultRevShare;
 
       let effectiveStatus = 'active';
       if (c.is_blocked === 1) {
@@ -294,7 +288,6 @@ class AdminCreatorController {
         bio,
         is_verified = 0,
         status = 'active',
-        rev_share_percentage,
       } = req.body;
 
       if (!name) {
@@ -331,14 +324,12 @@ class AdminCreatorController {
         isBlockedVal = 0;
       }
 
-      const revShareVal = rev_share_percentage !== undefined && rev_share_percentage !== '' && rev_share_percentage !== null
-        ? parseInt(rev_share_percentage, 10)
-        : null;
+      const defaultRevShare = await AdminCreatorController.getGlobalRevShareSetting();
 
       const [result] = await pool.query(
         `INSERT INTO users 
-         (name, email, phone, password, bio, avatar_path, role, role_id, is_verified, is_blocked, rev_share_percentage) 
-         VALUES (?, ?, ?, ?, ?, ?, 'creator', 3, ?, ?, ?)`,
+         (name, email, phone, password, bio, avatar_path, role, role_id, is_verified, is_blocked) 
+         VALUES (?, ?, ?, ?, ?, ?, 'creator', 3, ?, ?)`,
         [
           name,
           email || null,
@@ -348,7 +339,6 @@ class AdminCreatorController {
           avatarPath,
           verifiedVal,
           isBlockedVal,
-          revShareVal,
         ]
       );
 
@@ -356,7 +346,7 @@ class AdminCreatorController {
 
       return ApiResponse.success(
         res,
-        { id: newCreatorId, name, email, phone, role: 'creator', status: status || (verifiedVal ? 'active' : 'pending'), rev_share_percentage: revShareVal },
+        { id: newCreatorId, name, email, phone, role: 'creator', status: status || (verifiedVal ? 'active' : 'pending'), rev_share: defaultRevShare, formatted_rev_share: `${defaultRevShare}%` },
         'Creator created successfully.',
         201
       );
@@ -368,7 +358,7 @@ class AdminCreatorController {
 
   /**
    * PUT /api/v1/admin/creators/:id
-   * Update creator profile, status, verification & revenue share
+   * Update creator profile, status, verification
    */
   static async update(req, res) {
     try {
@@ -380,7 +370,6 @@ class AdminCreatorController {
         bio,
         is_verified,
         status,
-        rev_share_percentage,
         password,
       } = req.body;
 
@@ -422,13 +411,6 @@ class AdminCreatorController {
         } else if (lowerStatus === 'active') {
           updateFields.push('is_blocked = 0', 'is_verified = 1');
         }
-      }
-      if (rev_share_percentage !== undefined) {
-        const revVal = rev_share_percentage !== '' && rev_share_percentage !== null
-          ? parseInt(rev_share_percentage, 10)
-          : null;
-        updateFields.push('rev_share_percentage = ?');
-        queryParams.push(revVal);
       }
       if (password) {
         const hashedPassword = await bcrypt.hash(password, 10);
