@@ -49,7 +49,7 @@ class RazorpayController {
       } else if (coin_pack_id) {
         const [packs] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [coin_pack_id]);
         if (packs.length > 0) {
-          coinsToAdd = Number(packs[0].coins);
+          coinsToAdd = Number(packs[0].coins || 0) + Number(packs[0].bonus || 0);
           description = `Purchased Coin Pack #${coin_pack_id}: ${packs[0].pack_name}`;
         }
       }

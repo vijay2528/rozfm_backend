@@ -96,34 +96,95 @@ class MonetizationController {
   static async listPacks(req, res) {
     try {
       const [packs] = await pool.query('SELECT * FROM coin_sales ORDER BY amount ASC');
-      return ApiResponse.success(res, { coin_packs: packs });
+      const formattedPacks = packs.map((p) => ({
+        id: Number(p.id),
+        name: p.pack_name,
+        pack_name: p.pack_name,
+        coins: Number(p.coins || 0),
+        price: Number(p.amount || 0),
+        amount: Number(p.amount || 0),
+        bonus: Number(p.bonus || 0),
+        is_best_value: Boolean(p.is_best_value),
+        status: Number(p.status),
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      }));
+      return ApiResponse.success(res, { coin_packs: formattedPacks });
     } catch (error) {
       console.error('Admin List Coin Packs Error:', error);
       return ApiResponse.error(res, 'Failed to fetch coin packs.', 500);
     }
   }
 
+  static async showPack(req, res) {
+    try {
+      const packId = req.params.id;
+      const [rows] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [packId]);
+      if (rows.length === 0) {
+        return ApiResponse.error(res, 'Coin pack not found.', 444);
+      }
+      const p = rows[0];
+      const coinPack = {
+        id: Number(p.id),
+        name: p.pack_name,
+        pack_name: p.pack_name,
+        coins: Number(p.coins || 0),
+        price: Number(p.amount || 0),
+        amount: Number(p.amount || 0),
+        bonus: Number(p.bonus || 0),
+        is_best_value: Boolean(p.is_best_value),
+        status: Number(p.status),
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      };
+      return ApiResponse.success(res, { coin_pack: coinPack });
+    } catch (error) {
+      console.error('Admin Show Coin Pack Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch coin pack details.', 500);
+    }
+  }
+
   static async storePack(req, res) {
     try {
-      const { pack_name, coins, amount, is_best_value, status } = req.body;
+      const packName = req.body.name || req.body.pack_name;
+      const amountVal = req.body.price !== undefined ? req.body.price : req.body.amount;
+      const coinsVal = req.body.coins !== undefined ? req.body.coins : 0;
+      const bonusVal = req.body.bonus !== undefined ? req.body.bonus : (req.body.bonus_coins !== undefined ? req.body.bonus_coins : 0);
+      const { is_best_value, status } = req.body;
 
-      if (!pack_name || amount === undefined) {
-        return ApiResponse.error(res, 'Pack name and amount are required.', 422);
+      if (!packName || amountVal === undefined) {
+        return ApiResponse.error(res, 'Pack name and price/amount are required.', 422);
       }
 
       const [result] = await pool.query(
-        'INSERT INTO coin_sales (pack_name, coins, amount, is_best_value, status) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO coin_sales (pack_name, coins, bonus, amount, is_best_value, status) VALUES (?, ?, ?, ?, ?, ?)',
         [
-          pack_name.trim(),
-          coins ? parseInt(coins, 10) : 0,
-          parseFloat(amount),
+          String(packName).trim(),
+          parseInt(coinsVal, 10) || 0,
+          parseInt(bonusVal, 10) || 0,
+          parseFloat(amountVal) || 0,
           is_best_value === '1' || is_best_value === 1 || is_best_value === true ? 1 : 0,
           status === '0' || status === 0 || status === false ? 0 : 1,
         ]
       );
 
-      const [newPack] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [result.insertId]);
-      return ApiResponse.success(res, { coin_pack: newPack[0] }, 'Coin pack created successfully.', 201);
+      const [rows] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [result.insertId]);
+      const p = rows[0];
+      const coinPack = {
+        id: Number(p.id),
+        name: p.pack_name,
+        pack_name: p.pack_name,
+        coins: Number(p.coins || 0),
+        price: Number(p.amount || 0),
+        amount: Number(p.amount || 0),
+        bonus: Number(p.bonus || 0),
+        is_best_value: Boolean(p.is_best_value),
+        status: Number(p.status),
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      };
+
+      return ApiResponse.success(res, { coin_pack: coinPack }, 'Coin pack created successfully.', 201);
     } catch (error) {
       console.error('Admin Store Coin Pack Error:', error);
       return ApiResponse.error(res, 'Failed to create coin pack.', 500);
@@ -133,14 +194,24 @@ class MonetizationController {
   static async updatePack(req, res) {
     try {
       const packId = req.params.id;
-      const { pack_name, coins, amount, is_best_value, status } = req.body;
+      const packName = req.body.name || req.body.pack_name;
+      const amountVal = req.body.price !== undefined ? req.body.price : req.body.amount;
+      const coinsVal = req.body.coins;
+      const bonusVal = req.body.bonus !== undefined ? req.body.bonus : req.body.bonus_coins;
+      const { is_best_value, status } = req.body;
+
+      const [existing] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [packId]);
+      if (existing.length === 0) {
+        return ApiResponse.error(res, 'Coin pack not found.', 444);
+      }
 
       const updateFields = [];
       const queryParams = [];
 
-      if (pack_name) { updateFields.push('`pack_name` = ?'); queryParams.push(pack_name.trim()); }
-      if (coins !== undefined) { updateFields.push('`coins` = ?'); queryParams.push(parseInt(coins, 10)); }
-      if (amount !== undefined) { updateFields.push('`amount` = ?'); queryParams.push(parseFloat(amount)); }
+      if (packName !== undefined) { updateFields.push('`pack_name` = ?'); queryParams.push(String(packName).trim()); }
+      if (coinsVal !== undefined) { updateFields.push('`coins` = ?'); queryParams.push(parseInt(coinsVal, 10) || 0); }
+      if (bonusVal !== undefined) { updateFields.push('`bonus` = ?'); queryParams.push(parseInt(bonusVal, 10) || 0); }
+      if (amountVal !== undefined) { updateFields.push('`amount` = ?'); queryParams.push(parseFloat(amountVal) || 0); }
       if (is_best_value !== undefined) { updateFields.push('`is_best_value` = ?'); queryParams.push(is_best_value ? 1 : 0); }
       if (status !== undefined) { updateFields.push('`status` = ?'); queryParams.push(status ? 1 : 0); }
 
@@ -150,7 +221,22 @@ class MonetizationController {
       }
 
       const [updated] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [packId]);
-      return ApiResponse.success(res, { coin_pack: updated[0] }, 'Coin pack updated successfully.');
+      const p = updated[0];
+      const coinPack = {
+        id: Number(p.id),
+        name: p.pack_name,
+        pack_name: p.pack_name,
+        coins: Number(p.coins || 0),
+        price: Number(p.amount || 0),
+        amount: Number(p.amount || 0),
+        bonus: Number(p.bonus || 0),
+        is_best_value: Boolean(p.is_best_value),
+        status: Number(p.status),
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      };
+
+      return ApiResponse.success(res, { coin_pack: coinPack }, 'Coin pack updated successfully.');
     } catch (error) {
       console.error('Admin Update Coin Pack Error:', error);
       return ApiResponse.error(res, 'Failed to update coin pack.', 500);
@@ -160,6 +246,10 @@ class MonetizationController {
   static async deletePack(req, res) {
     try {
       const packId = req.params.id;
+      const [existing] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [packId]);
+      if (existing.length === 0) {
+        return ApiResponse.error(res, 'Coin pack not found.', 444);
+      }
       await pool.query('DELETE FROM coin_sales WHERE id = ?', [packId]);
       return ApiResponse.success(res, { pack_id: Number(packId) }, 'Coin pack deleted successfully.');
     } catch (error) {

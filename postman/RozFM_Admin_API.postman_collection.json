@@ -1536,6 +1536,29 @@
           }
         },
         {
+          "name": "Get Single Coin Pack",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/coin-packs/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "coin-packs",
+                "1"
+              ]
+            }
+          }
+        },
+        {
           "name": "Create Coin Pack",
           "request": {
             "method": "POST",
@@ -1551,7 +1574,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pack_name\": \"Starter Coin Pack\",\n  \"coins\": 100,\n  \"amount\": 49.00,\n  \"is_best_value\": 0,\n  \"status\": 1\n}"
+              "raw": "{\n  \"name\": \"Popular Pack\",\n  \"coins\": 500,\n  \"price\": 199.00,\n  \"bonus\": 50,\n  \"is_best_value\": 1,\n  \"status\": 1\n}"
             },
             "url": {
               "raw": "{{base_url}}/admin/coin-packs",
@@ -1561,6 +1584,60 @@
               "path": [
                 "admin",
                 "coin-packs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Coin Pack",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Popular Pack Updated\",\n  \"coins\": 550,\n  \"price\": 199.00,\n  \"bonus\": 75,\n  \"is_best_value\": 1,\n  \"status\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/coin-packs/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "coin-packs",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Coin Pack",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/coin-packs/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "coin-packs",
+                "1"
               ]
             }
           }

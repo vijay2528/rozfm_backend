@@ -8,9 +8,12 @@ class CoinPackController {
 
       let coinPacks = rows.map((cp) => ({
         id: Number(cp.id),
+        name: cp.pack_name,
         pack_name: cp.pack_name,
-        coins: Number(cp.coins),
-        amount: Number(cp.amount),
+        coins: Number(cp.coins || 0),
+        price: Number(cp.amount || 0),
+        amount: Number(cp.amount || 0),
+        bonus: Number(cp.bonus || 0),
         is_best_value: Boolean(cp.is_best_value),
       }));
 

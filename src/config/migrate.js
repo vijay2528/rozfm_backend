@@ -219,6 +219,7 @@ async function runMigrations() {
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `total_seconds_listened` INT DEFAULT 0",
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `completion_percentage` DECIMAL(5, 2) DEFAULT 0.00",
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `status` VARCHAR(50) DEFAULT 'playing'",
+      "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `bonus` INT DEFAULT 0 AFTER `coins`",
     ];
 
     for (const alterSql of alterQueries) {
@@ -228,6 +229,10 @@ async function runMigrations() {
         // Ignore if column already exists in older MySQL versions
       }
     }
+
+    try {
+      await connection.query("ALTER TABLE `coin_sales` ADD COLUMN `bonus` INT DEFAULT 0 AFTER `coins`");
+    } catch (_) {}
 
     // 8. Reviews table
     await connection.query(`
@@ -345,6 +350,7 @@ async function runMigrations() {
         \`id\` INT AUTO_INCREMENT PRIMARY KEY,
         \`pack_name\` VARCHAR(255) NOT NULL,
         \`coins\` INT DEFAULT 0,
+        \`bonus\` INT DEFAULT 0,
         \`amount\` DECIMAL(10, 2) NOT NULL,
         \`is_best_value\` TINYINT(1) DEFAULT 0,
         \`status\` TINYINT(1) DEFAULT 1,
@@ -352,6 +358,20 @@ async function runMigrations() {
         \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Seed default coin sales if empty
+    const [coinSalesCount] = await connection.query('SELECT COUNT(*) AS count FROM coin_sales');
+    if (coinSalesCount[0].count === 0) {
+      await connection.query(`
+        INSERT INTO coin_sales (id, pack_name, coins, bonus, amount, is_best_value, status) VALUES
+        (1, 'Starter Pack', 100, 0, 49.00, 0, 1),
+        (2, 'Popular Pack', 500, 50, 199.00, 1, 1),
+        (3, 'Value Pack', 1200, 150, 399.00, 0, 1),
+        (4, 'Mega Pack', 3000, 500, 899.00, 0, 1),
+        (5, 'Ultimate Pack', 8000, 1600, 1999.00, 0, 1)
+      `);
+      console.log('🌱 Default coin packs seeded!');
+    }
 
     // 16. Coin Transactions table
     await connection.query(`

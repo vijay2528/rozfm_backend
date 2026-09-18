@@ -93,8 +93,10 @@ router.put('/plans/:id', AdminMonetizationController.updatePlan);
 router.delete('/plans/:id', AdminMonetizationController.deletePlan);
 
 router.get('/coin-packs', AdminMonetizationController.listPacks);
+router.get('/coin-packs/:id', AdminMonetizationController.showPack);
 router.post('/coin-packs', AdminMonetizationController.storePack);
 router.put('/coin-packs/:id', AdminMonetizationController.updatePack);
+router.post('/coin-packs/:id', AdminMonetizationController.updatePack);
 router.delete('/coin-packs/:id', AdminMonetizationController.deletePack);
 
 router.get('/transactions', AdminMonetizationController.listTransactions);
