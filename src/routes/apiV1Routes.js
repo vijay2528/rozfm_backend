@@ -96,7 +96,7 @@ router.get('/episodes/:id', authMiddleware.optional, EpisodeController.show);
 // User Profile Details (Public / Optional Auth)
 router.get('/users/:id', authMiddleware.optional, UserController.show);
 router.get('/users/:id/profile', authMiddleware.optional, UserController.show);
-router.get('/users/:id/stories', UserController.getUserStories);
+router.get('/users/:id/stories', authMiddleware.optional, UserController.getUserStories);
 router.get('/users/:id/reviews', UserController.getUserReviews);
 router.get('/users/:id/followers', authMiddleware.optional, UserController.getFollowers);
 router.get('/users/:id/following', authMiddleware.optional, UserController.getFollowing);

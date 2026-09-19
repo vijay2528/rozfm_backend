@@ -372,10 +372,20 @@ class UserController {
   static async getUserStories(req, res) {
     try {
       const targetUserId = req.params.id || req.params.userId;
-      const { page = 1, limit = 10 } = req.query;
+      const currentUserId = req.user ? req.user.id : null;
+      const { page = 1, limit = 10, sort } = req.query;
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
       const offset = (pageNum - 1) * limitNum;
+
+      let orderBy = 's.created_at DESC';
+      if (sort === 'popular') {
+        orderBy = 's.listeners_count DESC, s.total_views DESC';
+      } else if (sort === 'rating') {
+        orderBy = 's.rating DESC';
+      } else if (sort === 'trending') {
+        orderBy = 's.total_views DESC';
+      }
 
       const [[{ count }]] = await pool.query('SELECT COUNT(*) as count FROM stories WHERE user_id = ?', [targetUserId]);
 
@@ -385,12 +395,38 @@ class UserController {
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
          WHERE s.user_id = ?
-         ORDER BY s.created_at DESC
+         ORDER BY ${orderBy}
          LIMIT ? OFFSET ?`,
         [targetUserId, limitNum, offset]
       );
 
-      const storiesList = storyRows.map((s) => toStoryFieldsArray(s));
+      // Fetch next_episode_number per story for the requesting user
+      // next_episode_number = last watched episode position + 1, or 1 if no history
+      let nextEpisodeMap = {};
+      if (currentUserId && storyRows.length > 0) {
+        const storyIds = storyRows.map((s) => s.id);
+        const [watchRows] = await pool.query(
+          `SELECT w.story_id, COALESCE(e.position, 1) as last_position
+           FROM watch_histories w
+           INNER JOIN (
+             SELECT story_id, MAX(id) as max_history_id
+             FROM watch_histories
+             WHERE user_id = ? AND story_id IN (?) AND episode_id IS NOT NULL
+             GROUP BY story_id
+           ) latest ON w.id = latest.max_history_id
+           LEFT JOIN episodes e ON w.episode_id = e.id`,
+          [currentUserId, storyIds]
+        );
+        watchRows.forEach((r) => {
+          nextEpisodeMap[r.story_id] = Number(r.last_position) + 1;
+        });
+      }
+
+      const storiesList = storyRows.map((s) => {
+        const storyData = toStoryFieldsArray(s);
+        storyData.next_episode_number = nextEpisodeMap[s.id] !== undefined ? nextEpisodeMap[s.id] : 1;
+        return storyData;
+      });
 
       return ApiResponse.success(res, {
         stories: storiesList,
@@ -404,6 +440,7 @@ class UserController {
       return ApiResponse.error(res, 'Failed to fetch user stories.', 500);
     }
   }
+
 
   /**
    * GET /api/v1/users/:id/reviews
