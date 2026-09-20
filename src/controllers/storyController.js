@@ -200,7 +200,7 @@ class StoryController {
       if (userId) {
         try {
           const [historyRows] = await pool.query(
-            `SELECT w.*, e.title as episode_title, COALESCE(e.position, 1) as episode_position
+            `SELECT w.*, e.title as episode_title, COALESCE(e.position, 1) as episode_position, COALESCE(e.episode_number, e.position, 1) as episode_number
              FROM watch_histories w
              INNER JOIN episodes e ON w.episode_id = e.id
              WHERE w.user_id = ? AND w.story_id = ? AND w.episode_id IS NOT NULL
@@ -385,6 +385,11 @@ class StoryController {
         avgListeningTime,
         watchHistory: watchHistorySummary,
       });
+
+      // next_episode_number: last watched episode's episode_number + 1, or 1 if no history
+      result.next_episode_number = lastWatchedHistory
+        ? Number(lastWatchedHistory.episode_number || lastWatchedHistory.episode_position || 1) + 1
+        : 1;
 
       return ApiResponse.success(res, {
         story: result,

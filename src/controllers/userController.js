@@ -406,7 +406,7 @@ class UserController {
       if (currentUserId && storyRows.length > 0) {
         const storyIds = storyRows.map((s) => s.id);
         const [watchRows] = await pool.query(
-          `SELECT w.story_id, COALESCE(e.position, 1) as last_position
+          `SELECT w.story_id, COALESCE(e.episode_number, e.position, 1) as last_episode_number
            FROM watch_histories w
            INNER JOIN (
              SELECT story_id, MAX(id) as max_history_id
@@ -418,7 +418,7 @@ class UserController {
           [currentUserId, storyIds]
         );
         watchRows.forEach((r) => {
-          nextEpisodeMap[r.story_id] = Number(r.last_position) + 1;
+          nextEpisodeMap[r.story_id] = Number(r.last_episode_number) + 1;
         });
       }
 
