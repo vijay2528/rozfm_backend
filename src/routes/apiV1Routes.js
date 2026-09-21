@@ -32,6 +32,7 @@ const WriterWithdrawalController = require('../controllers/writerWithdrawalContr
 const WriterEarningsController = require('../controllers/writerEarningsController');
 const TrendingController = require('../controllers/trendingController');
 const EpisodeAnalyticsController = require('../controllers/episodeAnalyticsController');
+const AdRewardController = require('../controllers/adRewardController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -140,6 +141,11 @@ router.get('/trending/my-ranking', TrendingController.myRanking);
 router.get('/analytics/episodes', EpisodeAnalyticsController.index);
 router.get('/analytics/episodes/:id', EpisodeAnalyticsController.showEpisode);
 router.get('/analytics/stories/:storyId/episodes', EpisodeAnalyticsController.index);
+
+// Watch Ad & Earn Coins API (Authenticated)
+router.get('/ads/reward-config', AdRewardController.config);
+router.post('/ads/watch', AdRewardController.watch);
+router.get('/ads/history', AdRewardController.history);
 
 
 // Notifications API

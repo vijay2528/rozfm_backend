@@ -3925,9 +3925,96 @@
       ]
     },
     {
+      "name": "Watch Ad & Earn Coins API",
+      "description": "Users can watch ads to earn coins. Coins per ad are configured in the settings table (`coins_per_ad`). Daily limit is controlled by `max_ads_per_day`. Each earned coin is recorded in `coin_transactions` (type = `ad_reward`) and credited to the user's `wallet_balance`. Requires authentication.",
+      "item": [
+        {
+          "name": "Get Ad Reward Config",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ads/reward-config",
+              "host": ["{{base_url}}"],
+              "path": ["ads", "reward-config"]
+            },
+            "description": "Call this **before showing ads** to get the current reward configuration and the user's daily progress.\n\nResponse fields:\n- `coins_per_ad` — coins awarded per single ad (read from `settings.coins_per_ad`, default `10`)\n- `max_ads_per_day` — maximum ads a user can watch per day (from `settings.max_ads_per_day`, default `10`)\n- `ads_watched_today` — number of ads already watched today by this user\n- `ads_remaining_today` — remaining ad slots for today\n- `can_watch_ad` — `true` if user can still watch more ads today\n- `wallet_balance` — user's current coin balance\n\n**Settings keys to configure in DB:**\n```sql\nINSERT INTO settings (`key`, `value`) VALUES ('coins_per_ad', '10');\nINSERT INTO settings (`key`, `value`) VALUES ('max_ads_per_day', '10');\n```"
+          }
+        },
+        {
+          "name": "Watch Ad & Earn Coins",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ads_count\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_impression_abc123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/ads/watch",
+              "host": ["{{base_url}}"],
+              "path": ["ads", "watch"]
+            },
+            "description": "Called after a user finishes watching one or more ads. Awards coins and records each ad in `coin_transactions`.\n\n**Request body:**\n- `ads_count` *(required)* — number of ads watched in this request (e.g. `1`, `2`, `3`)\n- `ad_type` *(optional)* — ad network type label: `rewarded`, `interstitial`, `banner` (default: `rewarded`)\n- `reference_id` *(optional)* — ad network impression ID for deduplication / reconciliation\n\n**Coin calculation:**\n```\ntotal_coins = ads_count × coins_per_ad   (from settings table)\n```\n\n**Safety:**\n- If `ads_count` exceeds the remaining daily quota, it is automatically capped\n- Returns `ads_skipped` count and `skipped_reason` when capping occurs\n- Returns HTTP 429 if daily limit is already fully exhausted\n\n**Response fields:**\n- `ads_watched` — effective ads counted (may be less than requested)\n- `coins_per_ad` — coins per ad from settings\n- `coins_earned` — total coins credited this request\n- `wallet_balance` — new wallet balance after crediting\n- `ads_watched_today` / `ads_remaining_today` — daily progress\n- `daily_limit_reached` — boolean\n\n**coin_transactions row inserted (per ad):**\n```json\n{ \"type\": \"ad_reward\", \"coins\": 10, \"description\": \"Ad Reward — rewarded ad #1 watched\" }\n```"
+          }
+        },
+        {
+          "name": "Watch Multiple Ads (3 ads)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ads_count\": 3,\n  \"ad_type\": \"rewarded\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/ads/watch",
+              "host": ["{{base_url}}"],
+              "path": ["ads", "watch"]
+            },
+            "description": "Example: user watches 3 ads at once. If `coins_per_ad = 10`, the user earns `30 coins` and 3 rows are inserted into `coin_transactions`.\n\nIf fewer than 3 ad slots remain today, `ads_watched` will be less than 3 and `ads_skipped` will reflect the difference."
+          }
+        },
+        {
+          "name": "Get Ad Reward History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ads/history?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["ads", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Paginated list of all `ad_reward` entries from `coin_transactions` for the authenticated user.\n\n**Response:**\n- `summary.today_ads_watched` — ads watched today\n- `summary.today_coins_earned` — coins earned today from ads\n- `summary.total_ads_watched` — all-time ad count\n- `summary.total_coins_earned` — all-time coins from ads\n- `transactions[]` — paginated list of individual ad reward transactions\n  - `id`, `coins`, `description`, `reference_id`, `created_at`"
+          }
+        }
+      ]
+    },
+    {
       "name": "Episode Analytics API",
       "description": "Analytics for a writer's episodes — summary stats (plays, listeners, likes), plays-over-time chart data, and top episodes list. Requires authentication. All data is scoped to the authenticated writer's own content.",
       "item": [
+
         {
           "name": "Get Episode Analytics (This Month)",
           "request": {
