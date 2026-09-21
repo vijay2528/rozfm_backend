@@ -30,6 +30,8 @@ const BadgeController = require('../controllers/badgeController');
 const WriterDashboardController = require('../controllers/writerDashboardController');
 const WriterWithdrawalController = require('../controllers/writerWithdrawalController');
 const WriterEarningsController = require('../controllers/writerEarningsController');
+const TrendingController = require('../controllers/trendingController');
+const EpisodeAnalyticsController = require('../controllers/episodeAnalyticsController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -76,6 +78,11 @@ router.get('/leaderboard', authMiddleware.optional, LeaderboardController.index)
 router.get('/leaderboard/writers', authMiddleware.optional, LeaderboardController.writers);
 router.get('/leaderboard/stories', authMiddleware.optional, LeaderboardController.stories);
 router.get('/leaderboard/listeners', authMiddleware.optional, LeaderboardController.listeners);
+
+// Trending API (Public — my_ranking section is null for unauthenticated users)
+router.get('/trending', authMiddleware.optional, TrendingController.index);
+router.get('/trending/stories', TrendingController.trendingStories);
+router.get('/trending/fast-growing', TrendingController.fastGrowing);
 
 // Section Drill-downs
 router.get('/sections/trending', SectionController.trending);
@@ -125,6 +132,15 @@ router.post('/user/notifications/settings', MeController.updateNotificationSetti
 
 // Writer Dashboard API
 router.get('/writer/dashboard', WriterDashboardController.index);
+
+// Trending My Ranking (Authenticated)
+router.get('/trending/my-ranking', TrendingController.myRanking);
+
+// Episode Analytics API (Authenticated — scoped to writer's own content)
+router.get('/analytics/episodes', EpisodeAnalyticsController.index);
+router.get('/analytics/episodes/:id', EpisodeAnalyticsController.showEpisode);
+router.get('/analytics/stories/:storyId/episodes', EpisodeAnalyticsController.index);
+
 
 // Notifications API
 router.get('/notifications', NotificationController.index);

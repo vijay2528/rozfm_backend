@@ -3925,8 +3925,315 @@
       ]
     },
     {
+      "name": "Episode Analytics API",
+      "description": "Analytics for a writer's episodes — summary stats (plays, listeners, likes), plays-over-time chart data, and top episodes list. Requires authentication. All data is scoped to the authenticated writer's own content.",
+      "item": [
+        {
+          "name": "Get Episode Analytics (This Month)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/episodes?period=this_month&limit=10&page=1",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "episodes"],
+              "query": [
+                { "key": "period", "value": "this_month", "description": "Period filter: today | this_week | this_month | last_month | all_time" },
+                { "key": "limit", "value": "10", "description": "Number of top episodes to return (max 50)" },
+                { "key": "page", "value": "1", "description": "Page number for top episodes list" },
+                { "key": "story_id", "value": "", "description": "Optional: filter analytics to a specific story the writer owns", "disabled": true }
+              ]
+            },
+            "description": "Unified episode analytics page endpoint — returns all three sections in a single call:\n\n**summary**: Plays, Listeners, Likes for the selected period with growth % vs previous period.\n- `plays.count` / `plays.formatted` (e.g. `12.5K`)\n- `plays.growth_text` (e.g. `+14.2%`), `plays.arrow` (`↑` or `↓`)\n\n**plays_over_time**: Time-series data array for chart rendering.\n- `data[].label` — date or hour bucket\n- `data[].plays`, `data[].listeners`\n- `peak` — point with most plays\n- `chart_type` — `'date'` | `'hour'` | `'month'`\n\n**top_episodes**: Episodes ranked by plays in the period.\n- `plays`, `plays_formatted`, `listeners`, `likes`\n- `share_percent` / `share_percent_text` (e.g. `21.4%`) — share of total plays this period\n- `completion_rate`, `cover_image`\n\n**Requires Bearer token.**"
+          }
+        },
+        {
+          "name": "Get Episode Analytics — Today",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/episodes?period=today&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "episodes"],
+              "query": [
+                { "key": "period", "value": "today" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Same as main analytics endpoint but filtered to today. Plays-over-time chart uses **hourly** buckets (`chart_type: 'hour'`). Growth is compared to yesterday."
+          }
+        },
+        {
+          "name": "Get Episode Analytics — This Week",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/episodes?period=this_week&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "episodes"],
+              "query": [
+                { "key": "period", "value": "this_week" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Analytics filtered to the current calendar week (Monday–today). Growth is compared to last week."
+          }
+        },
+        {
+          "name": "Get Episode Analytics — Scoped to Story",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/episodes?period=this_month&story_id=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "episodes"],
+              "query": [
+                { "key": "period", "value": "this_month" },
+                { "key": "story_id", "value": "1", "description": "Replace with the target story ID" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Analytics filtered to a specific story owned by the writer. All three sections (summary, chart, top episodes) will only include data for episodes belonging to that story.\n\nReturns 404 if the story does not belong to the authenticated user."
+          }
+        },
+        {
+          "name": "Get Single Episode Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/analytics/episodes/1?period=this_month",
+              "host": ["{{base_url}}"],
+              "path": ["analytics", "episodes", "1"],
+              "query": [
+                { "key": "period", "value": "this_month", "description": "Period: today | this_week | this_month | last_month | all_time" }
+              ]
+            },
+            "description": "Detailed analytics for a **single episode** (replace `1` in the URL with the episode ID).\n\nReturns:\n- `episode` — id, title, episode_number, story_title, cover_image, is_premium\n- `summary.plays` — plays + growth vs previous period\n- `summary.listeners` — unique listeners + growth\n- `summary.likes` — total story likes\n- `summary.completion_rate` — percentage of plays that completed the episode\n- `summary.avg_progress_seconds` — average listening progress in seconds\n- `plays_over_time` — daily/hourly time-series for mini chart\n\nReturns 404 if the episode does not belong to the authenticated user's stories."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trending API",
+      "description": "Trending stories screen: user writer ranking, trending stories by category, and fast-growing stories this week.",
+      "item": [
+
+        {
+          "name": "Get Trending Page (Unified)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "Optional. Pass token to get my_ranking section populated."
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/trending?limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "trending"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of stories per section (default 10, max 50)"
+                },
+                {
+                  "key": "category_id",
+                  "value": "",
+                  "description": "Optional. Filter trending stories by category ID",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Unified trending page endpoint. Returns three sections in one call:\n- **my_ranking**: Authenticated user's overall writer rank + per-genre ranks (null if not logged in)\n- **trending_stories**: Top stories by total plays with growth indicator (↑/↓) and `is_now_trending` flag\n- **fast_growing**: Stories with highest play-count growth % this week vs last week\n\nOptional auth: pass Bearer token to get `my_ranking` populated."
+          }
+        },
+        {
+          "name": "Get Trending Stories (by Category)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/trending/stories?limit=10&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "trending",
+                "stories"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of stories per page (default 10, max 50)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)"
+                },
+                {
+                  "key": "category_id",
+                  "value": "",
+                  "description": "Optional. Filter by category ID (e.g. 1 for Romance)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Paginated list of trending stories ordered by total plays (descending).\n\nAlso returns a `categories` array for the tab bar UI.\n\nEach story includes:\n- `rank`, `title`, `cover_image`, `plays_formatted` (e.g. `100K Plays`)\n- `growth_percent`, `growth_text` (e.g. `↑ 26%`), `is_growing`\n- `is_now_trending` — true only for the #1 ranked story\n- `plays_this_week`, `plays_last_week`"
+          }
+        },
+        {
+          "name": "Get Trending Stories — Filtered by Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/trending/stories?category_id=1&limit=10&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "trending",
+                "stories"
+              ],
+              "query": [
+                {
+                  "key": "category_id",
+                  "value": "1",
+                  "description": "Category ID to filter (e.g. 1 = Romance)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Same as 'Get Trending Stories' but filtered to a specific genre/category (e.g. Romance). Update `category_id` to the desired category."
+          }
+        },
+        {
+          "name": "Get Fast Growing Stories (This Week)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/trending/fast-growing?limit=10&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "trending",
+                "fast-growing"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of stories per page (default 10, max 50)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)"
+                }
+              ]
+            },
+            "description": "Stories with the highest play-count growth % this week compared to last week.\n\nStories are ranked by `growth_percent` (descending). Only stories with at least 1 play this week are included.\n\nEach story includes:\n- `rank`, `title`, `cover_image`\n- `plays_this_week`, `plays_last_week`\n- `growth_percent` (e.g. `120.0`)\n- `growth_text` (e.g. `↑ 120%`)\n- `growth_badge` (e.g. `+120K%` — formatted for UI badge display)\n- `is_growing`\n\n`period` field is always `\"this_week\"`."
+          }
+        },
+        {
+          "name": "Get My Ranking (Auth Required)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/trending/my-ranking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "trending",
+                "my-ranking"
+              ]
+            },
+            "description": "Returns the authenticated user's writer ranking.\n\nResponse includes:\n- `overall_rank` — e.g. `12` (rank #12 among all writers by total plays)\n- `overall_total` — total number of writers on platform\n- `my_total_plays` and `my_total_plays_formatted` — e.g. `45K Plays`\n- `category_ranks` — array of per-genre ranks:\n  - `category_name` (e.g. `Romance`)\n  - `rank` (e.g. `3`)\n  - `total_in_category` (e.g. `85`)\n  - `my_plays_formatted`\n\nMaps directly to the **My Ranking** card on the Trending screen showing `#12 Top in India` and `#3 Top in Romance`.\n\n**Requires Bearer token.**"
+          }
+        }
+      ]
+    },
+    {
       "name": "Audience Statistics API",
       "item": [
+
         {
           "name": "Get Audience Statistics",
           "request": {
