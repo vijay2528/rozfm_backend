@@ -17,6 +17,9 @@ const AdminStreakSettingsController = require('../controllers/admin/streakSettin
 const AdminStoryAnalyticsController = require('../controllers/admin/storyAnalyticsController');
 const AdminCreatorController = require('../controllers/admin/creatorController');
 const AdminWithdrawalController = require('../controllers/admin/withdrawalController');
+const AdminCreatorAnalyticsController = require('../controllers/admin/creatorAnalyticsController');
+const AdminCreatorWithdrawalController = require('../controllers/admin/creatorWithdrawalController');
+const AdminPublishedStoriesController = require('../controllers/admin/publishedStoriesController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -64,6 +67,13 @@ router.post('/stories/:id', upload.storyMedia, AdminContentController.updateStor
 router.put('/stories/:id/status', AdminContentController.updateStoryStatus);
 router.post('/stories/:id/status', AdminContentController.updateStoryStatus);
 router.delete('/stories/:id', AdminContentController.deleteStory);
+// Story approval actions
+router.post('/stories/:id/approve', AdminPublishedStoriesController.approve);
+router.put('/stories/:id/approve', AdminPublishedStoriesController.approve);
+router.post('/stories/:id/reject', AdminPublishedStoriesController.reject);
+router.put('/stories/:id/reject', AdminPublishedStoriesController.reject);
+router.post('/stories/:id/approval-status', AdminPublishedStoriesController.updateApprovalStatus);
+router.put('/stories/:id/approval-status', AdminPublishedStoriesController.updateApprovalStatus);
 router.get('/episodes', AdminContentController.listEpisodes);
 router.get('/episodes/:id', AdminContentController.showEpisode);
 router.post('/episodes', upload.episodeMedia, AdminContentController.storeEpisode);
@@ -143,6 +153,10 @@ router.delete('/cities/:id', AdminLocationController.deleteCity);
 
 // ── 12. Creator Management ───────────────────────────────────────────────────
 router.get('/creators', AdminCreatorController.index);
+
+// Creator Analytics — must be declared BEFORE /creators/:id to avoid param capture
+router.get('/creators/analytics', AdminCreatorAnalyticsController.getAnalytics);
+
 router.get('/creators/:id', AdminCreatorController.show);
 router.post('/creators', upload.single('avatar'), AdminCreatorController.store);
 router.post('/creators/invite', AdminCreatorController.store);
@@ -152,7 +166,22 @@ router.put('/creators/:id/status', AdminCreatorController.updateStatus);
 router.post('/creators/:id/status', AdminCreatorController.updateStatus);
 router.delete('/creators/:id', AdminCreatorController.destroy);
 
-// ── 13. Withdrawal Management ────────────────────────────────────────────────
+// ── 14. Creator Withdrawal Management ───────────────────────────────────────
+// List & detail
+router.get('/creator-withdrawals', AdminCreatorWithdrawalController.index);
+router.get('/creator-withdrawals/:id', AdminCreatorWithdrawalController.show);
+// Generic process action (approve / paid / rejected / pending)
+router.put('/creator-withdrawals/:id', AdminCreatorWithdrawalController.processWithdrawal);
+router.post('/creator-withdrawals/:id', AdminCreatorWithdrawalController.processWithdrawal);
+router.put('/creator-withdrawals/:id/action', AdminCreatorWithdrawalController.processWithdrawal);
+router.post('/creator-withdrawals/:id/action', AdminCreatorWithdrawalController.processWithdrawal);
+// Shortcut approve & reject endpoints
+router.post('/creator-withdrawals/:id/approve', AdminCreatorWithdrawalController.approve);
+router.put('/creator-withdrawals/:id/approve', AdminCreatorWithdrawalController.approve);
+router.post('/creator-withdrawals/:id/reject', AdminCreatorWithdrawalController.reject);
+router.put('/creator-withdrawals/:id/reject', AdminCreatorWithdrawalController.reject);
+
+// ── 15. Withdrawal Management (all writers) ─────────────────────────────────
 router.get('/withdrawals', AdminWithdrawalController.index);
 router.get('/withdrawals/:id', AdminWithdrawalController.show);
 router.put('/withdrawals/:id', AdminWithdrawalController.processWithdrawal);
@@ -160,5 +189,13 @@ router.post('/withdrawals/:id', AdminWithdrawalController.processWithdrawal);
 router.post('/withdrawals/:id/action', AdminWithdrawalController.processWithdrawal);
 router.put('/withdrawals/:id/action', AdminWithdrawalController.processWithdrawal);
 router.delete('/withdrawals/:id', AdminWithdrawalController.destroy);
+
+// ── 16. Published Stories (is_approved = Approved) ───────────────────────────
+router.get('/published-stories', AdminPublishedStoriesController.index);
+router.get('/published-stories/:id', AdminPublishedStoriesController.show);
+
+// ── 17. Pending Stories (is_approved = Pending) ──────────────────────────────
+router.get('/pending-stories', AdminPublishedStoriesController.pendingStories);
+router.get('/pending-stories/:id', AdminPublishedStoriesController.show);
 
 module.exports = router;

@@ -274,6 +274,7 @@ function toStoryFieldsArray(story, options = {}) {
     status: statusStr,
     release_status: story.release_status || null,
     release: story.release_status || null,
+    is_approved: story.is_approved || 'Pending',
     publish_date: publishDateVal,
     is_live: isLive,
     rating: Number(story.rating || 0.0),
