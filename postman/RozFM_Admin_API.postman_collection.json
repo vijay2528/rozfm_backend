@@ -4002,336 +4002,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"status\": true,\n  \"message\": \"Revenue share list fetched successfully.\",\n  \"data\": {\n    \"creators\": [\n      {\n        \"id\": 1018,\n        \"user_id\": 1018,\n        \"name\": \"Sanya Bose\",\n        \"email\": \"sanya.bose@rozfm.com\",\n        \"phone\": \"+919988776658\",\n        \"username\": \"sanya_bose\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"SB\",\n        \"avatar_color\": \"#EF4444\",\n        \"rev_share\": 72,\n        \"rev_share_percentage\": 72,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"72%\",\n        \"this_month\": 1290000,\n        \"this_month_earnings\": 1290000,\n        \"formatted_this_month\": \"₹12,90,000\",\n        \"total_earnings\": 1290000,\n        \"formatted_total_earnings\": \"₹12,90,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      },\n      {\n        \"id\": 1015,\n        \"user_id\": 1015,\n        \"name\": \"Meera Iyer\",\n        \"email\": \"meera.iyer@rozfm.com\",\n        \"phone\": \"+919988776655\",\n        \"username\": \"meera_iyer\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"MI\",\n        \"avatar_color\": \"#6366F1\",\n        \"rev_share\": 70,\n        \"rev_share_percentage\": 70,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"70%\",\n        \"this_month\": 842000,\n        \"this_month_earnings\": 842000,\n        \"formatted_this_month\": \"₹8,42,000\",\n        \"total_earnings\": 842000,\n        \"formatted_total_earnings\": \"₹8,42,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:47.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:47.000Z\"\n      },\n      {\n        \"id\": 1016,\n        \"user_id\": 1016,\n        \"name\": \"Aman Kapoor\",\n        \"email\": \"aman.kapoor@rozfm.com\",\n        \"phone\": \"+919988776656\",\n        \"username\": \"aman_kapoor\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"AK\",\n        \"avatar_color\": \"#F59E0B\",\n        \"rev_share\": 65,\n        \"rev_share_percentage\": 65,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"65%\",\n        \"this_month\": 310500,\n        \"this_month_earnings\": 310500,\n        \"formatted_this_month\": \"₹3,10,500\",\n        \"total_earnings\": 310500,\n        \"formatted_total_earnings\": \"₹3,10,500\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:47.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:47.000Z\"\n      },\n      {\n        \"id\": 1017,\n        \"user_id\": 1017,\n        \"name\": \"Rhea Verma\",\n        \"email\": \"rhea.verma@rozfm.com\",\n        \"phone\": \"+919988776657\",\n        \"username\": \"rhea_verma\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"RV\",\n        \"avatar_color\": \"#0EA5E9\",\n        \"rev_share\": 60,\n        \"rev_share_percentage\": 60,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"60%\",\n        \"this_month\": 58200,\n        \"this_month_earnings\": 58200,\n        \"formatted_this_month\": \"₹58,200\",\n        \"total_earnings\": 58200,\n        \"formatted_total_earnings\": \"₹58,200\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      },\n      {\n        \"id\": 1019,\n        \"user_id\": 1019,\n        \"name\": \"Ishaan Gill\",\n        \"email\": \"ishaan.gill@rozfm.com\",\n        \"phone\": \"+919988776659\",\n        \"username\": \"ishaan_gill\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"IG\",\n        \"avatar_color\": \"#10B981\",\n        \"rev_share\": 55,\n        \"rev_share_percentage\": 55,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"55%\",\n        \"this_month\": 14000,\n        \"this_month_earnings\": 14000,\n        \"formatted_this_month\": \"₹14,000\",\n        \"total_earnings\": 14000,\n        \"formatted_total_earnings\": \"₹14,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      }\n    ],\n    \"summary\": {\n      \"total\": 5,\n      \"total_creators\": 5,\n      \"active\": 5,\n      \"active_creators\": 5,\n      \"inactive\": 0,\n      \"inactive_creators\": 0,\n      \"default_rev_share\": 70,\n      \"formatted_default_rev_share\": \"70%\",\n      \"total_this_month_revenue\": 2514700,\n      \"formatted_total_this_month\": \"₹25,14,700\"\n    },\n    \"pagination\": {\n      \"total\": 5,\n      \"page\": 1,\n      \"limit\": 20,\n      \"total_pages\": 1\n    }\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Get Single Creator Revenue Share",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/admin/revenue-share/1015",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "admin",
-                "revenue-share",
-                "1015"
-              ]
-            },
-            "description": "Fetch detailed revenue split breakdown for an individual creator, including 6-month historical earnings and recent transactions."
-          },
-          "response": [
-            {
-              "name": "200 OK — Creator Revenue Share Details",
-              "originalRequest": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{admin_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/admin/revenue-share/1015",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "admin",
-                    "revenue-share",
-                    "1015"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"status\": true,\n  \"message\": \"Creator revenue share details fetched successfully.\",\n  \"data\": {\n    \"id\": 1015,\n    \"user_id\": 1015,\n    \"name\": \"Meera Iyer\",\n    \"email\": \"meera.iyer@rozfm.com\",\n    \"phone\": \"+919988776655\",\n    \"username\": \"meera_iyer\",\n    \"initials\": \"MI\",\n    \"avatar_color\": \"#6366F1\",\n    \"rev_share\": 70,\n    \"rev_share_percentage\": 70,\n    \"formatted_rev_share\": \"70%\",\n    \"platform_share_percentage\": 30,\n    \"formatted_platform_share\": \"30%\",\n    \"is_custom_rev_share\": true,\n    \"default_platform_rev_share\": 70,\n    \"this_month_earnings\": 842000,\n    \"formatted_this_month\": \"₹8,42,000\",\n    \"total_earnings\": 842000,\n    \"formatted_total_earnings\": \"₹8,42,000\",\n    \"stories_count\": 5,\n    \"status\": \"active\",\n    \"is_verified\": true,\n    \"monthly_history\": [\n      {\n        \"month\": \"2026-09\",\n        \"amount\": 842000,\n        \"formatted_amount\": \"₹8,42,000\"\n      }\n    ]\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Update Creator Revenue Share",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"rev_share_percentage\": 75\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/admin/revenue-share/1015",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "admin",
-                "revenue-share",
-                "1015"
-              ]
-            },
-            "description": "Update creator individual revenue share percentage (0-100). Accepts `rev_share_percentage` or `rev_share`."
-          },
-          "response": [
-            {
-              "name": "200 OK — Revenue Share Updated",
-              "originalRequest": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{admin_token}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"rev_share_percentage\": 75\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/admin/revenue-share/1015",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "admin",
-                    "revenue-share",
-                    "1015"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"status\": true,\n  \"message\": \"Creator revenue share updated successfully.\",\n  \"data\": {\n    \"id\": 1015,\n    \"name\": \"Meera Iyer\",\n    \"rev_share\": 75,\n    \"rev_share_percentage\": 75,\n    \"formatted_rev_share\": \"75%\",\n    \"platform_share\": 25,\n    \"formatted_platform_share\": \"25%\"\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Reset Creator Revenue Share to Default",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/admin/revenue-share/1015/reset",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "admin",
-                "revenue-share",
-                "1015",
-                "reset"
-              ]
-            },
-            "description": "Reset creator individual revenue share back to NULL so that creator uses platform default."
-          },
-          "response": [
-            {
-              "name": "200 OK — Reset to Default",
-              "originalRequest": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{admin_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/admin/revenue-share/1015/reset",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "admin",
-                    "revenue-share",
-                    "1015",
-                    "reset"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"status\": true,\n  \"message\": \"Creator revenue share reset to platform default successfully.\",\n  \"data\": {\n    \"id\": 1015,\n    \"name\": \"Meera Iyer\",\n    \"rev_share\": 70,\n    \"rev_share_percentage\": 70,\n    \"is_custom_rev_share\": false,\n    \"formatted_rev_share\": \"70%\"\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Get Platform Default Revenue Share Setting",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/admin/revenue-share/settings",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "admin",
-                "revenue-share",
-                "settings"
-              ]
-            },
-            "description": "Get current system-wide default revenue share percentage split (e.g. 70% creator / 30% platform)."
-          },
-          "response": [
-            {
-              "name": "200 OK — Global Setting",
-              "originalRequest": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{admin_token}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/admin/revenue-share/settings",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "admin",
-                    "revenue-share",
-                    "settings"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"status\": true,\n  \"message\": \"Platform default revenue share setting fetched successfully.\",\n  \"data\": {\n    \"key\": \"writer_revenue_share_percentage\",\n    \"default_rev_share\": 70,\n    \"formatted_default_rev_share\": \"70%\",\n    \"creator_split\": 70,\n    \"platform_split\": 30\n  }\n}"
-            }
-          ]
-        },
-        {
-          "name": "Update Platform Default Revenue Share Setting",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"rev_share_percentage\": 70\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/admin/revenue-share/settings",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "admin",
-                "revenue-share",
-                "settings"
-              ]
-            },
-            "description": "Update system-wide default revenue share percentage split applied to all creators."
-          },
-          "response": [
-            {
-              "name": "200 OK — Global Setting Updated",
-              "originalRequest": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{admin_token}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"rev_share_percentage\": 70\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/admin/revenue-share/settings",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "admin",
-                    "revenue-share",
-                    "settings"
-                  ]
-                }
-              },
-              "status": "OK",
-              "code": 200,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"status\": true,\n  \"message\": \"Platform default revenue share setting updated successfully.\",\n  \"data\": {\n    \"key\": \"writer_revenue_share_percentage\",\n    \"default_rev_share\": 70,\n    \"formatted_default_rev_share\": \"70%\",\n    \"creator_split\": 70,\n    \"platform_split\": 30\n  }\n}"
+              "body": "{\n  \"status\": true,\n  \"message\": \"Revenue share list fetched successfully.\",\n  \"data\": {\n    \"creators\": [\n      {\n        \"id\": 1018,\n        \"user_id\": 1018,\n        \"name\": \"Sanya Bose\",\n        \"email\": \"sanya.bose@rozfm.com\",\n        \"phone\": \"+919988776658\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"SB\",\n        \"avatar_color\": \"#EF4444\",\n        \"rev_share\": 70,\n        \"rev_share_percentage\": 70,\n        \"formatted_rev_share\": \"70%\",\n        \"this_month\": 1290000,\n        \"this_month_earnings\": 1290000,\n        \"formatted_this_month\": \"₹12,90,000\",\n        \"total_earnings\": 1290000,\n        \"formatted_total_earnings\": \"₹12,90,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      },\n      {\n        \"id\": 1015,\n        \"user_id\": 1015,\n        \"name\": \"Meera Iyer\",\n        \"email\": \"meera.iyer@rozfm.com\",\n        \"phone\": \"+919988776655\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"MI\",\n        \"avatar_color\": \"#6366F1\",\n        \"rev_share\": 70,\n        \"rev_share_percentage\": 70,\n        \"formatted_rev_share\": \"70%\",\n        \"this_month\": 842000,\n        \"this_month_earnings\": 842000,\n        \"formatted_this_month\": \"₹8,42,000\",\n        \"total_earnings\": 842000,\n        \"formatted_total_earnings\": \"₹8,42,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:47.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:47.000Z\"\n      },\n      {\n        \"id\": 1016,\n        \"user_id\": 1016,\n        \"name\": \"Aman Kapoor\",\n        \"email\": \"aman.kapoor@rozfm.com\",\n        \"phone\": \"+919988776656\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"AK\",\n        \"avatar_color\": \"#F59E0B\",\n        \"rev_share\": 70,\n        \"rev_share_percentage\": 70,\n        \"formatted_rev_share\": \"70%\",\n        \"this_month\": 310500,\n        \"this_month_earnings\": 310500,\n        \"formatted_this_month\": \"₹3,10,500\",\n        \"total_earnings\": 310500,\n        \"formatted_total_earnings\": \"₹3,10,500\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:47.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:47.000Z\"\n      },\n      {\n        \"id\": 1017,\n        \"user_id\": 1017,\n        \"name\": \"Rhea Verma\",\n        \"email\": \"rhea.verma@rozfm.com\",\n        \"phone\": \"+919988776657\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"RV\",\n        \"avatar_color\": \"#0EA5E9\",\n        \"rev_share\": 70,\n        \"rev_share_percentage\": 70,\n        \"formatted_rev_share\": \"70%\",\n        \"this_month\": 58200,\n        \"this_month_earnings\": 58200,\n        \"formatted_this_month\": \"₹58,200\",\n        \"total_earnings\": 58200,\n        \"formatted_total_earnings\": \"₹58,200\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      },\n      {\n        \"id\": 1019,\n        \"user_id\": 1019,\n        \"name\": \"Ishaan Gill\",\n        \"email\": \"ishaan.gill@rozfm.com\",\n        \"phone\": \"+919988776659\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"IG\",\n        \"avatar_color\": \"#10B981\",\n        \"rev_share\": 70,\n        \"rev_share_percentage\": 70,\n        \"formatted_rev_share\": \"70%\",\n        \"this_month\": 14000,\n        \"this_month_earnings\": 14000,\n        \"formatted_this_month\": \"₹14,000\",\n        \"total_earnings\": 14000,\n        \"formatted_total_earnings\": \"₹14,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      }\n    ],\n    \"summary\": {\n      \"total\": 5,\n      \"total_creators\": 5,\n      \"active\": 5,\n      \"active_creators\": 5,\n      \"inactive\": 0,\n      \"inactive_creators\": 0,\n      \"default_rev_share\": 70,\n      \"formatted_default_rev_share\": \"70%\",\n      \"total_this_month_revenue\": 2514700,\n      \"formatted_total_this_month\": \"₹25,14,700\"\n    },\n    \"pagination\": {\n      \"total\": 5,\n      \"page\": 1,\n      \"limit\": 20,\n      \"total_pages\": 1\n    }\n  }\n}"
             }
           ]
         },
@@ -4346,13 +4017,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/admin/revenue-share/export?format=csv",
+              "raw": "{{base_url}}/admin/revenue-shares/export?format=csv",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "admin",
-                "revenue-share",
+                "revenue-shares",
                 "export"
               ],
               "query": [
@@ -4389,13 +4060,13 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/admin/revenue-share/export?format=csv",
+                  "raw": "{{base_url}}/admin/revenue-shares/export?format=csv",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "admin",
-                    "revenue-share",
+                    "revenue-shares",
                     "export"
                   ]
                 }
@@ -4413,7 +4084,7 @@
                   "value": "attachment; filename=\"rozfm_revenue_shares.csv\""
                 }
               ],
-              "body": "User ID,Name,Email,Phone,Rev Share,This Month (INR),Total Revenue (INR),Status,Joined Date\n1018,\"Sanya Bose\",\"sanya.bose@rozfm.com\",\"+919988776658\",\"72%\",\"₹12,90,000\",\"₹12,90,000\",\"active\",\"2026-09-23\"\n1015,\"Meera Iyer\",\"meera.iyer@rozfm.com\",\"+919988776655\",\"70%\",\"₹8,42,000\",\"₹8,42,000\",\"active\",\"2026-09-23\"\n1016,\"Aman Kapoor\",\"aman.kapoor@rozfm.com\",\"+919988776656\",\"65%\",\"₹3,10,500\",\"₹3,10,500\",\"active\",\"2026-09-23\"\n1017,\"Rhea Verma\",\"rhea.verma@rozfm.com\",\"+919988776657\",\"60%\",\"₹58,200\",\"₹58,200\",\"active\",\"2026-09-23\"\n1019,\"Ishaan Gill\",\"ishaan.gill@rozfm.com\",\"+919988776659\",\"55%\",\"₹14,000\",\"₹14,000\",\"active\",\"2026-09-23\""
+              "body": "User ID,Name,Email,Phone,Rev Share,This Month (INR),Total Revenue (INR),Status,Joined Date\n1018,\"Sanya Bose\",\"sanya.bose@rozfm.com\",\"+919988776658\",\"70%\",\"₹12,90,000\",\"₹12,90,000\",\"active\",\"2026-09-23\"\n1015,\"Meera Iyer\",\"meera.iyer@rozfm.com\",\"+919988776655\",\"70%\",\"₹8,42,000\",\"₹8,42,000\",\"active\",\"2026-09-23\"\n1016,\"Aman Kapoor\",\"aman.kapoor@rozfm.com\",\"+919988776656\",\"70%\",\"₹3,10,500\",\"₹3,10,500\",\"active\",\"2026-09-23\"\n1017,\"Rhea Verma\",\"rhea.verma@rozfm.com\",\"+919988776657\",\"70%\",\"₹58,200\",\"₹58,200\",\"active\",\"2026-09-23\"\n1019,\"Ishaan Gill\",\"ishaan.gill@rozfm.com\",\"+919988776659\",\"70%\",\"₹14,000\",\"₹14,000\",\"active\",\"2026-09-23\""
             }
           ]
         }

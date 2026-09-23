@@ -109,8 +109,8 @@ class AdminRevenueShareController {
       let queryParams = [];
 
       if (search) {
-        whereClauses.push('(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR u.username LIKE ?)');
-        queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        whereClauses.push('(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)');
+        queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
       }
 
       if (status && status !== 'all') {
@@ -156,9 +156,7 @@ class AdminRevenueShareController {
       const sortDirection = String(order).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
       let orderBySql = 'this_month_earnings DESC, u.id ASC';
 
-      if (sort_by === 'rev_share' || sort_by === 'rev_share_percentage') {
-        orderBySql = `effective_rev_share ${sortDirection}, this_month_earnings DESC`;
-      } else if (sort_by === 'name') {
+      if (sort_by === 'name') {
         orderBySql = `u.name ${sortDirection}`;
       } else if (sort_by === 'total_earnings') {
         orderBySql = `total_earnings ${sortDirection}`;
@@ -175,15 +173,12 @@ class AdminRevenueShareController {
           u.name,
           u.email,
           u.phone,
-          u.username,
           u.avatar_path,
-          u.rev_share_percentage,
           u.is_verified,
           u.is_blocked,
           u.status,
           u.created_at,
           u.updated_at,
-          COALESCE(u.rev_share_percentage, ?) as effective_rev_share,
           (
             SELECT COALESCE(SUM(we.amount), 0) 
             FROM writer_earnings we 
@@ -203,7 +198,6 @@ class AdminRevenueShareController {
       `;
 
       const listParams = [
-        defaultRevShare,
         ...targetMonthParams,
         ...queryParams,
         limitNum,
@@ -212,10 +206,9 @@ class AdminRevenueShareController {
 
       const [rows] = await pool.query(selectSql, listParams);
 
-      // Format records matching UI requirements
+      // Format records matching UI requirements (rev_share taken directly from settings table)
       const creators = rows.map((c) => {
-        const hasCustomRevShare = c.rev_share_percentage !== null && c.rev_share_percentage !== undefined;
-        const revShareVal = hasCustomRevShare ? Number(c.rev_share_percentage) : defaultRevShare;
+        const revShareVal = defaultRevShare;
         const thisMonthVal = Number(c.this_month_earnings || 0);
         const totalVal = Number(c.total_earnings || 0);
         const effectiveStatus = c.is_blocked === 1 ? 'inactive' : (c.status || 'active');
@@ -226,14 +219,12 @@ class AdminRevenueShareController {
           name: c.name || 'Unnamed Creator',
           email: c.email || null,
           phone: c.phone || null,
-          username: c.username || null,
           avatar_path: c.avatar_path || null,
           avatar_url: c.avatar_path || null,
           initials: getInitials(c.name),
           avatar_color: getAvatarColor(c.name),
           rev_share: revShareVal,
           rev_share_percentage: revShareVal,
-          is_custom_rev_share: hasCustomRevShare,
           formatted_rev_share: `${revShareVal}%`,
           this_month: thisMonthVal,
           this_month_earnings: thisMonthVal,
@@ -277,289 +268,7 @@ class AdminRevenueShareController {
   }
 
   /**
-   * GET /api/v1/admin/revenue-share/:id
-   * Get single creator revenue share details, historical monthly earnings, and platform split breakdown
-   */
-  static async show(req, res) {
-    try {
-      const creatorId = req.params.id;
-      const defaultRevShare = await AdminRevenueShareController.getGlobalRevShareSetting();
-
-      const [rows] = await pool.query(
-        `SELECT 
-          u.id,
-          u.name,
-          u.email,
-          u.phone,
-          u.username,
-          u.avatar_path,
-          u.bio,
-          u.rev_share_percentage,
-          u.is_verified,
-          u.is_blocked,
-          u.status,
-          u.created_at,
-          u.updated_at,
-          (
-            SELECT COALESCE(SUM(we.amount), 0) 
-            FROM writer_earnings we 
-            WHERE we.user_id = u.id 
-              AND MONTH(we.created_at) = MONTH(CURRENT_DATE()) 
-              AND YEAR(we.created_at) = YEAR(CURRENT_DATE())
-          ) as this_month_earnings,
-          (
-            SELECT COALESCE(SUM(we2.amount), 0) 
-            FROM writer_earnings we2 
-            WHERE we2.user_id = u.id
-          ) as total_earnings,
-          (
-            SELECT COUNT(*) 
-            FROM stories s 
-            WHERE s.user_id = u.id
-          ) as stories_count
-        FROM users u 
-        WHERE u.id = ? AND (u.role = 'creator' OR u.role = 'Creator')
-        LIMIT 1`,
-        [creatorId]
-      );
-
-      if (rows.length === 0) {
-        return ApiResponse.error(res, 'Creator not found.', 404);
-      }
-
-      const c = rows[0];
-      const hasCustom = c.rev_share_percentage !== null && c.rev_share_percentage !== undefined;
-      const revShareVal = hasCustom ? Number(c.rev_share_percentage) : defaultRevShare;
-      const platformShareVal = 100 - revShareVal;
-      const thisMonthVal = Number(c.this_month_earnings || 0);
-      const totalVal = Number(c.total_earnings || 0);
-
-      // Monthly earnings breakdown for the last 6 months
-      const [monthlyRows] = await pool.query(
-        `SELECT 
-          DATE_FORMAT(created_at, '%Y-%m') as \`month\`,
-          COALESCE(SUM(amount), 0) as amount
-         FROM writer_earnings
-         WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-         GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-         ORDER BY \`month\` DESC`,
-        [creatorId]
-      );
-
-      const monthlyHistory = monthlyRows.map((m) => ({
-        month: m.month,
-        amount: Number(m.amount || 0),
-        formatted_amount: formatCurrencyINR(m.amount || 0),
-      }));
-
-      // Recent 10 earnings records
-      const [recentEarnings] = await pool.query(
-        `SELECT 
-          id,
-          amount,
-          coins,
-          source_type,
-          description,
-          created_at
-         FROM writer_earnings
-         WHERE user_id = ?
-         ORDER BY created_at DESC
-         LIMIT 10`,
-        [creatorId]
-      );
-
-      const creatorDetails = {
-        id: c.id,
-        user_id: c.id,
-        name: c.name || 'Unnamed Creator',
-        email: c.email || null,
-        phone: c.phone || null,
-        username: c.username || null,
-        avatar_path: c.avatar_path || null,
-        avatar_url: c.avatar_path || null,
-        initials: getInitials(c.name),
-        avatar_color: getAvatarColor(c.name),
-        bio: c.bio || null,
-        rev_share: revShareVal,
-        rev_share_percentage: revShareVal,
-        formatted_rev_share: `${revShareVal}%`,
-        platform_share_percentage: platformShareVal,
-        formatted_platform_share: `${platformShareVal}%`,
-        is_custom_rev_share: hasCustom,
-        default_platform_rev_share: defaultRevShare,
-        this_month_earnings: thisMonthVal,
-        formatted_this_month: formatCurrencyINR(thisMonthVal),
-        total_earnings: totalVal,
-        formatted_total_earnings: formatCurrencyINR(totalVal),
-        stories_count: Number(c.stories_count || 0),
-        status: c.is_blocked === 1 ? 'inactive' : (c.status || 'active'),
-        is_verified: Boolean(c.is_verified),
-        created_at: c.created_at,
-        updated_at: c.updated_at,
-        monthly_history: monthlyHistory,
-        recent_earnings: recentEarnings.map((r) => ({
-          id: r.id,
-          amount: Number(r.amount || 0),
-          formatted_amount: formatCurrencyINR(r.amount || 0),
-          coins: Number(r.coins || 0),
-          source_type: r.source_type,
-          description: r.description,
-          created_at: r.created_at,
-        })),
-      };
-
-      return ApiResponse.success(res, creatorDetails, 'Creator revenue share details fetched successfully.');
-    } catch (error) {
-      console.error('Admin Show Revenue Share Error:', error);
-      return ApiResponse.error(res, 'Failed to fetch creator revenue share details.', 500);
-    }
-  }
-
-  /**
-   * PUT /api/v1/admin/revenue-share/:id OR POST /api/v1/admin/revenue-share/:id
-   * Update creator individual revenue share percentage (0-100)
-   */
-  static async update(req, res) {
-    try {
-      const creatorId = req.params.id;
-      const { rev_share, rev_share_percentage } = req.body;
-
-      const rawPct = rev_share_percentage !== undefined ? rev_share_percentage : rev_share;
-
-      if (rawPct === undefined || rawPct === null || rawPct === '') {
-        return ApiResponse.error(res, 'rev_share_percentage is required.', 422);
-      }
-
-      const pct = parseInt(rawPct, 10);
-      if (isNaN(pct) || pct < 0 || pct > 100) {
-        return ApiResponse.error(res, 'rev_share_percentage must be an integer between 0 and 100.', 422);
-      }
-
-      const [rows] = await pool.query(
-        "SELECT id, name FROM users WHERE id = ? AND (role = 'creator' OR role = 'Creator') LIMIT 1",
-        [creatorId]
-      );
-
-      if (rows.length === 0) {
-        return ApiResponse.error(res, 'Creator not found.', 404);
-      }
-
-      await pool.query(
-        'UPDATE users SET rev_share_percentage = ?, updated_at = NOW() WHERE id = ?',
-        [pct, creatorId]
-      );
-
-      return ApiResponse.success(res, {
-        id: Number(creatorId),
-        name: rows[0].name,
-        rev_share: pct,
-        rev_share_percentage: pct,
-        formatted_rev_share: `${pct}%`,
-        platform_share: 100 - pct,
-        formatted_platform_share: `${100 - pct}%`,
-      }, 'Creator revenue share updated successfully.');
-    } catch (error) {
-      console.error('Admin Update Revenue Share Error:', error);
-      return ApiResponse.error(res, 'Failed to update creator revenue share.', 500);
-    }
-  }
-
-  /**
-   * DELETE /api/v1/admin/revenue-share/:id/reset
-   * Reset creator's custom rev share to inherit the platform default setting
-   */
-  static async resetToDefault(req, res) {
-    try {
-      const creatorId = req.params.id;
-      const defaultRevShare = await AdminRevenueShareController.getGlobalRevShareSetting();
-
-      const [rows] = await pool.query(
-        "SELECT id, name FROM users WHERE id = ? AND (role = 'creator' OR role = 'Creator') LIMIT 1",
-        [creatorId]
-      );
-
-      if (rows.length === 0) {
-        return ApiResponse.error(res, 'Creator not found.', 404);
-      }
-
-      await pool.query(
-        'UPDATE users SET rev_share_percentage = NULL, updated_at = NOW() WHERE id = ?',
-        [creatorId]
-      );
-
-      return ApiResponse.success(res, {
-        id: Number(creatorId),
-        name: rows[0].name,
-        rev_share: defaultRevShare,
-        rev_share_percentage: defaultRevShare,
-        is_custom_rev_share: false,
-        formatted_rev_share: `${defaultRevShare}%`,
-      }, 'Creator revenue share reset to platform default successfully.');
-    } catch (error) {
-      console.error('Admin Reset Revenue Share Error:', error);
-      return ApiResponse.error(res, 'Failed to reset creator revenue share.', 500);
-    }
-  }
-
-  /**
-   * GET /api/v1/admin/revenue-share/settings
-   * Get platform default revenue share setting
-   */
-  static async getGlobalSetting(req, res) {
-    try {
-      const defaultRevShare = await AdminRevenueShareController.getGlobalRevShareSetting();
-      return ApiResponse.success(res, {
-        key: 'writer_revenue_share_percentage',
-        default_rev_share: defaultRevShare,
-        formatted_default_rev_share: `${defaultRevShare}%`,
-        creator_split: defaultRevShare,
-        platform_split: 100 - defaultRevShare,
-      }, 'Platform default revenue share setting fetched successfully.');
-    } catch (error) {
-      console.error('Admin Get Global Rev Share Error:', error);
-      return ApiResponse.error(res, 'Failed to fetch default revenue share setting.', 500);
-    }
-  }
-
-  /**
-   * POST /api/v1/admin/revenue-share/settings OR PUT
-   * Update platform default revenue share setting
-   */
-  static async updateGlobalSetting(req, res) {
-    try {
-      const { rev_share, rev_share_percentage } = req.body;
-      const rawPct = rev_share_percentage !== undefined ? rev_share_percentage : rev_share;
-
-      if (rawPct === undefined || rawPct === null || rawPct === '') {
-        return ApiResponse.error(res, 'rev_share_percentage is required.', 422);
-      }
-
-      const pct = parseInt(rawPct, 10);
-      if (isNaN(pct) || pct < 0 || pct > 100) {
-        return ApiResponse.error(res, 'rev_share_percentage must be an integer between 0 and 100.', 422);
-      }
-
-      await pool.query(
-        `INSERT INTO settings (\`key\`, \`value\`) VALUES ('writer_revenue_share_percentage', ?)
-         ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`), updated_at = NOW()`,
-        [String(pct)]
-      );
-
-      return ApiResponse.success(res, {
-        key: 'writer_revenue_share_percentage',
-        default_rev_share: pct,
-        formatted_default_rev_share: `${pct}%`,
-        creator_split: pct,
-        platform_split: 100 - pct,
-      }, 'Platform default revenue share setting updated successfully.');
-    } catch (error) {
-      console.error('Admin Update Global Rev Share Error:', error);
-      return ApiResponse.error(res, 'Failed to update default revenue share setting.', 500);
-    }
-  }
-
-  /**
-   * GET /api/v1/admin/revenue-share/export OR /api/v1/admin/revenue-shares/export
+   * GET /api/v1/admin/revenue-shares/export OR /api/v1/admin/revenue-share/export
    * Export revenue share list as CSV or JSON file
    */
   static async exportData(req, res) {
@@ -607,7 +316,7 @@ class AdminRevenueShareController {
           u.name,
           u.email,
           u.phone,
-          u.rev_share_percentage,
+          u.avatar_path,
           u.is_blocked,
           u.status,
           u.created_at,
@@ -630,9 +339,7 @@ class AdminRevenueShareController {
       );
 
       const records = rows.map((c) => {
-        const revShareVal = c.rev_share_percentage !== null && c.rev_share_percentage !== undefined
-          ? Number(c.rev_share_percentage)
-          : defaultRevShare;
+        const revShareVal = defaultRevShare;
         const thisMonthVal = Number(c.this_month_earnings || 0);
         const totalVal = Number(c.total_earnings || 0);
 

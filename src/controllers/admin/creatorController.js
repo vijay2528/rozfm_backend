@@ -95,7 +95,6 @@ class AdminCreatorController {
           u.avatar_path,
           u.is_verified,
           u.is_blocked,
-          u.rev_share_percentage,
           u.created_at,
           u.updated_at,
           (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id) as stories_count,
@@ -110,9 +109,7 @@ class AdminCreatorController {
 
       // Format output items
       const creators = rows.map((c) => {
-        const revShareVal = c.rev_share_percentage !== null && c.rev_share_percentage !== undefined
-          ? Number(c.rev_share_percentage)
-          : defaultRevShare;
+        const revShareVal = defaultRevShare;
         const effectiveStatus = c.is_blocked === 1 ? 'InActive' : 'active';
         const earningsVal = Number(c.earnings || 0);
         const followersVal = Number(c.followers_count || 0);
@@ -185,7 +182,6 @@ class AdminCreatorController {
           u.facebook_link,
           u.is_verified,
           u.is_blocked,
-          u.rev_share_percentage,
           u.created_at,
           u.updated_at,
           (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id) as stories_count,
@@ -202,9 +198,7 @@ class AdminCreatorController {
       }
 
       const c = rows[0];
-      const revShareVal = c.rev_share_percentage !== null && c.rev_share_percentage !== undefined
-        ? Number(c.rev_share_percentage)
-        : defaultRevShare;
+      const revShareVal = defaultRevShare;
       const effectiveStatus = c.is_blocked === 1 ? 'InActive' : 'active';
       const earningsVal = Number(c.earnings || 0);
       const followersVal = Number(c.followers_count || 0);
@@ -274,8 +268,6 @@ class AdminCreatorController {
         bio,
         is_verified = 0,
         status = 'active',
-        rev_share,
-        rev_share_percentage,
       } = req.body;
 
       if (!name) {
@@ -304,15 +296,11 @@ class AdminCreatorController {
       const effectiveStatus = isBlockedVal === 1 ? 'InActive' : 'active';
 
       const defaultRevShare = await AdminCreatorController.getGlobalRevShareSetting();
-      const customRevShare = rev_share_percentage !== undefined ? rev_share_percentage : rev_share;
-      const finalRevShareVal = customRevShare !== undefined && customRevShare !== null && customRevShare !== ''
-        ? parseInt(customRevShare, 10)
-        : null;
 
       const [result] = await pool.query(
         `INSERT INTO users 
-         (name, email, phone, password, bio, avatar_path, role, role_id, is_verified, is_blocked, rev_share_percentage) 
-         VALUES (?, ?, ?, ?, ?, ?, 'creator', 3, ?, ?, ?)`,
+         (name, email, phone, password, bio, avatar_path, role, role_id, is_verified, is_blocked) 
+         VALUES (?, ?, ?, ?, ?, ?, 'creator', 3, ?, ?)`,
         [
           name,
           email || null,
@@ -322,16 +310,14 @@ class AdminCreatorController {
           avatarPath,
           verifiedVal,
           isBlockedVal,
-          finalRevShareVal,
         ]
       );
 
       const newCreatorId = result.insertId;
-      const returnedRevShare = finalRevShareVal !== null ? finalRevShareVal : defaultRevShare;
 
       return ApiResponse.success(
         res,
-        { id: newCreatorId, name, email, phone, role: 'creator', status: effectiveStatus, rev_share: returnedRevShare, formatted_rev_share: `${returnedRevShare}%` },
+        { id: newCreatorId, name, email, phone, role: 'creator', status: effectiveStatus, rev_share: defaultRevShare, formatted_rev_share: `${defaultRevShare}%` },
         'Creator created successfully.',
         201
       );
@@ -356,8 +342,6 @@ class AdminCreatorController {
         is_verified,
         status,
         password,
-        rev_share,
-        rev_share_percentage,
       } = req.body;
 
       const [creatorRows] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [creatorId]);
@@ -383,15 +367,6 @@ class AdminCreatorController {
       if (bio !== undefined) {
         updateFields.push('bio = ?');
         queryParams.push(bio || null);
-      }
-      const rawRevShare = rev_share_percentage !== undefined ? rev_share_percentage : rev_share;
-      if (rawRevShare !== undefined) {
-        if (rawRevShare === null || rawRevShare === '') {
-          updateFields.push('rev_share_percentage = NULL');
-        } else {
-          updateFields.push('rev_share_percentage = ?');
-          queryParams.push(parseInt(rawRevShare, 10));
-        }
       }
       if (is_verified !== undefined) {
         const vVal = is_verified === '1' || is_verified === 'true' || is_verified === 1 || is_verified === true ? 1 : 0;
