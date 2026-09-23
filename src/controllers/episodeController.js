@@ -200,12 +200,6 @@ class EpisodeController {
           const nextEpNum = storyNextEpMap[targetEp.story_id] || null;
           lastWatchedEpisodeObj = toEpisodeFieldsArray(targetEp, targetEp.story_title, isUnlocked, progressData, nextEpNum);
         }
-      } else if (episodes.length > 0) {
-        // Fallback default: If no watch history exists, offer first episode as starting point
-        const firstEp = episodes[0];
-        const isUnlocked = !firstEp.is_premium || hasActiveMembership || Boolean(userId && (userUnlockedEpisodeIds.has(Number(firstEp.id)) || userUnlockedEpisodeIds.has(String(firstEp.id))));
-        const nextEpNum = storyNextEpMap[firstEp.story_id] || null;
-        lastWatchedEpisodeObj = toEpisodeFieldsArray(firstEp, firstEp.story_title, isUnlocked, { is_last_watched: true }, nextEpNum);
       }
 
       return ApiResponse.success(res, {

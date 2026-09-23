@@ -217,7 +217,7 @@ class StoryController {
         }
       }
 
-      // Determine target episode (last played episode or 1st episode as fallback)
+      // Determine target episode (only if user actually has watch history)
       let targetEpisode = null;
       if (lastWatchedHistory && lastWatchedHistory.episode_id) {
         const [epRows] = await pool.query(
@@ -232,27 +232,12 @@ class StoryController {
         }
       }
 
-      if (!targetEpisode) {
-        const [firstEpRows] = await pool.query(
-          `SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path
-           FROM episodes e
-           LEFT JOIN stories s ON e.story_id = s.id
-           WHERE e.story_id = ?
-           ORDER BY e.position ASC, e.id ASC
-           LIMIT 1`,
-          [storyId]
-        );
-        if (firstEpRows.length > 0) {
-          targetEpisode = firstEpRows[0];
-        }
-      }
-
       let lastPlayedEpisodeData = null;
-      if (targetEpisode) {
+      if (targetEpisode && lastWatchedHistory) {
         const isUnlocked = !targetEpisode.is_premium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(targetEpisode.id)) || userUnlockedEpisodeIds.has(String(targetEpisode.id));
         const { toEpisodeFieldsArray } = require('../utils/storyPresenter');
 
-        const progressData = lastWatchedHistory ? {
+        const progressData = {
           progress_seconds: Number(lastWatchedHistory.progress_seconds || 0),
           total_duration_seconds: Number(lastWatchedHistory.total_duration_seconds || targetEpisode.duration_seconds || 0),
           completion_percentage: Number(lastWatchedHistory.completion_percentage || 0),
@@ -260,14 +245,6 @@ class StoryController {
           completed: Boolean(lastWatchedHistory.completed),
           is_last_watched: true,
           last_watched_at: lastWatchedHistory.last_watched_at ? new Date(lastWatchedHistory.last_watched_at).toISOString() : null,
-        } : {
-          progress_seconds: 0,
-          total_duration_seconds: Number(targetEpisode.duration_seconds || 0),
-          completion_percentage: 0,
-          status: 'unwatched',
-          completed: false,
-          is_last_watched: false,
-          last_watched_at: null,
         };
 
         lastPlayedEpisodeData = toEpisodeFieldsArray(

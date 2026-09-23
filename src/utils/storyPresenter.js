@@ -305,10 +305,8 @@ function toStoryFieldsArray(story, options = {}) {
     data.last_watched_at = watchHistory.last_watched_at || null;
   }
 
-  if (lastPlayedEpisode) {
-    data.last_played_episode = lastPlayedEpisode;
-    data.current_playing_episode = lastPlayedEpisode;
-  }
+  data.last_played_episode = lastPlayedEpisode || null;
+  data.current_playing_episode = lastPlayedEpisode || null;
 
   if (Array.isArray(episodes)) {
     data.episodes = episodes.map((ep) =>
