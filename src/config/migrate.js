@@ -210,6 +210,7 @@ async function runMigrations() {
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `instagram_link` VARCHAR(512) NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `youtube_link` VARCHAR(512) NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `facebook_link` VARCHAR(512) NULL",
+      "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `rev_share_percentage` INT NULL",
       "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `link_action` VARCHAR(512) NULL",
       "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `starts_at` DATETIME NULL",
       "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `ends_at` DATETIME NULL",

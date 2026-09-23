@@ -2722,15 +2722,31 @@
                 ],
                 "url": {
                   "raw": "{{base_url}}/admin/creators/analytics?months=12",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "creators", "analytics"],
-                  "query": [{ "key": "months", "value": "12" }]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "creators",
+                    "analytics"
+                  ],
+                  "query": [
+                    {
+                      "key": "months",
+                      "value": "12"
+                    }
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Creator analytics fetched successfully.\",\n  \"data\": {\n    \"active_creators\": {\n      \"count\": 6412,\n      \"last_month_count\": 6302,\n      \"mom_change\": {\n        \"percentage\": 1.7,\n        \"is_positive\": true,\n        \"direction\": \"up\",\n        \"text\": \"+1.7% vs last month\"\n      }\n    },\n    \"avg_earnings_per_creator\": {\n      \"amount\": 18400,\n      \"formatted\": \"₹18,400\"\n    },\n    \"new_creators\": {\n      \"count\": 312,\n      \"last_month_count\": 293,\n      \"mom_change\": {\n        \"percentage\": 6.5,\n        \"is_positive\": true,\n        \"direction\": \"up\",\n        \"text\": \"+6.5% vs last month\"\n      }\n    },\n    \"earnings_paid_out_chart\": [\n      { \"month\": \"2025-10\", \"month_label\": \"Oct 2025\", \"amount\": 42000, \"formatted_amount\": \"₹42,000\", \"payout_count\": 12 },\n      { \"month\": \"2025-11\", \"month_label\": \"Nov 2025\", \"amount\": 56000, \"formatted_amount\": \"₹56,000\", \"payout_count\": 18 },\n      { \"month\": \"2025-12\", \"month_label\": \"Dec 2025\", \"amount\": 61000, \"formatted_amount\": \"₹61,000\", \"payout_count\": 22 },\n      { \"month\": \"2026-01\", \"month_label\": \"Jan 2026\", \"amount\": 74000, \"formatted_amount\": \"₹74,000\", \"payout_count\": 26 },\n      { \"month\": \"2026-02\", \"month_label\": \"Feb 2026\", \"amount\": 68000, \"formatted_amount\": \"₹68,000\", \"payout_count\": 20 },\n      { \"month\": \"2026-03\", \"month_label\": \"Mar 2026\", \"amount\": 82000, \"formatted_amount\": \"₹82,000\", \"payout_count\": 29 },\n      { \"month\": \"2026-04\", \"month_label\": \"Apr 2026\", \"amount\": 91000, \"formatted_amount\": \"₹91,000\", \"payout_count\": 33 },\n      { \"month\": \"2026-05\", \"month_label\": \"May 2026\", \"amount\": 95000, \"formatted_amount\": \"₹95,000\", \"payout_count\": 35 },\n      { \"month\": \"2026-06\", \"month_label\": \"Jun 2026\", \"amount\": 103000, \"formatted_amount\": \"₹1,03,000\", \"payout_count\": 38 },\n      { \"month\": \"2026-07\", \"month_label\": \"Jul 2026\", \"amount\": 118000, \"formatted_amount\": \"₹1,18,000\", \"payout_count\": 42 },\n      { \"month\": \"2026-08\", \"month_label\": \"Aug 2026\", \"amount\": 127000, \"formatted_amount\": \"₹1,27,000\", \"payout_count\": 46 },\n      { \"month\": \"2026-09\", \"month_label\": \"Sep 2026\", \"amount\": 141000, \"formatted_amount\": \"₹1,41,000\", \"payout_count\": 51 }\n    ],\n    \"chart_config\": {\n      \"months_range\": 12,\n      \"x_axis_key\": \"month_label\",\n      \"y_axis_key\": \"amount\"\n    }\n  }\n}"
             }
           ]
@@ -2808,17 +2824,41 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/creator-withdrawals?search=&status=all&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "creator-withdrawals"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creator-withdrawals"
+              ],
               "query": [
-                { "key": "search", "value": "", "description": "Search by creator name, email, phone, bank account number, or UPI ID" },
-                { "key": "status", "value": "all", "description": "Filter by status: all | pending | approved | paid | success | rejected" },
-                { "key": "page", "value": "1", "description": "Page number (default 1)" },
-                { "key": "limit", "value": "20", "description": "Items per page (default 20, max 100)" }
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by creator name, email, phone, bank account number, or UPI ID"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter by status: all | pending | approved | paid | success | rejected"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default 20, max 100)"
+                }
               ]
             },
             "description": "Returns a paginated list of creator withdrawal requests for the Admin panel Creator Withdrawals screen.\n\n**Response includes:**\n- `withdrawals[]` — each item has creator info, amount (formatted INR), payment method (UPI / Bank Transfer), status, requested date\n- `summary` — aggregate counts and totals for pending, approved, paid, rejected\n- `pagination` — total, page, limit, total_pages\n\n**Status values:**\n- `pending` — submitted, awaiting admin action\n- `approved` — approved, payment not yet confirmed\n- `paid` / `success` — payment confirmed (frontend can show either label)\n- `rejected` — request rejected\n\n**Auth required:** Admin Bearer token"
@@ -2828,18 +2868,46 @@
               "name": "200 OK — List Creator Withdrawals",
               "originalRequest": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
                 "url": {
                   "raw": "{{base_url}}/admin/creator-withdrawals?status=all&page=1&limit=20",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "creator-withdrawals"],
-                  "query": [{ "key": "status", "value": "all" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "creator-withdrawals"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "all"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Creator withdrawal requests fetched successfully.\",\n  \"data\": {\n    \"withdrawals\": [\n      {\n        \"id\": 1,\n        \"creator_id\": 101,\n        \"creator_name\": \"Aman Kapoor\",\n        \"creator_email\": \"aman@example.com\",\n        \"creator_phone\": \"9876543210\",\n        \"creator_avatar\": null,\n        \"amount\": 18240,\n        \"formatted_amount\": \"₹18,240\",\n        \"description\": \"July earnings payout\",\n        \"payment_method\": \"UPI\",\n        \"status\": \"pending\",\n        \"status_label\": \"pending\",\n        \"transaction_reference\": null,\n        \"admin_notes\": null,\n        \"rejection_reason\": null,\n        \"requested_at\": \"2026-07-27T10:30:00.000Z\",\n        \"requested_date\": \"27 Jul 2026\",\n        \"processed_at\": null,\n        \"processed_date\": null,\n        \"bank_details\": {\n          \"account_holder_name\": \"Aman Kapoor\",\n          \"account_number\": null,\n          \"bank_name\": null,\n          \"ifsc_code\": null,\n          \"upi_id\": \"aman@upi\"\n        }\n      },\n      {\n        \"id\": 2,\n        \"creator_id\": 102,\n        \"creator_name\": \"Sanya Bose\",\n        \"creator_email\": \"sanya@example.com\",\n        \"creator_phone\": \"9123456789\",\n        \"creator_avatar\": null,\n        \"amount\": 30320,\n        \"formatted_amount\": \"₹30,320\",\n        \"description\": null,\n        \"payment_method\": \"UPI\",\n        \"status\": \"paid\",\n        \"status_label\": \"success\",\n        \"transaction_reference\": \"UTR1234567890\",\n        \"admin_notes\": \"Paid via HDFC\",\n        \"rejection_reason\": null,\n        \"requested_at\": \"2026-07-25T08:15:00.000Z\",\n        \"requested_date\": \"25 Jul 2026\",\n        \"processed_at\": \"2026-07-26T14:00:00.000Z\",\n        \"processed_date\": \"26 Jul 2026\",\n        \"bank_details\": {\n          \"account_holder_name\": \"Sanya Bose\",\n          \"account_number\": null,\n          \"bank_name\": null,\n          \"ifsc_code\": null,\n          \"upi_id\": \"sanya@okaxis\"\n        }\n      }\n    ],\n    \"summary\": {\n      \"total_requests\": 5,\n      \"pending_count\": 4,\n      \"pending_amount\": 121300,\n      \"formatted_pending_amount\": \"₹1,21,300\",\n      \"approved_count\": 0,\n      \"approved_amount\": 0,\n      \"formatted_approved_amount\": \"₹0\",\n      \"paid_count\": 1,\n      \"paid_amount\": 30320,\n      \"formatted_paid_amount\": \"₹30,320\",\n      \"rejected_count\": 0,\n      \"rejected_amount\": 0,\n      \"formatted_rejected_amount\": \"₹0\"\n    },\n    \"pagination\": {\n      \"total\": 5,\n      \"page\": 1,\n      \"limit\": 20,\n      \"total_pages\": 1\n    }\n  }\n}"
             }
           ]
@@ -2849,16 +2917,33 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/creator-withdrawals?status=pending&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "creator-withdrawals"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creator-withdrawals"
+              ],
               "query": [
-                { "key": "status", "value": "pending" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "Filtered list showing only pending creator withdrawal requests — matches the 'Pending' tab in the Admin UI."
@@ -2869,16 +2954,34 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/creator-withdrawals?status=success&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "creator-withdrawals"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creator-withdrawals"
+              ],
               "query": [
-                { "key": "status", "value": "success", "description": "Frontend alias for 'paid'; the backend normalises 'success' → 'paid'" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "status",
+                  "value": "success",
+                  "description": "Frontend alias for 'paid'; the backend normalises 'success' → 'paid'"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "Filtered list showing paid (success) creator withdrawal requests. The frontend can pass 'success' and the backend normalises it to 'paid'."
@@ -2889,12 +2992,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/creator-withdrawals/1",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "creator-withdrawals", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creator-withdrawals",
+                "1"
+              ]
             },
             "description": "Full detail of a single creator withdrawal request.\n\nIncludes:\n- Creator profile info\n- Bank / UPI details\n- `creator_financials` block: total_earnings, total_paid, total_pending, available_balance (all formatted in INR)\n\nUseful for the approval detail modal."
           },
@@ -2903,13 +3015,33 @@
               "name": "200 OK — Creator Withdrawal Detail",
               "originalRequest": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-                "url": { "raw": "{{base_url}}/admin/creator-withdrawals/1", "host": ["{{base_url}}"], "path": ["admin", "creator-withdrawals", "1"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/creator-withdrawals/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "creator-withdrawals",
+                    "1"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Creator withdrawal request fetched successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"creator_id\": 101,\n    \"creator_name\": \"Aman Kapoor\",\n    \"creator_email\": \"aman@example.com\",\n    \"creator_phone\": \"9876543210\",\n    \"creator_avatar\": null,\n    \"amount\": 18240,\n    \"formatted_amount\": \"₹18,240\",\n    \"payment_method\": \"UPI\",\n    \"status\": \"pending\",\n    \"transaction_reference\": null,\n    \"admin_notes\": null,\n    \"rejection_reason\": null,\n    \"requested_at\": \"2026-07-27T10:30:00.000Z\",\n    \"requested_date\": \"27 Jul 2026\",\n    \"processed_at\": null,\n    \"processed_date\": null,\n    \"bank_details\": {\n      \"account_holder_name\": \"Aman Kapoor\",\n      \"account_number\": null,\n      \"bank_name\": null,\n      \"ifsc_code\": null,\n      \"upi_id\": \"aman@upi\"\n    },\n    \"creator_financials\": {\n      \"total_earnings\": 52000,\n      \"formatted_total_earnings\": \"₹52,000\",\n      \"total_paid\": 10000,\n      \"formatted_total_paid\": \"₹10,000\",\n      \"total_pending\": 18240,\n      \"formatted_total_pending\": \"₹18,240\",\n      \"available_balance\": 23760,\n      \"formatted_available_balance\": \"₹23,760\"\n    }\n  }\n}"
             }
           ]
@@ -2919,8 +3051,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -2928,8 +3066,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/creator-withdrawals/1/action",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "creator-withdrawals", "1", "action"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creator-withdrawals",
+                "1",
+                "action"
+              ]
             },
             "description": "Generic action endpoint to update a creator withdrawal request status.\n\n**Body fields:**\n| Field | Type | Required | Notes |\n|---|---|---|---|\n| `status` | string | ✅ | `approved`, `paid`, `rejected`, `pending` |\n| `transaction_reference` | string | ⚠️ | Required/recommended when approving or marking as paid |\n| `utr` | string | — | Alias for `transaction_reference` |\n| `admin_notes` | string | — | Internal admin note |\n| `rejection_reason` | string | ✅ when rejecting | Mandatory if status = rejected |\n\n**Shortcut endpoints available:**\n- `POST /creator-withdrawals/:id/approve` — sets status to `approved` automatically\n- `POST /creator-withdrawals/:id/reject` — sets status to `rejected` automatically (still requires `rejection_reason` in body)"
           },
@@ -2938,14 +3083,42 @@
               "name": "200 OK — Approved",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\",\n  \"transaction_reference\": \"UTR9876543210\",\n  \"admin_notes\": \"Approved and transferred via HDFC\"\n}" },
-                "url": { "raw": "{{base_url}}/admin/creator-withdrawals/1/action", "host": ["{{base_url}}"], "path": ["admin", "creator-withdrawals", "1", "action"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"approved\",\n  \"transaction_reference\": \"UTR9876543210\",\n  \"admin_notes\": \"Approved and transferred via HDFC\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/creator-withdrawals/1/action",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "creator-withdrawals",
+                    "1",
+                    "action"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Withdrawal request Approved successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"status\": \"approved\",\n    \"action\": \"Approved\",\n    \"transaction_reference\": \"UTR9876543210\",\n    \"admin_notes\": \"Approved and transferred via HDFC\",\n    \"rejection_reason\": null\n  }\n}"
             }
           ]
@@ -2955,8 +3128,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -2964,8 +3143,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/creator-withdrawals/1/approve",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "creator-withdrawals", "1", "approve"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creator-withdrawals",
+                "1",
+                "approve"
+              ]
             },
             "description": "Shortcut endpoint to approve a creator withdrawal — automatically sets `status = approved`. Optionally provide `transaction_reference` and `admin_notes`.\n\nMaps to the **Approve** button in the Creator Withdrawals list."
           }
@@ -2975,8 +3161,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -2984,8 +3176,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/creator-withdrawals/1/reject",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "creator-withdrawals", "1", "reject"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creator-withdrawals",
+                "1",
+                "reject"
+              ]
             },
             "description": "Shortcut endpoint to reject a creator withdrawal — automatically sets `status = rejected`.\n\n**`rejection_reason` is required** in the request body. It will be visible to the creator in their withdrawal history.\n\nOptionally include `admin_notes` for internal records."
           },
@@ -2994,28 +3193,84 @@
               "name": "200 OK — Rejected",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"rejection_reason\": \"Bank details mismatch.\",\n  \"admin_notes\": \"Rejected - invalid bank info\"\n}" },
-                "url": { "raw": "{{base_url}}/admin/creator-withdrawals/1/reject", "host": ["{{base_url}}"], "path": ["admin", "creator-withdrawals", "1", "reject"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rejection_reason\": \"Bank details mismatch.\",\n  \"admin_notes\": \"Rejected - invalid bank info\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/creator-withdrawals/1/reject",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "creator-withdrawals",
+                    "1",
+                    "reject"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Withdrawal request Rejected successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"status\": \"rejected\",\n    \"action\": \"Rejected\",\n    \"transaction_reference\": null,\n    \"admin_notes\": \"Rejected - invalid bank info\",\n    \"rejection_reason\": \"Bank details mismatch.\"\n  }\n}"
             },
             {
               "name": "422 — rejection_reason missing",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{}" },
-                "url": { "raw": "{{base_url}}/admin/creator-withdrawals/1/reject", "host": ["{{base_url}}"], "path": ["admin", "creator-withdrawals", "1", "reject"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/creator-withdrawals/1/reject",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "creator-withdrawals",
+                    "1",
+                    "reject"
+                  ]
+                }
               },
               "status": "Unprocessable Entity",
               "code": 422,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": false,\n  \"message\": \"A rejection_reason is required when rejecting a withdrawal request.\"\n}"
             }
           ]
@@ -3031,18 +3286,48 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/published-stories?search=&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "published-stories"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "published-stories"
+              ],
               "query": [
-                { "key": "search", "value": "", "description": "Search by story title or creator name" },
-                { "key": "category_id", "value": "", "description": "Filter by category ID", "disabled": true },
-                { "key": "language", "value": "", "description": "Filter by language (e.g. Hindi)", "disabled": true },
-                { "key": "page", "value": "1", "description": "Page number (default 1)" },
-                { "key": "limit", "value": "20", "description": "Items per page (default 20, max 100)" }
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by story title or creator name"
+                },
+                {
+                  "key": "category_id",
+                  "value": "",
+                  "description": "Filter by category ID",
+                  "disabled": true
+                },
+                {
+                  "key": "language",
+                  "value": "",
+                  "description": "Filter by language (e.g. Hindi)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page (default 20, max 100)"
+                }
               ]
             },
             "description": "Returns all creator stories where `is_approved = 'Approved'`.\n\nMatches the **Published Stories** screen in the Admin Creator Panel.\n\n**Response columns:**\n- `title` — story title\n- `cover_image` — resolved CDN URL\n- `creator` — creator name, avatar, email\n- `episodes_count` — total episodes\n- `total_plays` / `formatted_plays` — play count (e.g. 1.2M)\n- `is_approved` — always `\"Approved\"` in this list\n\n**Summary block:**\n- `total_published`, `total_pending`, `total_rejected`\n\n**Auth required:** Admin Bearer token\n\n> **Note:** Run the migration SQL first to add `is_approved` column:\n> `ALTER TABLE stories ADD COLUMN is_approved ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending';`"
@@ -3052,13 +3337,32 @@
               "name": "200 OK — Published Stories List",
               "originalRequest": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-                "url": { "raw": "{{base_url}}/admin/published-stories?page=1&limit=20", "host": ["{{base_url}}"], "path": ["admin", "published-stories"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/published-stories?page=1&limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "published-stories"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Published stories fetched successfully.\",\n  \"data\": {\n    \"stories\": [\n      {\n        \"id\": 1,\n        \"title\": \"The Silent Monsoon\",\n        \"cover_image\": \"https://files.rozfm.com/stories/silent-monsoon.jpg\",\n        \"category\": \"Drama\",\n        \"language\": \"Hindi\",\n        \"is_premium\": false,\n        \"rating\": 4.5,\n        \"status\": \"published\",\n        \"is_approved\": \"Approved\",\n        \"episodes_count\": 42,\n        \"total_plays\": 1200000,\n        \"formatted_plays\": \"1.2M\",\n        \"listeners_count\": 85000,\n        \"formatted_listeners\": \"85K\",\n        \"creator\": {\n          \"id\": 101,\n          \"name\": \"Meera Iyer\",\n          \"avatar\": null,\n          \"email\": \"meera@example.com\"\n        },\n        \"created_at\": \"2026-01-15T10:00:00.000Z\",\n        \"updated_at\": \"2026-09-20T14:00:00.000Z\"\n      },\n      {\n        \"id\": 2,\n        \"title\": \"Love in Lucknow\",\n        \"cover_image\": \"https://files.rozfm.com/stories/love-lucknow.jpg\",\n        \"category\": \"Romance\",\n        \"language\": \"Hindi\",\n        \"is_premium\": true,\n        \"rating\": 4.8,\n        \"status\": \"ongoing\",\n        \"is_approved\": \"Approved\",\n        \"episodes_count\": 60,\n        \"total_plays\": 2400000,\n        \"formatted_plays\": \"2.4M\",\n        \"listeners_count\": 140000,\n        \"formatted_listeners\": \"140K\",\n        \"creator\": {\n          \"id\": 102,\n          \"name\": \"Sanya Bose\",\n          \"avatar\": null,\n          \"email\": \"sanya@example.com\"\n        },\n        \"created_at\": \"2026-02-20T09:30:00.000Z\",\n        \"updated_at\": \"2026-09-21T12:00:00.000Z\"\n      }\n    ],\n    \"summary\": {\n      \"total_published\": 4,\n      \"total_pending\": 12,\n      \"total_rejected\": 2\n    },\n    \"pagination\": {\n      \"total\": 4,\n      \"page\": 1,\n      \"limit\": 20,\n      \"total_pages\": 1\n    }\n  }\n}"
             }
           ]
@@ -3068,12 +3372,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/published-stories/1",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "published-stories", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "published-stories",
+                "1"
+              ]
             },
             "description": "Full detail of a single approved story including description, banner, tags, likes, shares, and full creator info."
           }
@@ -3083,12 +3396,22 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/stories/1/approve",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "stories", "1", "approve"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories",
+                "1",
+                "approve"
+              ]
             },
             "description": "Sets `is_approved = 'Approved'` for the given story.\n\nNo request body required. Story moves to the Published Stories list after this action."
           },
@@ -3097,13 +3420,34 @@
               "name": "200 OK — Story Approved",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-                "url": { "raw": "{{base_url}}/admin/stories/1/approve", "host": ["{{base_url}}"], "path": ["admin", "stories", "1", "approve"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stories/1/approve",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stories",
+                    "1",
+                    "approve"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Story approved successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"is_approved\": \"Approved\",\n    \"title\": \"The Silent Monsoon\"\n  }\n}"
             }
           ]
@@ -3113,8 +3457,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -3122,8 +3472,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/stories/1/reject",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "stories", "1", "reject"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories",
+                "1",
+                "reject"
+              ]
             },
             "description": "Sets `is_approved = 'Rejected'` for the given story.\n\nOptionally provide `rejection_reason` in the body — it will be returned in the response for your records."
           },
@@ -3132,14 +3489,42 @@
               "name": "200 OK — Story Rejected",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"rejection_reason\": \"Content violates guidelines.\"\n}" },
-                "url": { "raw": "{{base_url}}/admin/stories/1/reject", "host": ["{{base_url}}"], "path": ["admin", "stories", "1", "reject"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rejection_reason\": \"Content violates guidelines.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/stories/1/reject",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stories",
+                    "1",
+                    "reject"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Story rejected successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"is_approved\": \"Rejected\",\n    \"title\": \"The Silent Monsoon\",\n    \"rejection_reason\": \"Content violates guidelines.\"\n  }\n}"
             }
           ]
@@ -3149,8 +3534,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -3158,8 +3549,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/stories/1/approval-status",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "stories", "1", "approval-status"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories",
+                "1",
+                "approval-status"
+              ]
             },
             "description": "Generic endpoint to set `is_approved` to any valid value.\n\n**Body:**\n| Field | Type | Required | Values |\n|---|---|---|---|\n| `status` | string | ✅ | `Approved`, `Rejected`, `Pending` |\n| `rejection_reason` | string | — | Optional note when rejecting |\n\nUse the dedicated `/approve` and `/reject` shortcuts for one-click actions from the UI."
           }
@@ -3175,18 +3573,46 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/pending-stories?search=&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "pending-stories"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "pending-stories"
+              ],
               "query": [
-                { "key": "search", "value": "", "description": "Search by story title or creator name" },
-                { "key": "category_id", "value": "", "description": "Filter by category ID", "disabled": true },
-                { "key": "language", "value": "", "description": "Filter by language e.g. Hindi", "disabled": true },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by story title or creator name"
+                },
+                {
+                  "key": "category_id",
+                  "value": "",
+                  "description": "Filter by category ID",
+                  "disabled": true
+                },
+                {
+                  "key": "language",
+                  "value": "",
+                  "description": "Filter by language e.g. Hindi",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "Returns all creator stories where `is_approved = 'Pending'`.\n\nMatches the **Pending Stories** screen — STORY | CREATOR | SUBMITTED | Actions (Dismiss / Take Action).\n\n**Response fields per story:**\n- `id`, `title`, `cover_image`, `category`, `language`\n- `creator` — `{ id, name, avatar, email }`\n- `submitted_date` — formatted (e.g. `22 Jul 2026`)\n- `is_approved` — always `\"Pending\"` in this list\n- `admin_remarks` — any previous admin note\n\n**Summary block:** `total_approved`, `total_pending`, `total_rejected`\n\n> **Run migration first:**\n> ```sql\n> ALTER TABLE stories ADD COLUMN is_approved ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending' AFTER status;\n> ALTER TABLE stories ADD COLUMN admin_remarks TEXT NULL DEFAULT NULL AFTER is_approved;\n> ```"
@@ -3196,13 +3622,32 @@
               "name": "200 OK — Pending Stories",
               "originalRequest": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
-                "url": { "raw": "{{base_url}}/admin/pending-stories?page=1&limit=20", "host": ["{{base_url}}"], "path": ["admin", "pending-stories"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/pending-stories?page=1&limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "pending-stories"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Pending stories fetched successfully.\",\n  \"data\": {\n    \"stories\": [\n      {\n        \"id\": 10,\n        \"title\": \"Ashes & Ember\",\n        \"description\": \"A story of resilience and love.\",\n        \"cover_image\": \"https://files.rozfm.com/stories/ashes-ember.jpg\",\n        \"category\": \"Drama\",\n        \"language\": \"Hindi\",\n        \"is_premium\": false,\n        \"is_approved\": \"Pending\",\n        \"admin_remarks\": null,\n        \"episodes_count\": 0,\n        \"total_plays\": 0,\n        \"formatted_plays\": \"0\",\n        \"submitted_date\": \"22 Jul 2026\",\n        \"creator\": {\n          \"id\": 201,\n          \"name\": \"Rhea Verma\",\n          \"avatar\": null,\n          \"email\": \"rhea@example.com\"\n        },\n        \"created_at\": \"2026-07-22T08:00:00.000Z\",\n        \"updated_at\": \"2026-07-22T08:00:00.000Z\"\n      },\n      {\n        \"id\": 11,\n        \"title\": \"The Last Signal\",\n        \"description\": \"A sci-fi thriller set in 2047.\",\n        \"cover_image\": \"https://files.rozfm.com/stories/last-signal.jpg\",\n        \"category\": \"Sci-Fi\",\n        \"language\": \"Hindi\",\n        \"is_premium\": true,\n        \"is_approved\": \"Pending\",\n        \"admin_remarks\": null,\n        \"episodes_count\": 3,\n        \"total_plays\": 0,\n        \"formatted_plays\": \"0\",\n        \"submitted_date\": \"25 Jul 2026\",\n        \"creator\": {\n          \"id\": 202,\n          \"name\": \"Ishaan Gill\",\n          \"avatar\": null,\n          \"email\": \"ishaan@example.com\"\n        },\n        \"created_at\": \"2026-07-25T10:30:00.000Z\",\n        \"updated_at\": \"2026-07-25T10:30:00.000Z\"\n      }\n    ],\n    \"summary\": {\n      \"total_approved\": 4,\n      \"total_pending\": 2,\n      \"total_rejected\": 1\n    },\n    \"pagination\": {\n      \"total\": 2,\n      \"page\": 1,\n      \"limit\": 20,\n      \"total_pages\": 1\n    }\n  }\n}"
             }
           ]
@@ -3212,12 +3657,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/pending-stories/10",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "pending-stories", "10"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "pending-stories",
+                "10"
+              ]
             },
             "description": "Full detail of a single story (works for any is_approved status). Includes description, banner, tags, likes, shares, and creator financials."
           }
@@ -3227,8 +3681,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -3236,8 +3696,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/stories/10/approve",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "stories", "10", "approve"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories",
+                "10",
+                "approve"
+              ]
             },
             "description": "Approves a story by setting `is_approved = 'Approved'`.\n\n**The admin remarks are stored in the `admin_remarks` DB column.**\n\n**Body fields:**\n| Field | Type | Required | Notes |\n|---|---|---|---|\n| `remarks` | string | Optional | Admin approval note. Also accepted as `admin_remarks` or `note` |\n\nAccepts both `POST` and `PUT`."
           },
@@ -3246,14 +3713,42 @@
               "name": "200 OK — Story Approved",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"remarks\": \"Approved. Great content quality.\"\n}" },
-                "url": { "raw": "{{base_url}}/admin/stories/10/approve", "host": ["{{base_url}}"], "path": ["admin", "stories", "10", "approve"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"remarks\": \"Approved. Great content quality.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/stories/10/approve",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stories",
+                    "10",
+                    "approve"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Story approved successfully.\",\n  \"data\": {\n    \"id\": 10,\n    \"title\": \"Ashes & Ember\",\n    \"is_approved\": \"Approved\",\n    \"admin_remarks\": \"Approved. Great content quality.\"\n  }\n}"
             }
           ]
@@ -3263,8 +3758,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -3272,8 +3773,15 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/stories/10/reject",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "stories", "10", "reject"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories",
+                "10",
+                "reject"
+              ]
             },
             "description": "Rejects a story by setting `is_approved = 'Rejected'`.\n\n**`remarks` is REQUIRED** — it is stored in the `admin_remarks` DB column and returned in the response.\n\n**Accepted body keys:** `remarks`, `admin_remarks`, `rejection_reason`, or `note`.\n\nAccepts both `POST` and `PUT`."
           },
@@ -3282,28 +3790,84 @@
               "name": "200 OK — Story Rejected",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{\n  \"remarks\": \"Content does not meet guidelines.\"\n}" },
-                "url": { "raw": "{{base_url}}/admin/stories/10/reject", "host": ["{{base_url}}"], "path": ["admin", "stories", "10", "reject"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"remarks\": \"Content does not meet guidelines.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/stories/10/reject",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stories",
+                    "10",
+                    "reject"
+                  ]
+                }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Story rejected successfully.\",\n  \"data\": {\n    \"id\": 10,\n    \"title\": \"Ashes & Ember\",\n    \"is_approved\": \"Rejected\",\n    \"admin_remarks\": \"Content does not meet guidelines.\"\n  }\n}"
             },
             {
               "name": "422 — remarks missing",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }, { "key": "Content-Type", "value": "application/json" }],
-                "body": { "mode": "raw", "raw": "{}" },
-                "url": { "raw": "{{base_url}}/admin/stories/10/reject", "host": ["{{base_url}}"], "path": ["admin", "stories", "10", "reject"] }
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/stories/10/reject",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stories",
+                    "10",
+                    "reject"
+                  ]
+                }
               },
               "status": "Unprocessable Entity",
               "code": 422,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": false,\n  \"message\": \"Remarks / rejection reason is required when rejecting a story.\"\n}"
             }
           ]
@@ -3313,8 +3877,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -3322,11 +3892,530 @@
             },
             "url": {
               "raw": "{{base_url}}/admin/stories/10/approval-status",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "stories", "10", "approval-status"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories",
+                "10",
+                "approval-status"
+              ]
             },
             "description": "Generic approval status update — accepts `Approved`, `Rejected`, or `Pending`.\n\n**Body:**\n| Field | Type | Required | Notes |\n|---|---|---|---|\n| `status` | string | ✅ | `Approved`, `Rejected`, `Pending` |\n| `remarks` | string | ✅ when `Rejected` | Stored in `admin_remarks` DB column |\n\nUse `/approve` and `/reject` shortcut endpoints for one-click actions."
           }
+        }
+      ]
+    },
+    {
+      "name": "18. Revenue Share Management",
+      "item": [
+        {
+          "name": "Get Revenue Share List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-shares?page=1&limit=20&sort_by=this_month&order=DESC&status=all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-shares"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Records per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by creator name, email, or phone",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "all | active | inactive"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "this_month",
+                  "description": "this_month | rev_share | name | total_earnings | created_at"
+                },
+                {
+                  "key": "order",
+                  "value": "DESC",
+                  "description": "DESC | ASC"
+                },
+                {
+                  "key": "month",
+                  "value": "",
+                  "description": "Optional YYYY-MM (e.g. 2026-09)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Fetch paginated revenue split list for admin panel menu showing creator avatars, custom/inherited rev share %, this month's earnings (INR), total earnings, and summary metrics."
+          },
+          "response": [
+            {
+              "name": "200 OK — Revenue Share List",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/revenue-shares?page=1&limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "revenue-shares"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Revenue share list fetched successfully.\",\n  \"data\": {\n    \"creators\": [\n      {\n        \"id\": 1018,\n        \"user_id\": 1018,\n        \"name\": \"Sanya Bose\",\n        \"email\": \"sanya.bose@rozfm.com\",\n        \"phone\": \"+919988776658\",\n        \"username\": \"sanya_bose\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"SB\",\n        \"avatar_color\": \"#EF4444\",\n        \"rev_share\": 72,\n        \"rev_share_percentage\": 72,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"72%\",\n        \"this_month\": 1290000,\n        \"this_month_earnings\": 1290000,\n        \"formatted_this_month\": \"₹12,90,000\",\n        \"total_earnings\": 1290000,\n        \"formatted_total_earnings\": \"₹12,90,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      },\n      {\n        \"id\": 1015,\n        \"user_id\": 1015,\n        \"name\": \"Meera Iyer\",\n        \"email\": \"meera.iyer@rozfm.com\",\n        \"phone\": \"+919988776655\",\n        \"username\": \"meera_iyer\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"MI\",\n        \"avatar_color\": \"#6366F1\",\n        \"rev_share\": 70,\n        \"rev_share_percentage\": 70,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"70%\",\n        \"this_month\": 842000,\n        \"this_month_earnings\": 842000,\n        \"formatted_this_month\": \"₹8,42,000\",\n        \"total_earnings\": 842000,\n        \"formatted_total_earnings\": \"₹8,42,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:47.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:47.000Z\"\n      },\n      {\n        \"id\": 1016,\n        \"user_id\": 1016,\n        \"name\": \"Aman Kapoor\",\n        \"email\": \"aman.kapoor@rozfm.com\",\n        \"phone\": \"+919988776656\",\n        \"username\": \"aman_kapoor\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"AK\",\n        \"avatar_color\": \"#F59E0B\",\n        \"rev_share\": 65,\n        \"rev_share_percentage\": 65,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"65%\",\n        \"this_month\": 310500,\n        \"this_month_earnings\": 310500,\n        \"formatted_this_month\": \"₹3,10,500\",\n        \"total_earnings\": 310500,\n        \"formatted_total_earnings\": \"₹3,10,500\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:47.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:47.000Z\"\n      },\n      {\n        \"id\": 1017,\n        \"user_id\": 1017,\n        \"name\": \"Rhea Verma\",\n        \"email\": \"rhea.verma@rozfm.com\",\n        \"phone\": \"+919988776657\",\n        \"username\": \"rhea_verma\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"RV\",\n        \"avatar_color\": \"#0EA5E9\",\n        \"rev_share\": 60,\n        \"rev_share_percentage\": 60,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"60%\",\n        \"this_month\": 58200,\n        \"this_month_earnings\": 58200,\n        \"formatted_this_month\": \"₹58,200\",\n        \"total_earnings\": 58200,\n        \"formatted_total_earnings\": \"₹58,200\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      },\n      {\n        \"id\": 1019,\n        \"user_id\": 1019,\n        \"name\": \"Ishaan Gill\",\n        \"email\": \"ishaan.gill@rozfm.com\",\n        \"phone\": \"+919988776659\",\n        \"username\": \"ishaan_gill\",\n        \"avatar_path\": null,\n        \"avatar_url\": null,\n        \"initials\": \"IG\",\n        \"avatar_color\": \"#10B981\",\n        \"rev_share\": 55,\n        \"rev_share_percentage\": 55,\n        \"is_custom_rev_share\": true,\n        \"formatted_rev_share\": \"55%\",\n        \"this_month\": 14000,\n        \"this_month_earnings\": 14000,\n        \"formatted_this_month\": \"₹14,000\",\n        \"total_earnings\": 14000,\n        \"formatted_total_earnings\": \"₹14,000\",\n        \"is_verified\": true,\n        \"is_blocked\": false,\n        \"status\": \"active\",\n        \"created_at\": \"2026-09-23T09:42:48.000Z\",\n        \"updated_at\": \"2026-09-23T09:42:48.000Z\"\n      }\n    ],\n    \"summary\": {\n      \"total\": 5,\n      \"total_creators\": 5,\n      \"active\": 5,\n      \"active_creators\": 5,\n      \"inactive\": 0,\n      \"inactive_creators\": 0,\n      \"default_rev_share\": 70,\n      \"formatted_default_rev_share\": \"70%\",\n      \"total_this_month_revenue\": 2514700,\n      \"formatted_total_this_month\": \"₹25,14,700\"\n    },\n    \"pagination\": {\n      \"total\": 5,\n      \"page\": 1,\n      \"limit\": 20,\n      \"total_pages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Single Creator Revenue Share",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-share/1015",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-share",
+                "1015"
+              ]
+            },
+            "description": "Fetch detailed revenue split breakdown for an individual creator, including 6-month historical earnings and recent transactions."
+          },
+          "response": [
+            {
+              "name": "200 OK — Creator Revenue Share Details",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/revenue-share/1015",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "revenue-share",
+                    "1015"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Creator revenue share details fetched successfully.\",\n  \"data\": {\n    \"id\": 1015,\n    \"user_id\": 1015,\n    \"name\": \"Meera Iyer\",\n    \"email\": \"meera.iyer@rozfm.com\",\n    \"phone\": \"+919988776655\",\n    \"username\": \"meera_iyer\",\n    \"initials\": \"MI\",\n    \"avatar_color\": \"#6366F1\",\n    \"rev_share\": 70,\n    \"rev_share_percentage\": 70,\n    \"formatted_rev_share\": \"70%\",\n    \"platform_share_percentage\": 30,\n    \"formatted_platform_share\": \"30%\",\n    \"is_custom_rev_share\": true,\n    \"default_platform_rev_share\": 70,\n    \"this_month_earnings\": 842000,\n    \"formatted_this_month\": \"₹8,42,000\",\n    \"total_earnings\": 842000,\n    \"formatted_total_earnings\": \"₹8,42,000\",\n    \"stories_count\": 5,\n    \"status\": \"active\",\n    \"is_verified\": true,\n    \"monthly_history\": [\n      {\n        \"month\": \"2026-09\",\n        \"amount\": 842000,\n        \"formatted_amount\": \"₹8,42,000\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Creator Revenue Share",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rev_share_percentage\": 75\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-share/1015",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-share",
+                "1015"
+              ]
+            },
+            "description": "Update creator individual revenue share percentage (0-100). Accepts `rev_share_percentage` or `rev_share`."
+          },
+          "response": [
+            {
+              "name": "200 OK — Revenue Share Updated",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rev_share_percentage\": 75\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/revenue-share/1015",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "revenue-share",
+                    "1015"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Creator revenue share updated successfully.\",\n  \"data\": {\n    \"id\": 1015,\n    \"name\": \"Meera Iyer\",\n    \"rev_share\": 75,\n    \"rev_share_percentage\": 75,\n    \"formatted_rev_share\": \"75%\",\n    \"platform_share\": 25,\n    \"formatted_platform_share\": \"25%\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Reset Creator Revenue Share to Default",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-share/1015/reset",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-share",
+                "1015",
+                "reset"
+              ]
+            },
+            "description": "Reset creator individual revenue share back to NULL so that creator uses platform default."
+          },
+          "response": [
+            {
+              "name": "200 OK — Reset to Default",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/revenue-share/1015/reset",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "revenue-share",
+                    "1015",
+                    "reset"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Creator revenue share reset to platform default successfully.\",\n  \"data\": {\n    \"id\": 1015,\n    \"name\": \"Meera Iyer\",\n    \"rev_share\": 70,\n    \"rev_share_percentage\": 70,\n    \"is_custom_rev_share\": false,\n    \"formatted_rev_share\": \"70%\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Platform Default Revenue Share Setting",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-share/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-share",
+                "settings"
+              ]
+            },
+            "description": "Get current system-wide default revenue share percentage split (e.g. 70% creator / 30% platform)."
+          },
+          "response": [
+            {
+              "name": "200 OK — Global Setting",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/revenue-share/settings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "revenue-share",
+                    "settings"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Platform default revenue share setting fetched successfully.\",\n  \"data\": {\n    \"key\": \"writer_revenue_share_percentage\",\n    \"default_rev_share\": 70,\n    \"formatted_default_rev_share\": \"70%\",\n    \"creator_split\": 70,\n    \"platform_split\": 30\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Platform Default Revenue Share Setting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rev_share_percentage\": 70\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-share/settings",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-share",
+                "settings"
+              ]
+            },
+            "description": "Update system-wide default revenue share percentage split applied to all creators."
+          },
+          "response": [
+            {
+              "name": "200 OK — Global Setting Updated",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rev_share_percentage\": 70\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/revenue-share/settings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "revenue-share",
+                    "settings"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"message\": \"Platform default revenue share setting updated successfully.\",\n  \"data\": {\n    \"key\": \"writer_revenue_share_percentage\",\n    \"default_rev_share\": 70,\n    \"formatted_default_rev_share\": \"70%\",\n    \"creator_split\": 70,\n    \"platform_split\": 30\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Export Revenue Share List (CSV)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-share/export?format=csv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-share",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "csv",
+                  "description": "csv | json"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Optional search filter",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "all | active | inactive",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Export creator revenue share report as a downloadable CSV or JSON file."
+          },
+          "response": [
+            {
+              "name": "200 OK — CSV File Download",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/revenue-share/export?format=csv",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "revenue-share",
+                    "export"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "text/csv"
+                },
+                {
+                  "key": "Content-Disposition",
+                  "value": "attachment; filename=\"rozfm_revenue_shares.csv\""
+                }
+              ],
+              "body": "User ID,Name,Email,Phone,Rev Share,This Month (INR),Total Revenue (INR),Status,Joined Date\n1018,\"Sanya Bose\",\"sanya.bose@rozfm.com\",\"+919988776658\",\"72%\",\"₹12,90,000\",\"₹12,90,000\",\"active\",\"2026-09-23\"\n1015,\"Meera Iyer\",\"meera.iyer@rozfm.com\",\"+919988776655\",\"70%\",\"₹8,42,000\",\"₹8,42,000\",\"active\",\"2026-09-23\"\n1016,\"Aman Kapoor\",\"aman.kapoor@rozfm.com\",\"+919988776656\",\"65%\",\"₹3,10,500\",\"₹3,10,500\",\"active\",\"2026-09-23\"\n1017,\"Rhea Verma\",\"rhea.verma@rozfm.com\",\"+919988776657\",\"60%\",\"₹58,200\",\"₹58,200\",\"active\",\"2026-09-23\"\n1019,\"Ishaan Gill\",\"ishaan.gill@rozfm.com\",\"+919988776659\",\"55%\",\"₹14,000\",\"₹14,000\",\"active\",\"2026-09-23\""
+            }
+          ]
         }
       ]
     }

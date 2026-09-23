@@ -20,6 +20,7 @@ const AdminWithdrawalController = require('../controllers/admin/withdrawalContro
 const AdminCreatorAnalyticsController = require('../controllers/admin/creatorAnalyticsController');
 const AdminCreatorWithdrawalController = require('../controllers/admin/creatorWithdrawalController');
 const AdminPublishedStoriesController = require('../controllers/admin/publishedStoriesController');
+const AdminRevenueShareController = require('../controllers/admin/revenueShareController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -197,5 +198,18 @@ router.get('/published-stories/:id', AdminPublishedStoriesController.show);
 // ── 17. Pending Stories (is_approved = Pending) ──────────────────────────────
 router.get('/pending-stories', AdminPublishedStoriesController.pendingStories);
 router.get('/pending-stories/:id', AdminPublishedStoriesController.show);
+
+// ── 18. Revenue Share Management (Per-creator revenue split) ───────────────────
+router.get('/revenue-shares', AdminRevenueShareController.index);
+router.get('/revenue-share', AdminRevenueShareController.index);
+router.get('/revenue-share/export', AdminRevenueShareController.exportData);
+router.get('/revenue-shares/export', AdminRevenueShareController.exportData);
+router.get('/revenue-share/settings', AdminRevenueShareController.getGlobalSetting);
+router.post('/revenue-share/settings', AdminRevenueShareController.updateGlobalSetting);
+router.put('/revenue-share/settings', AdminRevenueShareController.updateGlobalSetting);
+router.get('/revenue-share/:id', AdminRevenueShareController.show);
+router.put('/revenue-share/:id', AdminRevenueShareController.update);
+router.post('/revenue-share/:id', AdminRevenueShareController.update);
+router.delete('/revenue-share/:id/reset', AdminRevenueShareController.resetToDefault);
 
 module.exports = router;
