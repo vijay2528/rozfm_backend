@@ -96,20 +96,27 @@ class AdRewardController {
    * Called after a user watches one or more ads.
    *
    * Request body:
-   *   ads_count  : number  — how many ads were watched (e.g. 1, 2, 3)
-   *   ad_type    : string  — optional label for the ad type (e.g. 'rewarded', 'interstitial')
-   *   reference_id: string — optional ad network transaction/impression ID for deduplication
+   *   episode_id  : number  — optional ID of an episode. If provided:
+   *                           - ads_count is automatically set to 1
+   *                           - coins awarded are fetched from the episode table (coins column)
+   *   ads_count   : number  — how many ads were watched (e.g. 1, 2, 3), required when episode_id is null/empty
+   *   ad_type     : string  — optional label for the ad type (e.g. 'rewarded', 'interstitial')
+   *   reference_id: string  — optional ad network transaction/impression ID for deduplication
    *
    * Logic:
-   *   1. Read coins_per_ad from settings (default 10)
+   *   1. If episode_id is provided and non-empty:
+   *        - ads_count is considered 1
+   *        - Fetch coins from episodes table
+   *      Else (episode_id is null or empty):
+   *        - Validate ads_count (must be >= 1, integer)
+   *        - Read coins_per_ad from settings (default 10)
    *   2. Read max_ads_per_day from settings (default 10)
-   *   3. Validate ads_count (must be >= 1, integer)
-   *   4. Check how many ads the user has already watched today
-   *   5. Cap ads_count so they don't exceed the daily limit
-   *   6. Compute total_coins = effective_ads_count * coins_per_ad
-   *   7. Credit wallet_balance on the users table
-   *   8. Insert one coin_transactions row per ad (type = 'ad_reward')
-   *   9. Return new wallet balance + coins earned
+   *   3. Check how many ads the user has already watched today
+   *   4. Cap ads_count so they don't exceed the daily limit
+   *   5. Compute total_coins = effective_ads_count * coins_per_ad
+   *   6. Credit wallet_balance on the users table
+   *   7. Insert one coin_transactions row per ad (type = 'ad_reward')
+   *   8. Return new wallet balance + coins earned
    */
   static async watch(req, res) {
     try {
@@ -118,19 +125,53 @@ class AdRewardController {
         ads_count,
         ad_type = 'rewarded',
         reference_id = null,
+        episode_id = null,
       } = req.body;
 
-      // ── 1. Validate ads_count ────────────────────────────────────────────────
-      const adsCountRaw = parseInt(ads_count, 10);
-      if (!ads_count || isNaN(adsCountRaw) || adsCountRaw < 1) {
-        return ApiResponse.error(res, 'ads_count must be a positive integer (e.g. 1, 2, 3).', 422);
+      const hasEpisode = episode_id !== undefined && episode_id !== null && String(episode_id).trim() !== '';
+
+      let adsCountRaw;
+      let coinsPerAd;
+      let episode = null;
+
+      if (hasEpisode) {
+        // If episode_id is coming, consider ads_count = 1
+        adsCountRaw = 1;
+
+        const epId = parseInt(episode_id, 10);
+        if (isNaN(epId) || epId <= 0) {
+          return ApiResponse.error(res, 'Invalid episode_id provided.', 422);
+        }
+
+        const [epRows] = await pool.query(
+          'SELECT id, title, position, coins, story_id FROM episodes WHERE id = ? LIMIT 1',
+          [epId]
+        );
+
+        if (!epRows || epRows.length === 0) {
+          return ApiResponse.error(res, 'Episode not found.', 404);
+        }
+
+        episode = epRows[0];
+        const epCoins = Number(episode.coins);
+        // Get coins from episode table, fallback to settings if not specified or 0
+        if (!isNaN(epCoins) && epCoins > 0) {
+          coinsPerAd = epCoins;
+        } else {
+          coinsPerAd = await getSetting('coins_per_ad', DEFAULT_COINS_PER_AD);
+        }
+      } else {
+        // ── Existing functionality when episode_id is null or empty ───────────
+        adsCountRaw = parseInt(ads_count, 10);
+        if (!ads_count || isNaN(adsCountRaw) || adsCountRaw < 1) {
+          return ApiResponse.error(res, 'ads_count must be a positive integer (e.g. 1, 2, 3).', 422);
+        }
+
+        coinsPerAd = await getSetting('coins_per_ad', DEFAULT_COINS_PER_AD);
       }
 
-      // ── 2. Read settings ─────────────────────────────────────────────────────
-      const [coinsPerAd, maxAdsPerDay] = await Promise.all([
-        getSetting('coins_per_ad', DEFAULT_COINS_PER_AD),
-        getSetting('max_ads_per_day', DEFAULT_MAX_ADS_PER_DAY),
-      ]);
+      // ── 2. Read max_ads_per_day setting ──────────────────────────────────────
+      const maxAdsPerDay = await getSetting('max_ads_per_day', DEFAULT_MAX_ADS_PER_DAY);
 
       // ── 3. Check daily ad count for this user ────────────────────────────────
       const [[{ adCountToday }]] = await pool.query(
@@ -155,7 +196,7 @@ class AdRewardController {
       const totalCoins = effectiveAdsCount * coinsPerAd;
 
       if (totalCoins <= 0) {
-        return ApiResponse.error(res, 'No coins to award. Check settings configuration.', 422);
+        return ApiResponse.error(res, 'No coins to award. Check settings or episode configuration.', 422);
       }
 
       // ── 5. DB Transaction: credit wallet + insert coin_transactions rows ─────
@@ -172,7 +213,9 @@ class AdRewardController {
         // Insert one coin_transaction row per ad watched
         for (let i = 0; i < effectiveAdsCount; i++) {
           const adIndex = adsAlreadyWatched + i + 1; // e.g. Ad #3 of 10 today
-          const description = `Ad Reward — ${ad_type} ad #${adIndex} watched`;
+          const description = episode
+            ? `Ad Reward — ${ad_type} ad watched for Episode #${episode.position || episode.id}: ${episode.title}`
+            : `Ad Reward — ${ad_type} ad #${adIndex} watched`;
           const refId = effectiveAdsCount === 1
             ? (reference_id || null)
             : (reference_id ? `${reference_id}_${i + 1}` : null);
@@ -202,6 +245,11 @@ class AdRewardController {
       const totalAdsWatchedToday = adsAlreadyWatched + effectiveAdsCount;
 
       return ApiResponse.success(res, {
+        ...(episode ? {
+          episode_id: Number(episode.id),
+          episode_title: episode.title,
+          episode_position: Number(episode.position || 1),
+        } : {}),
         // Coins earned this request
         ads_watched: effectiveAdsCount,
         coins_per_ad: coinsPerAd,
@@ -217,7 +265,7 @@ class AdRewardController {
         ads_remaining_today: Math.max(0, maxAdsPerDay - totalAdsWatchedToday),
         max_ads_per_day: maxAdsPerDay,
         daily_limit_reached: totalAdsWatchedToday >= maxAdsPerDay,
-      }, `${totalCoins} coins credited for watching ${effectiveAdsCount} ad${effectiveAdsCount > 1 ? 's' : ''}.`);
+      }, `${totalCoins} coins credited for watching ${effectiveAdsCount} ad${effectiveAdsCount > 1 ? 's' : ''}${episode ? ` (Episode #${episode.position || episode.id})` : ''}.`);
     } catch (error) {
       console.error('Ad Watch Reward Error:', error);
       return ApiResponse.error(res, 'Failed to process ad reward.', 500);

@@ -3955,7 +3955,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ads_count\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_impression_abc123\"\n}",
+              "raw": "{\n  \"ads_count\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_impression_abc123\",\n  \"episode_id\": null\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -3963,7 +3963,29 @@
               "host": ["{{base_url}}"],
               "path": ["ads", "watch"]
             },
-            "description": "Called after a user finishes watching one or more ads. Awards coins and records each ad in `coin_transactions`.\n\n**Request body:**\n- `ads_count` *(required)* — number of ads watched in this request (e.g. `1`, `2`, `3`)\n- `ad_type` *(optional)* — ad network type label: `rewarded`, `interstitial`, `banner` (default: `rewarded`)\n- `reference_id` *(optional)* — ad network impression ID for deduplication / reconciliation\n\n**Coin calculation:**\n```\ntotal_coins = ads_count × coins_per_ad   (from settings table)\n```\n\n**Safety:**\n- If `ads_count` exceeds the remaining daily quota, it is automatically capped\n- Returns `ads_skipped` count and `skipped_reason` when capping occurs\n- Returns HTTP 429 if daily limit is already fully exhausted\n\n**Response fields:**\n- `ads_watched` — effective ads counted (may be less than requested)\n- `coins_per_ad` — coins per ad from settings\n- `coins_earned` — total coins credited this request\n- `wallet_balance` — new wallet balance after crediting\n- `ads_watched_today` / `ads_remaining_today` — daily progress\n- `daily_limit_reached` — boolean\n\n**coin_transactions row inserted (per ad):**\n```json\n{ \"type\": \"ad_reward\", \"coins\": 10, \"description\": \"Ad Reward — rewarded ad #1 watched\" }\n```"
+            "description": "Called after a user finishes watching one or more ads. Awards coins and records each ad in `coin_transactions`.\n\n**Request body:**\n- `episode_id` *(optional)* — ID of the episode. When provided (non-null/non-empty), `ads_count` is automatically considered `1` and coins are awarded from the `episodes` table.\n- `ads_count` *(required if episode_id is null/empty)* — number of ads watched in this request (e.g. `1`, `2`, `3`)\n- `ad_type` *(optional)* — ad network type label: `rewarded`, `interstitial`, `banner` (default: `rewarded`)\n- `reference_id` *(optional)* — ad network impression ID for deduplication / reconciliation\n\n**Coin calculation:**\n```\n// If episode_id is passed:\ntotal_coins = 1 × episode.coins (from episodes table)\n\n// If episode_id is null or empty:\ntotal_coins = ads_count × coins_per_ad (from settings table)\n```\n\n**Safety:**\n- If `ads_count` exceeds the remaining daily quota, it is automatically capped\n- Returns `ads_skipped` count and `skipped_reason` when capping occurs\n- Returns HTTP 429 if daily limit is already fully exhausted\n\n**Response fields:**\n- `episode_id`, `episode_title`, `episode_position` — included when `episode_id` is supplied\n- `ads_watched` — effective ads counted (may be less than requested)\n- `coins_per_ad` — coins awarded per ad (from episode or settings)\n- `coins_earned` — total coins credited this request\n- `wallet_balance` — new wallet balance after crediting\n- `ads_watched_today` / `ads_remaining_today` — daily progress\n- `daily_limit_reached` — boolean\n\n**coin_transactions row inserted (per ad):**\n```json\n{ \"type\": \"ad_reward\", \"coins\": 10, \"description\": \"Ad Reward — rewarded ad #1 watched\" }\n```"
+          }
+        },
+        {
+          "name": "Watch Ad for Episode (Episode Coins)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"episode_id\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_episode_1\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/ads/watch",
+              "host": ["{{base_url}}"],
+              "path": ["ads", "watch"]
+            },
+            "description": "Watch an ad for a specific episode. When `episode_id` is passed, `ads_count` is automatically considered 1 and coins are awarded based on `coins` in the `episodes` table."
           }
         },
         {
