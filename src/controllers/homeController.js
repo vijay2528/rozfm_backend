@@ -442,9 +442,9 @@ class HomeController {
       // Construct final response payload using Title Case section names
       return ApiResponse.success(res, {
         'Continue Listening': continueListening,
+        'New Releases': newReleases,
         'Recommended for You': recommendedForYou,
         'Trending': trending,
-        'New Releases': newReleases,
         'Top 10': top10,
         'Updated Today': updatedToday,
         'Because You Listened': becauseYouListened,

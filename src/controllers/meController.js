@@ -26,7 +26,7 @@ class MeController {
       const currentUser = req.user;
       const data = req.body;
 
-      const allowedFields = ['name', 'phone', 'username', 'bio', 'country', 'state', 'city', 'age_group', 'gender', 'email', 'locale', 'instagram_link', 'youtube_link', 'facebook_link'];
+      const allowedFields = ['name', 'phone', 'username', 'bio', 'about', 'country', 'state', 'city', 'age_group', 'gender', 'email', 'locale', 'instagram_link', 'youtube_link', 'facebook_link'];
       const updateFields = [];
       const queryParams = [];
 
@@ -52,7 +52,7 @@ class MeController {
             }
           }
 
-          updateFields.push(`\`${field}\` = ?`);
+          updateFields.push(`\`${field === 'about' ? 'bio' : field}\` = ?`);
           queryParams.push(field === 'email' ? data.email.toLowerCase() : data[field]);
         }
       }

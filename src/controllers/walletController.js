@@ -4,10 +4,35 @@ const ApiResponse = require('../utils/apiResponse');
 class WalletController {
   static async show(req, res) {
     try {
-      const [userRows] = await pool.query('SELECT wallet_balance FROM users WHERE id = ? LIMIT 1', [req.user.id]);
+      const userId = req.user.id;
+
+      const [userRows] = await pool.query('SELECT wallet_balance FROM users WHERE id = ? LIMIT 1', [userId]);
       const balance = Number(userRows[0]?.wallet_balance || 0);
 
-      return ApiResponse.success(res, { wallet_balance: balance });
+      // Aggregate spent and earned coins from coin_transactions
+      const debitTypes = ['spend', 'debit', 'unlock', 'withdrawal', 'spent', 'admin_debit'];
+      const [txRows] = await pool.query(
+        'SELECT type, coins FROM coin_transactions WHERE user_id = ?',
+        [userId]
+      );
+
+      let totalEarned = 0;
+      let totalSpent = 0;
+      txRows.forEach((tx) => {
+        const coinVal = Math.abs(Number(tx.coins || 0));
+        const isDebit = debitTypes.includes(String(tx.type || '').toLowerCase()) || Number(tx.coins || 0) < 0;
+        if (isDebit) {
+          totalSpent += coinVal;
+        } else {
+          totalEarned += coinVal;
+        }
+      });
+
+      return ApiResponse.success(res, {
+        wallet_balance: balance,
+        total_earned_coins: totalEarned,
+        total_spent_coins: totalSpent,
+      });
     } catch (error) {
       console.error('Get Wallet Error:', error);
       return ApiResponse.error(res, 'Failed to fetch wallet details.', 500);

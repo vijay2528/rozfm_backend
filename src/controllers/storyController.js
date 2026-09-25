@@ -139,7 +139,9 @@ class StoryController {
 
       const [storyRows] = await pool.query(
         `SELECT s.*, c.category_name, u.name as author_name,
-                (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
+                (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count,
+                (SELECT COUNT(*) FROM reviews rv WHERE rv.story_id = s.id) as total_reviews,
+                (SELECT COALESCE(AVG(rv2.rating), 0) FROM reviews rv2 WHERE rv2.story_id = s.id AND rv2.rating > 0) as average_rating
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
@@ -157,6 +159,7 @@ class StoryController {
       let isBookmarked = false;
       let userUnlockedEpisodeIds = new Set();
       let hasActiveMembership = false;
+      let isAuthorFollowed = false;
 
       if (userId) {
         const [subRows] = await pool.query(
@@ -193,6 +196,15 @@ class StoryController {
             userUnlockedEpisodeIds.add(String(u.episode_id));
           }
         });
+
+        // Check if the current user follows the story's author
+        if (story.user_id && userId !== story.user_id) {
+          const [followRow] = await pool.query(
+            'SELECT id FROM user_follows WHERE follower_id = ? AND following_id = ? LIMIT 1',
+            [userId, story.user_id]
+          );
+          isAuthorFollowed = followRow.length > 0;
+        }
       }
 
       // Fetch user's last watched history for this story
@@ -351,6 +363,10 @@ class StoryController {
         last_watched_at: lastWatchedHistory.last_watched_at ? new Date(lastWatchedHistory.last_watched_at).toISOString() : null,
       } : null;
 
+      const totalReviews = Number(story.total_reviews || 0);
+      const averageRating = parseFloat(Number(story.average_rating || 0).toFixed(2));
+      const totalLikes = Number(story.likes_count || 0);
+
       const result = toStoryFieldsArray(story, {
         isLiked,
         isBookmarked,
@@ -362,6 +378,12 @@ class StoryController {
         avgListeningTime,
         watchHistory: watchHistorySummary,
       });
+
+      // Attach extra review / like / author-follow fields
+      result.total_reviews = totalReviews;
+      result.average_rating = averageRating;
+      result.total_likes = totalLikes;
+      result.is_author_followed = isAuthorFollowed;
 
       // next_episode_number: last watched episode's episode_number + 1, or 1 if no history
       result.next_episode_number = lastWatchedHistory

@@ -98,6 +98,7 @@ function toProfileFieldsArray(user, extra = {}) {
     profile_image: profileImage,
     avatar_path: profileImage,
     bio: user.bio || null,
+    about: user.bio || null,
     is_verified: Boolean(user.is_verified),
     country: user.country || null,
     state: user.state || null,
