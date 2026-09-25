@@ -21,6 +21,7 @@ const AdminCreatorAnalyticsController = require('../controllers/admin/creatorAna
 const AdminCreatorWithdrawalController = require('../controllers/admin/creatorWithdrawalController');
 const AdminPublishedStoriesController = require('../controllers/admin/publishedStoriesController');
 const AdminRevenueShareController = require('../controllers/admin/revenueShareController');
+const AdminAdRewardSettingsController = require('../controllers/admin/adRewardSettingsController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -190,6 +191,13 @@ router.post('/withdrawals/:id', AdminWithdrawalController.processWithdrawal);
 router.post('/withdrawals/:id/action', AdminWithdrawalController.processWithdrawal);
 router.put('/withdrawals/:id/action', AdminWithdrawalController.processWithdrawal);
 router.delete('/withdrawals/:id', AdminWithdrawalController.destroy);
+
+// ── 19. Ad Reward Settings ─────────────────────────────────────────────────
+router.get('/ad-reward-settings', AdminAdRewardSettingsController.getSettings);
+router.put('/ad-reward-settings', AdminAdRewardSettingsController.updateSettings);
+router.post('/ad-reward-settings', AdminAdRewardSettingsController.updateSettings);
+router.get('/ad-reward-settings/stats', AdminAdRewardSettingsController.getStats);
+router.post('/ad-reward-settings/reset-defaults', AdminAdRewardSettingsController.resetDefaults);
 
 // ── 16. Published Stories (is_approved = Approved) ───────────────────────────
 router.get('/published-stories', AdminPublishedStoriesController.index);

@@ -108,7 +108,6 @@ class UserController {
         stories_completed: Number(completed_stories || 0),
         lifetime_spend: `₹${Number(lifetime_spend || 0).toLocaleString()}`,
         phone: user.phone || 'Not provided',
-        website: user.website || 'Not provided',
         locale: user.locale || 'en-US',
         role: user.role || 'Listener',
       };
@@ -222,7 +221,6 @@ class UserController {
           name: user.name,
           email: user.email,
           phone: user.phone || 'Not provided',
-          website: user.website || 'Not provided',
           locale: user.locale || 'en-US',
           role: user.role || 'Listener',
           subscription_type: user.subscription_type || 'Free',
