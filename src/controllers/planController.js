@@ -7,16 +7,10 @@ class PlanController {
       let rows = [];
 
       try {
-        const [resRows] = await pool.query('SELECT * FROM purchase_plans WHERE is_active = 1 ORDER BY price ASC');
+        const [resRows] = await pool.query('SELECT * FROM purchase_plans');
         rows = resRows;
-      } catch (err1) {
-        try {
-          const [resRows] = await pool.query('SELECT * FROM purchase_plans WHERE status = 1 ORDER BY price ASC');
-          rows = resRows;
-        } catch (err2) {
-          const [resRows] = await pool.query('SELECT * FROM purchase_plans ORDER BY price ASC');
-          rows = resRows;
-        }
+      } catch (err) {
+        rows = [];
       }
 
       let plans = (rows || [])
@@ -25,29 +19,36 @@ class PlanController {
             return p.is_active == 1 || p.is_active === true;
           }
           if (p.status !== undefined && p.status !== null) {
-            return p.status == 1 || p.status === true;
+            return p.status == 1 || p.status === true || String(p.status).toLowerCase() === 'active';
           }
           return true;
         })
         .map((p) => {
           const priceVal = p.price !== undefined && p.price !== null
             ? Number(p.price)
-            : (p.amount !== undefined && p.amount !== null ? Number(p.amount) : 0);
+            : (p.amount !== undefined && p.amount !== null
+                ? Number(p.amount)
+                : (p.monthly_amount !== undefined && p.monthly_amount !== null
+                    ? Number(p.monthly_amount)
+                    : (p.yearly_amount !== undefined && p.yearly_amount !== null ? Number(p.yearly_amount) : 0)));
 
           return {
             id: Number(p.id),
-            name: p.name,
+            name: p.name || 'Subscription Plan',
             coins: Number(p.coins || 0),
             bonus_coins: Number(p.bonus_coins || 0),
             price: priceVal,
             amount: priceVal,
+            monthly_amount: p.monthly_amount !== undefined && p.monthly_amount !== null ? Number(p.monthly_amount) : null,
+            yearly_amount: p.yearly_amount !== undefined && p.yearly_amount !== null ? Number(p.yearly_amount) : null,
             currency: p.currency || 'INR',
             badge_text: p.badge_text || null,
             is_popular: Boolean(p.is_popular),
-            is_active: p.is_active !== undefined ? Boolean(p.is_active) : (p.status !== undefined ? Boolean(p.status) : true),
-            status: p.status !== undefined ? (p.status == 1 ? 1 : 0) : (p.is_active !== undefined ? (p.is_active == 1 ? 1 : 0) : 1),
+            is_active: p.is_active !== undefined ? Boolean(p.is_active) : (p.status !== undefined ? (p.status == 1 || String(p.status).toLowerCase() === 'active') : true),
+            status: p.status !== undefined ? (p.status == 1 || String(p.status).toLowerCase() === 'active' ? 1 : 0) : 1,
           };
-        });
+        })
+        .sort((a, b) => a.price - b.price);
 
       if (plans.length === 0) {
         plans = [
@@ -66,4 +67,5 @@ class PlanController {
 }
 
 module.exports = PlanController;
+
 
