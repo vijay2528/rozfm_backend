@@ -4083,6 +4083,28 @@
           }
         },
         {
+          "name": "Watch Ad via Ad Reward Settings Route",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"option_id\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_impression_abc123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-reward-settings/watch",
+              "host": ["{{base_url}}"],
+              "path": ["ad-reward-settings", "watch"]
+            },
+            "description": "Alias watch ad endpoint using `{{base_url}}/ad-reward-settings/watch` path. Called after a user finishes watching an ad for a reward option/tier or episode. Awards coins, credits wallet, and returns full updated status data for the 'Watch Ads to Earn' screen.\n\n**Request body parameters:**\n- `option_id` / `tier_id` *(optional)* — ID of the reward option/tier selected (1, 2, 3, 4)\n- `ads_count` *(optional)* — number of ads watched (default: 1)\n- `episode_id` *(optional)* — ID of episode if watching for episode unlock\n- `ad_type` *(optional)* — ad network type label (default: `rewarded`)\n- `reference_id` *(optional)* — ad network impression ID for deduplication"
+          }
+        },
+        {
           "name": "Get Ad Reward History",
           "request": {
             "method": "GET",
