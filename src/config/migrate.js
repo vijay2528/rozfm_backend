@@ -505,6 +505,33 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 25.1 Coin FAQs table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`coin_faqs\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`icon\` VARCHAR(100) DEFAULT 'wallet',
+        \`title\` VARCHAR(255) NOT NULL,
+        \`description\` TEXT NOT NULL,
+        \`question\` TEXT NULL,
+        \`answer\` TEXT NULL,
+        \`position\` INT DEFAULT 0,
+        \`status\` TINYINT(1) DEFAULT 1,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    const [coinFaqsCount] = await connection.query('SELECT COUNT(*) AS count FROM coin_faqs');
+    if (coinFaqsCount[0].count === 0) {
+      await connection.query(`
+        INSERT INTO coin_faqs (id, icon, title, description, question, answer, position, status) VALUES
+        (1, 'wallet', 'Earn Coins', 'Watch short reward ads, complete daily listening goals & maintain your streak to earn free coins.', 'How do I earn free coins?', 'You can earn free coins by watching short reward ads, completing daily listening goals, and maintaining your daily streaks.', 1, 1),
+        (2, 'shopping_bag', 'Buy Coin Packs', 'Purchase coin packs directly from My Store to get bonus coins instantly.', 'How do I buy coin packs?', 'You can purchase coin packs directly from My Store using secure payment options to get bonus coins instantly.', 2, 1),
+        (3, 'lock', 'Unlock Episodes', 'Use your earned or purchased coins to unlock exclusive premium audio episodes.', 'How do I unlock audio episodes?', 'Use your earned or purchased coins to unlock exclusive premium audio episodes.', 3, 1)
+      `);
+      console.log('🌱 Default coin FAQs seeded!');
+    }
+
     // Seed default roles if empty
     const [[{ roleCount }]] = await connection.query('SELECT COUNT(*) as roleCount FROM \`roles\`');
     if (roleCount === 0) {

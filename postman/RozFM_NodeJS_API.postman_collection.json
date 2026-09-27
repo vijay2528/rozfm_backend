@@ -1634,6 +1634,49 @@
           }
         },
         {
+          "name": "Get Coin FAQs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/coin-faqs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coin-faqs"
+              ]
+            },
+            "description": "Returns 'How Coins Work' guide and FAQs with icon, title, description, and Q&A details."
+          },
+          "response": [
+            {
+              "name": "200 OK — Coin FAQs",
+              "originalRequest": {
+                "method": "GET",
+                "url": {
+                  "raw": "{{base_url}}/coin-faqs",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "coin-faqs"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Coin FAQs fetched successfully.\",\n  \"data\": {\n    \"title\": \"How Coins Work?\",\n    \"button_text\": \"Got It!\",\n    \"items\": [\n      {\n        \"id\": 1,\n        \"icon\": \"wallet\",\n        \"title\": \"Earn Coins\",\n        \"description\": \"Watch short reward ads, complete daily listening goals & maintain your streak to earn free coins.\"\n      },\n      {\n        \"id\": 2,\n        \"icon\": \"shopping_bag\",\n        \"title\": \"Buy Coin Packs\",\n        \"description\": \"Purchase coin packs directly from My Store to get bonus coins instantly.\"\n      },\n      {\n        \"id\": 3,\n        \"icon\": \"lock\",\n        \"title\": \"Unlock Episodes\",\n        \"description\": \"Use your earned or purchased coins to unlock exclusive premium audio episodes.\"\n      }\n    ],\n    \"faqs\": [\n      {\n        \"id\": 1,\n        \"question\": \"How do I earn free coins?\",\n        \"answer\": \"You can earn free coins by watching short reward ads, completing daily listening goals, and maintaining your daily streaks.\"\n      },\n      {\n        \"id\": 2,\n        \"question\": \"How do I buy coin packs?\",\n        \"answer\": \"You can purchase coin packs directly from My Store using secure payment options to get bonus coins instantly.\"\n      },\n      {\n        \"id\": 3,\n        \"question\": \"How do I unlock audio episodes?\",\n        \"answer\": \"Use your earned or purchased coins to unlock exclusive premium audio episodes.\"\n      },\n      {\n        \"id\": 4,\n        \"question\": \"Do my coins expire?\",\n        \"answer\": \"No, your earned and purchased coins remain in your wallet balance indefinitely.\"\n      }\n    ],\n    \"coin_faqs\": [\n      {\n        \"id\": 1,\n        \"icon\": \"wallet\",\n        \"title\": \"Earn Coins\",\n        \"description\": \"Watch short reward ads, complete daily listening goals & maintain your streak to earn free coins.\"\n      },\n      {\n        \"id\": 2,\n        \"icon\": \"shopping_bag\",\n        \"title\": \"Buy Coin Packs\",\n        \"description\": \"Purchase coin packs directly from My Store to get bonus coins instantly.\"\n      },\n      {\n        \"id\": 3,\n        \"icon\": \"lock\",\n        \"title\": \"Unlock Episodes\",\n        \"description\": \"Use your earned or purchased coins to unlock exclusive premium audio episodes.\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
           "name": "Purchase Coins",
           "request": {
             "method": "POST",

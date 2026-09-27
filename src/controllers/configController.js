@@ -85,6 +85,104 @@ class ConfigController {
     }
   }
 
+  static async coinFaqs(req, res) {
+    try {
+      let dbRows = [];
+      try {
+        const [rows] = await pool.query(
+          'SELECT * FROM coin_faqs WHERE status = 1 ORDER BY position ASC, id ASC'
+        );
+        dbRows = rows;
+      } catch (err) {
+        // Fallback if table query fails
+      }
+
+      let items = [];
+      let faqs = [];
+
+      if (dbRows && dbRows.length > 0) {
+        items = dbRows.map((r) => ({
+          id: Number(r.id),
+          icon: r.icon || 'wallet',
+          title: r.title,
+          description: r.description,
+        }));
+
+        faqs = dbRows
+          .filter((r) => r.question && r.answer)
+          .map((r) => ({
+            id: Number(r.id),
+            question: r.question,
+            answer: r.answer,
+          }));
+      }
+
+      // Fallback defaults if DB returns empty
+      if (items.length === 0) {
+        items = [
+          {
+            id: 1,
+            icon: 'wallet',
+            title: 'Earn Coins',
+            description: 'Watch short reward ads, complete daily listening goals & maintain your streak to earn free coins.',
+          },
+          {
+            id: 2,
+            icon: 'shopping_bag',
+            title: 'Buy Coin Packs',
+            description: 'Purchase coin packs directly from My Store to get bonus coins instantly.',
+          },
+          {
+            id: 3,
+            icon: 'lock',
+            title: 'Unlock Episodes',
+            description: 'Use your earned or purchased coins to unlock exclusive premium audio episodes.',
+          },
+        ];
+      }
+
+      if (faqs.length === 0) {
+        faqs = [
+          {
+            id: 1,
+            question: 'How do I earn free coins?',
+            answer: 'You can earn free coins by watching short reward ads, completing daily listening goals, and maintaining your daily streaks.',
+          },
+          {
+            id: 2,
+            question: 'How do I buy coin packs?',
+            answer: 'You can purchase coin packs directly from My Store using secure payment options to get bonus coins instantly.',
+          },
+          {
+            id: 3,
+            question: 'How do I unlock audio episodes?',
+            answer: 'Use your earned or purchased coins to unlock exclusive premium audio episodes.',
+          },
+          {
+            id: 4,
+            question: 'Do my coins expire?',
+            answer: 'No, your earned and purchased coins remain in your wallet balance indefinitely.',
+          },
+        ];
+      }
+
+      return ApiResponse.success(
+        res,
+        {
+          title: 'How Coins Work?',
+          button_text: 'Got It!',
+          items,
+          faqs,
+          coin_faqs: items,
+        },
+        'Coin FAQs fetched successfully.'
+      );
+    } catch (error) {
+      console.error('Coin FAQs Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch coin FAQs.', 500);
+    }
+  }
+
   static async legalCopyright(req, res) {
     return ApiResponse.success(res, {
       title: 'Copyright Policy',

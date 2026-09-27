@@ -45,17 +45,23 @@ class SubscriptionController {
 
       const activeSub = rows && rows.length > 0 ? rows[0] : null;
 
+      const rawAmount = activeSub
+        ? (activeSub.amount !== undefined && activeSub.amount !== null ? activeSub.amount : activeSub.price)
+        : null;
+      const numAmount = rawAmount !== undefined && rawAmount !== null ? Number(rawAmount) : null;
+
       const activeSubscription = activeSub
         ? {
-          id: Number(activeSub.id),
-          plan_id: activeSub.plan_id ? Number(activeSub.plan_id) : null,
-          plan_name: activeSub.plan_name || 'VIP Subscription',
-          price: activeSub.price ? Number(activeSub.price) : null,
-          status: activeSub.status || 'active',
-          is_active: activeSub.status === 'active',
-          starts_at: activeSub.starts_at ? new Date(activeSub.starts_at).toISOString() : null,
-          expires_at: activeSub.expires_at ? new Date(activeSub.expires_at).toISOString() : null,
-        }
+            id: Number(activeSub.id),
+            plan_id: activeSub.plan_id ? Number(activeSub.plan_id) : null,
+            plan_name: activeSub.plan_name || 'VIP Subscription',
+            amount: numAmount,
+            price: numAmount,
+            status: activeSub.status || 'active',
+            is_active: activeSub.status === 'active',
+            starts_at: activeSub.starts_at ? new Date(activeSub.starts_at).toISOString() : null,
+            expires_at: activeSub.expires_at ? new Date(activeSub.expires_at).toISOString() : null,
+          }
         : null;
 
       return ApiResponse.success(
@@ -87,7 +93,7 @@ class SubscriptionController {
       const durationDaysNum = parseInt(duration_days, 10) || 30;
 
       let planName = 'VIP Subscription';
-      let planPrice = null;
+      let planAmount = null;
 
       if (plan_id) {
         try {
@@ -97,9 +103,10 @@ class SubscriptionController {
           );
           if (planRows && planRows[0]) {
             planName = planRows[0].name || planName;
-            planPrice = planRows[0].price ? Number(planRows[0].price) : null;
+            const pVal = planRows[0].amount !== undefined && planRows[0].amount !== null ? planRows[0].amount : planRows[0].price;
+            planAmount = pVal !== undefined && pVal !== null ? Number(pVal) : null;
           }
-        } catch (_) { }
+        } catch (_) {}
       }
 
       const startsAt = new Date();
@@ -135,7 +142,8 @@ class SubscriptionController {
             id: result.insertId,
             plan_id: plan_id ? Number(plan_id) : null,
             plan_name: planName,
-            price: planPrice,
+            amount: planAmount,
+            price: planAmount,
             status: 'active',
             is_active: true,
             starts_at: startsAt.toISOString(),
