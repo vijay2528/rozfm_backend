@@ -97,29 +97,20 @@ class ConfigController {
         // Fallback if table query fails
       }
 
-      let items = [];
-      let faqs = [];
+      let coinFaqs = [];
 
       if (dbRows && dbRows.length > 0) {
-        items = dbRows.map((r) => ({
+        coinFaqs = dbRows.map((r) => ({
           id: Number(r.id),
           icon: r.icon || 'wallet',
           title: r.title,
           description: r.description,
         }));
-
-        faqs = dbRows
-          .filter((r) => r.question && r.answer)
-          .map((r) => ({
-            id: Number(r.id),
-            question: r.question,
-            answer: r.answer,
-          }));
       }
 
       // Fallback defaults if DB returns empty
-      if (items.length === 0) {
-        items = [
+      if (coinFaqs.length === 0) {
+        coinFaqs = [
           {
             id: 1,
             icon: 'wallet',
@@ -141,39 +132,10 @@ class ConfigController {
         ];
       }
 
-      if (faqs.length === 0) {
-        faqs = [
-          {
-            id: 1,
-            question: 'How do I earn free coins?',
-            answer: 'You can earn free coins by watching short reward ads, completing daily listening goals, and maintaining your daily streaks.',
-          },
-          {
-            id: 2,
-            question: 'How do I buy coin packs?',
-            answer: 'You can purchase coin packs directly from My Store using secure payment options to get bonus coins instantly.',
-          },
-          {
-            id: 3,
-            question: 'How do I unlock audio episodes?',
-            answer: 'Use your earned or purchased coins to unlock exclusive premium audio episodes.',
-          },
-          {
-            id: 4,
-            question: 'Do my coins expire?',
-            answer: 'No, your earned and purchased coins remain in your wallet balance indefinitely.',
-          },
-        ];
-      }
-
       return ApiResponse.success(
         res,
         {
-          title: 'How Coins Work?',
-          button_text: 'Got It!',
-          items,
-          faqs,
-          coin_faqs: items,
+          coin_faqs: coinFaqs,
         },
         'Coin FAQs fetched successfully.'
       );
