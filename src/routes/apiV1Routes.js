@@ -33,6 +33,7 @@ const WriterEarningsController = require('../controllers/writerEarningsControlle
 const TrendingController = require('../controllers/trendingController');
 const EpisodeAnalyticsController = require('../controllers/episodeAnalyticsController');
 const AdRewardController = require('../controllers/adRewardController');
+const AdminAdRewardSettingsController = require('../controllers/admin/adRewardSettingsController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -146,6 +147,8 @@ router.get('/analytics/stories/:storyId/episodes', EpisodeAnalyticsController.in
 router.get('/ads/reward-config', AdRewardController.config);
 router.post('/ads/watch', AdRewardController.watch);
 router.get('/ads/history', AdRewardController.history);
+router.get('/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);
+router.get('/admin/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);
 
 
 // Notifications API

@@ -1,44 +1,37 @@
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
 
-// ── Helper: Read a single setting value ────────────────────────────────────
-async function getSetting(key, fallback = null) {
-  const [[row]] = await pool.query(
-    'SELECT `value` FROM settings WHERE `key` = ? LIMIT 1',
-    [key]
-  );
-  if (row && row.value !== null && row.value !== '') {
-    return row.value;
-  }
-  return fallback !== null ? String(fallback) : null;
-}
+// ── Helper: Format date to ISO string with timezone offset (+05:30) ────────
+function formatIsoTime(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
 
-// ── Helper: Upsert a setting key ───────────────────────────────────────────
-async function upsertSetting(key, value) {
-  await pool.query(
-    `INSERT INTO settings (\`key\`, \`value\`) VALUES (?, ?)
-     ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`), updated_at = NOW()`,
-    [key, String(value)]
-  );
+  const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, '0');
+  const tzOffset = -d.getTimezoneOffset();
+  const diffSign = tzOffset >= 0 ? '+' : '-';
+  const offsetHours = pad(tzOffset / 60);
+  const offsetMins = pad(tzOffset % 60);
+
+  const year = d.getFullYear();
+  const month = pad(d.getMonth() + 1);
+  const day = pad(d.getDate());
+  const hours = pad(d.getHours());
+  const minutes = pad(d.getMinutes());
+  const seconds = pad(d.getSeconds());
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${diffSign}${offsetHours}:${offsetMins}`;
 }
 
 class AdminAdRewardSettingsController {
   /**
    * GET /api/v1/admin/ad-reward-settings
    *
-   * Returns current ad reward configuration used by the app.
-   * Includes:
-   *   - coins_per_ad          : coins awarded per single ad watch
-   *   - max_ads_per_day       : max number of ad reward transactions per day per user
-   *   - daily_reset_hour      : UTC hour at which the daily limit resets (0-23, default 0)
-   *   - ad_reward_enabled     : master on/off switch (1 or 0)
-   *   - ad_reward_tiers       : JSON array of tier objects [{ ads_count, coins, label }]
-   *   - instant_reward        : whether rewards are applied instantly (1 or 0)
-   *   - no_limit_mode         : when 1, the max_ads_per_day cap is removed
+   * Returns current ad reward options, daily ad status, wallet coins and limit messages.
    */
   static async getSettings(req, res) {
     try {
-      // Fetch all ad reward related keys in one query
+      // Fetch all ad reward related keys from settings table
       const [rows] = await pool.query(
         `SELECT \`key\`, \`value\` FROM settings
          WHERE \`key\` IN (
@@ -52,29 +45,173 @@ class AdminAdRewardSettingsController {
          )`
       );
 
-      // Build map
       const map = {};
       rows.forEach((r) => { map[r.key] = r.value; });
 
+      const coinsPerAd = parseFloat(map.coins_per_ad ?? '1');
+      const maxAdsPerDay = parseInt(map.max_ads_per_day ?? '20', 10);
+      const dailyResetHour = parseInt(map.daily_reset_hour ?? '0', 10);
+      const adRewardEnabled = (map.ad_reward_enabled ?? '1') === '1';
+
       // Parse tiers JSON safely
-      let tiers = [];
+      let rawTiers = [];
       try {
-        tiers = map.ad_reward_tiers ? JSON.parse(map.ad_reward_tiers) : AdminAdRewardSettingsController._defaultTiers();
+        rawTiers = map.ad_reward_tiers ? JSON.parse(map.ad_reward_tiers) : AdminAdRewardSettingsController._defaultTiers();
       } catch (_) {
-        tiers = AdminAdRewardSettingsController._defaultTiers();
+        rawTiers = AdminAdRewardSettingsController._defaultTiers();
+      }
+      if (!Array.isArray(rawTiers) || rawTiers.length === 0) {
+        rawTiers = AdminAdRewardSettingsController._defaultTiers();
       }
 
-      const settings = {
-        coins_per_ad:       parseFloat(map.coins_per_ad       ?? '1'),
-        max_ads_per_day:    parseInt(map.max_ads_per_day       ?? '10', 10),
-        daily_reset_hour:   parseInt(map.daily_reset_hour      ?? '0', 10),
-        ad_reward_enabled:  (map.ad_reward_enabled ?? '1') === '1',
-        instant_reward:     (map.instant_reward    ?? '1') === '1',
-        no_limit_mode:      (map.no_limit_mode     ?? '0') === '1',
-        ad_reward_tiers:    tiers,
+      // Normalize tiers to standard output structure
+      const tiers = rawTiers.map((t, idx) => {
+        const id = t.id ?? (idx + 1);
+        const adsRequired = Number(t.ads_required ?? t.ads_count ?? 1);
+        const rewardCoins = Number(t.reward_coins ?? t.coins ?? 1);
+        const title = t.title || t.label || `${rewardCoins} Coin${rewardCoins > 1 ? 's' : ''}`;
+        const description = t.description || t.subtitle || (adsRequired === 1 ? 'Per Ad' : `Watch ${adsRequired} ads`);
+        return {
+          id,
+          title,
+          description,
+          ads_required: adsRequired,
+          reward_coins: rewardCoins,
+        };
+      });
+
+      // Target user determination
+      const targetUserId = req.query.user_id || req.user?.id || null;
+      let walletCoins = 0;
+      let todayTxTimestamps = [];
+
+      if (targetUserId) {
+        const [[userRow]] = await pool.query(
+          'SELECT COALESCE(wallet_balance, 0) AS wallet_balance FROM users WHERE id = ? LIMIT 1',
+          [targetUserId]
+        );
+        if (userRow) {
+          walletCoins = Number(userRow.wallet_balance || 0);
+        }
+
+        const [txRows] = await pool.query(
+          `SELECT created_at FROM coin_transactions
+           WHERE user_id = ? AND type = 'ad_reward' AND DATE(created_at) = CURDATE()
+           ORDER BY created_at ASC`,
+          [targetUserId]
+        );
+        todayTxTimestamps = txRows.map((r) => new Date(r.created_at));
+      }
+
+      const watchedToday = todayTxTimestamps.length;
+      const dailyLimit = maxAdsPerDay;
+      const remainingToday = Math.max(0, dailyLimit - watchedToday);
+      const limitReached = watchedToday >= dailyLimit;
+      const canWatchAds = !limitReached && adRewardEnabled && remainingToday > 0;
+
+      const lastAdWatchedAt = watchedToday > 0 ? formatIsoTime(todayTxTimestamps[watchedToday - 1]) : null;
+      const limitReachedAt = (limitReached && watchedToday > 0)
+        ? formatIsoTime(todayTxTimestamps[Math.min(watchedToday - 1, dailyLimit - 1)])
+        : null;
+
+      // Calculate next reset time
+      const now = new Date();
+      const nextReset = new Date(now);
+      nextReset.setHours(dailyResetHour, 0, 0, 0);
+      if (now >= nextReset) {
+        nextReset.setDate(nextReset.getDate() + 1);
+      }
+      const nextResetAt = formatIsoTime(nextReset);
+      const resetInSeconds = Math.max(0, Math.floor((nextReset.getTime() - now.getTime()) / 1000));
+
+      // Compute reward options tier progress
+      let cumulativeAds = 0;
+      let optionCanWatchAssigned = false;
+
+      const rewardOptions = tiers.map((tier) => {
+        const startIndex = cumulativeAds;
+        const adsReq = tier.ads_required;
+        const endIndex = startIndex + adsReq;
+        cumulativeAds = endIndex;
+
+        const adsWatchedForTier = Math.max(0, Math.min(adsReq, watchedToday - startIndex));
+        const adsRemainingForTier = adsReq - adsWatchedForTier;
+        const isCompleted = adsWatchedForTier >= adsReq;
+
+        let status = 'pending';
+        let canWatch = false;
+
+        if (isCompleted) {
+          status = 'completed';
+          canWatch = false;
+        } else if (adsWatchedForTier > 0) {
+          status = 'in_progress';
+          if (canWatchAds && !optionCanWatchAssigned) {
+            canWatch = true;
+            optionCanWatchAssigned = true;
+          }
+        } else {
+          if (startIndex <= watchedToday) {
+            status = 'available';
+            if (canWatchAds && !optionCanWatchAssigned) {
+              canWatch = true;
+              optionCanWatchAssigned = true;
+            }
+          } else {
+            status = 'locked';
+            canWatch = false;
+          }
+        }
+
+        const startedAt = todayTxTimestamps.length > startIndex ? formatIsoTime(todayTxTimestamps[startIndex]) : null;
+        const tierLastWatchedAt = adsWatchedForTier > 0 && todayTxTimestamps.length >= (startIndex + adsWatchedForTier)
+          ? formatIsoTime(todayTxTimestamps[startIndex + adsWatchedForTier - 1])
+          : null;
+        const completedAt = isCompleted && todayTxTimestamps.length >= endIndex
+          ? formatIsoTime(todayTxTimestamps[endIndex - 1])
+          : null;
+
+        return {
+          id: tier.id,
+          title: tier.title,
+          description: tier.description,
+          ads_required: adsReq,
+          reward_coins: tier.reward_coins,
+          ads_watched: adsWatchedForTier,
+          ads_remaining: adsRemainingForTier,
+          status: status,
+          is_completed: isCompleted,
+          can_watch: canWatch,
+          started_at: startedAt,
+          last_ad_watched_at: tierLastWatchedAt,
+          completed_at: completedAt,
+        };
+      });
+
+      const limitMessage = {
+        show: limitReached,
+        limit_reached_at: limitReached ? limitReachedAt : null,
+        available_again_at: nextResetAt,
       };
 
-      return ApiResponse.success(res, { settings }, 'Ad reward settings fetched successfully.');
+      return ApiResponse.success(res, {
+        wallet: {
+          coins: walletCoins,
+        },
+        daily_ad_status: {
+          daily_limit: dailyLimit,
+          watched_today: watchedToday,
+          remaining_today: remainingToday,
+          limit_reached: limitReached,
+          can_watch_ads: canWatchAds,
+          last_ad_watched_at: lastAdWatchedAt,
+          limit_reached_at: limitReachedAt,
+          next_reset_at: nextResetAt,
+          reset_in_seconds: resetInSeconds,
+        },
+        reward_options: rewardOptions,
+        limit_message: limitMessage,
+      }, 'Ad rewards fetched successfully');
     } catch (error) {
       console.error('Admin Get Ad Reward Settings Error:', error);
       return ApiResponse.error(res, 'Failed to fetch ad reward settings.', 500);
@@ -339,10 +476,10 @@ class AdminAdRewardSettingsController {
    */
   static _defaultTiers() {
     return [
-      { ads_count: 1,  coins: 1,  label: '1 Coin',   subtitle: 'Per Ad' },
-      { ads_count: 3,  coins: 3,  label: '3 Coins',  subtitle: 'Watch 3 ads' },
-      { ads_count: 5,  coins: 5,  label: '5 Coins',  subtitle: 'Watch 5 ads' },
-      { ads_count: 10, coins: 10, label: '10 Coins', subtitle: 'Watch 10 ads' },
+      { id: 1, title: '1 Coin', description: 'Per Ad', ads_required: 1, reward_coins: 1, ads_count: 1, coins: 1, label: '1 Coin', subtitle: 'Per Ad' },
+      { id: 2, title: '3 Coins', description: 'Watch 3 ads', ads_required: 3, reward_coins: 3, ads_count: 3, coins: 3, label: '3 Coins', subtitle: 'Watch 3 ads' },
+      { id: 3, title: '5 Coins', description: 'Watch 5 ads', ads_required: 5, reward_coins: 5, ads_count: 5, coins: 5, label: '5 Coins', subtitle: 'Watch 5 ads' },
+      { id: 4, title: '10 Coins', description: 'Watch 10 ads', ads_required: 10, reward_coins: 10, ads_count: 10, coins: 10, label: '10 Coins', subtitle: 'Watch 10 ads' },
     ];
   }
 }
