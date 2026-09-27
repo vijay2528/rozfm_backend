@@ -282,8 +282,14 @@ router.delete('/bank-details', BankController.destroy);
 // Payments & Subscriptions
 router.post('/payments/razorpay/order', RazorpayController.createOrder);
 router.post('/payments/razorpay/verify', RazorpayController.verifyPayment);
-router.get('/subscriptions', SubscriptionController.index);
+router.get('/subscriptions', authMiddleware.optional, SubscriptionController.index);
+router.get('/subscription', authMiddleware.optional, SubscriptionController.index);
+router.get('/user/subscription', authMiddleware.optional, SubscriptionController.index);
+router.get('/user/subscriptions', authMiddleware.optional, SubscriptionController.index);
+router.get('/me/subscription', authMiddleware.optional, SubscriptionController.index);
 router.post('/subscriptions', SubscriptionController.store);
+router.post('/subscription', SubscriptionController.store);
+router.post('/user/subscriptions', SubscriptionController.store);
 
 // Writer Earnings Overview & Transactions
 router.get('/writer/earnings', WriterEarningsController.getOverview);
