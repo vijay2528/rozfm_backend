@@ -25,193 +25,194 @@ function formatIsoTime(date) {
 
 class AdminAdRewardSettingsController {
   /**
+   * Helper: Build status object for user containing wallet, daily_ad_status, reward_options, limit_message.
+   */
+  static async getAdRewardStatusData(targetUserId) {
+    const [rows] = await pool.query(
+      `SELECT \`key\`, \`value\` FROM settings
+       WHERE \`key\` IN (
+         'coins_per_ad',
+         'max_ads_per_day',
+         'daily_reset_hour',
+         'ad_reward_enabled',
+         'ad_reward_tiers',
+         'instant_reward',
+         'no_limit_mode'
+       )`
+    );
+
+    const map = {};
+    rows.forEach((r) => { map[r.key] = r.value; });
+
+    const maxAdsPerDay = parseInt(map.max_ads_per_day ?? '20', 10);
+    const dailyResetHour = parseInt(map.daily_reset_hour ?? '0', 10);
+    const adRewardEnabled = (map.ad_reward_enabled ?? '1') === '1';
+
+    let rawTiers = [];
+    try {
+      rawTiers = map.ad_reward_tiers ? JSON.parse(map.ad_reward_tiers) : AdminAdRewardSettingsController._defaultTiers();
+    } catch (_) {
+      rawTiers = AdminAdRewardSettingsController._defaultTiers();
+    }
+    if (!Array.isArray(rawTiers) || rawTiers.length === 0) {
+      rawTiers = AdminAdRewardSettingsController._defaultTiers();
+    }
+
+    const tiers = rawTiers.map((t, idx) => {
+      const id = t.id ?? (idx + 1);
+      const adsRequired = Number(t.ads_required ?? t.ads_count ?? 1);
+      const rewardCoins = Number(t.reward_coins ?? t.coins ?? 1);
+      const title = t.title || t.label || `${rewardCoins} Coin${rewardCoins > 1 ? 's' : ''}`;
+      const description = t.description || t.subtitle || (adsRequired === 1 ? 'Per Ad' : `Watch ${adsRequired} ads`);
+      return {
+        id,
+        title,
+        description,
+        ads_required: adsRequired,
+        reward_coins: rewardCoins,
+      };
+    });
+
+    let walletCoins = 0;
+    let todayTxTimestamps = [];
+
+    if (targetUserId) {
+      const [[userRow]] = await pool.query(
+        'SELECT COALESCE(wallet_balance, 0) AS wallet_balance FROM users WHERE id = ? LIMIT 1',
+        [targetUserId]
+      );
+      if (userRow) {
+        walletCoins = Number(userRow.wallet_balance || 0);
+      }
+
+      const [txRows] = await pool.query(
+        `SELECT created_at FROM coin_transactions
+         WHERE user_id = ? AND type = 'ad_reward' AND DATE(created_at) = CURDATE()
+         ORDER BY created_at ASC`,
+        [targetUserId]
+      );
+      todayTxTimestamps = txRows.map((r) => new Date(r.created_at));
+    }
+
+    const watchedToday = todayTxTimestamps.length;
+    const dailyLimit = maxAdsPerDay;
+    const remainingToday = Math.max(0, dailyLimit - watchedToday);
+    const limitReached = watchedToday >= dailyLimit;
+    const canWatchAds = !limitReached && adRewardEnabled && remainingToday > 0;
+
+    const lastAdWatchedAt = watchedToday > 0 ? formatIsoTime(todayTxTimestamps[watchedToday - 1]) : null;
+    const limitReachedAt = (limitReached && watchedToday > 0)
+      ? formatIsoTime(todayTxTimestamps[Math.min(watchedToday - 1, dailyLimit - 1)])
+      : null;
+
+    const now = new Date();
+    const nextReset = new Date(now);
+    nextReset.setHours(dailyResetHour, 0, 0, 0);
+    if (now >= nextReset) {
+      nextReset.setDate(nextReset.getDate() + 1);
+    }
+    const nextResetAt = formatIsoTime(nextReset);
+    const resetInSeconds = Math.max(0, Math.floor((nextReset.getTime() - now.getTime()) / 1000));
+
+    let cumulativeAds = 0;
+    let optionCanWatchAssigned = false;
+
+    const rewardOptions = tiers.map((tier) => {
+      const startIndex = cumulativeAds;
+      const adsReq = tier.ads_required;
+      const endIndex = startIndex + adsReq;
+      cumulativeAds = endIndex;
+
+      const adsWatchedForTier = Math.max(0, Math.min(adsReq, watchedToday - startIndex));
+      const adsRemainingForTier = adsReq - adsWatchedForTier;
+      const isCompleted = adsWatchedForTier >= adsReq;
+
+      let status = 'pending';
+      let canWatch = false;
+
+      if (isCompleted) {
+        status = 'completed';
+        canWatch = false;
+      } else if (adsWatchedForTier > 0) {
+        status = 'in_progress';
+        if (canWatchAds && !optionCanWatchAssigned) {
+          canWatch = true;
+          optionCanWatchAssigned = true;
+        }
+      } else {
+        if (startIndex <= watchedToday) {
+          status = 'available';
+          if (canWatchAds && !optionCanWatchAssigned) {
+            canWatch = true;
+            optionCanWatchAssigned = true;
+          }
+        } else {
+          status = 'locked';
+          canWatch = false;
+        }
+      }
+
+      const startedAt = todayTxTimestamps.length > startIndex ? formatIsoTime(todayTxTimestamps[startIndex]) : null;
+      const tierLastWatchedAt = adsWatchedForTier > 0 && todayTxTimestamps.length >= (startIndex + adsWatchedForTier)
+        ? formatIsoTime(todayTxTimestamps[startIndex + adsWatchedForTier - 1])
+        : null;
+      const completedAt = isCompleted && todayTxTimestamps.length >= endIndex
+        ? formatIsoTime(todayTxTimestamps[endIndex - 1])
+        : null;
+
+      return {
+        id: tier.id,
+        title: tier.title,
+        description: tier.description,
+        ads_required: adsReq,
+        reward_coins: tier.reward_coins,
+        ads_watched: adsWatchedForTier,
+        ads_remaining: adsRemainingForTier,
+        status: status,
+        is_completed: isCompleted,
+        can_watch: canWatch,
+        started_at: startedAt,
+        last_ad_watched_at: tierLastWatchedAt,
+        completed_at: completedAt,
+      };
+    });
+
+    const limitMessage = {
+      show: limitReached,
+      limit_reached_at: limitReached ? limitReachedAt : null,
+      available_again_at: nextResetAt,
+    };
+
+    return {
+      wallet: {
+        coins: walletCoins,
+      },
+      daily_ad_status: {
+        daily_limit: dailyLimit,
+        watched_today: watchedToday,
+        remaining_today: remainingToday,
+        limit_reached: limitReached,
+        can_watch_ads: canWatchAds,
+        last_ad_watched_at: lastAdWatchedAt,
+        limit_reached_at: limitReachedAt,
+        next_reset_at: nextResetAt,
+        reset_in_seconds: resetInSeconds,
+      },
+      reward_options: rewardOptions,
+      limit_message: limitMessage,
+    };
+  }
+
+  /**
    * GET /api/v1/admin/ad-reward-settings
    *
    * Returns current ad reward options, daily ad status, wallet coins and limit messages.
    */
   static async getSettings(req, res) {
     try {
-      // Fetch all ad reward related keys from settings table
-      const [rows] = await pool.query(
-        `SELECT \`key\`, \`value\` FROM settings
-         WHERE \`key\` IN (
-           'coins_per_ad',
-           'max_ads_per_day',
-           'daily_reset_hour',
-           'ad_reward_enabled',
-           'ad_reward_tiers',
-           'instant_reward',
-           'no_limit_mode'
-         )`
-      );
-
-      const map = {};
-      rows.forEach((r) => { map[r.key] = r.value; });
-
-      const coinsPerAd = parseFloat(map.coins_per_ad ?? '1');
-      const maxAdsPerDay = parseInt(map.max_ads_per_day ?? '20', 10);
-      const dailyResetHour = parseInt(map.daily_reset_hour ?? '0', 10);
-      const adRewardEnabled = (map.ad_reward_enabled ?? '1') === '1';
-
-      // Parse tiers JSON safely
-      let rawTiers = [];
-      try {
-        rawTiers = map.ad_reward_tiers ? JSON.parse(map.ad_reward_tiers) : AdminAdRewardSettingsController._defaultTiers();
-      } catch (_) {
-        rawTiers = AdminAdRewardSettingsController._defaultTiers();
-      }
-      if (!Array.isArray(rawTiers) || rawTiers.length === 0) {
-        rawTiers = AdminAdRewardSettingsController._defaultTiers();
-      }
-
-      // Normalize tiers to standard output structure
-      const tiers = rawTiers.map((t, idx) => {
-        const id = t.id ?? (idx + 1);
-        const adsRequired = Number(t.ads_required ?? t.ads_count ?? 1);
-        const rewardCoins = Number(t.reward_coins ?? t.coins ?? 1);
-        const title = t.title || t.label || `${rewardCoins} Coin${rewardCoins > 1 ? 's' : ''}`;
-        const description = t.description || t.subtitle || (adsRequired === 1 ? 'Per Ad' : `Watch ${adsRequired} ads`);
-        return {
-          id,
-          title,
-          description,
-          ads_required: adsRequired,
-          reward_coins: rewardCoins,
-        };
-      });
-
-      // Target user determination
       const targetUserId = req.query.user_id || req.user?.id || null;
-      let walletCoins = 0;
-      let todayTxTimestamps = [];
-
-      if (targetUserId) {
-        const [[userRow]] = await pool.query(
-          'SELECT COALESCE(wallet_balance, 0) AS wallet_balance FROM users WHERE id = ? LIMIT 1',
-          [targetUserId]
-        );
-        if (userRow) {
-          walletCoins = Number(userRow.wallet_balance || 0);
-        }
-
-        const [txRows] = await pool.query(
-          `SELECT created_at FROM coin_transactions
-           WHERE user_id = ? AND type = 'ad_reward' AND DATE(created_at) = CURDATE()
-           ORDER BY created_at ASC`,
-          [targetUserId]
-        );
-        todayTxTimestamps = txRows.map((r) => new Date(r.created_at));
-      }
-
-      const watchedToday = todayTxTimestamps.length;
-      const dailyLimit = maxAdsPerDay;
-      const remainingToday = Math.max(0, dailyLimit - watchedToday);
-      const limitReached = watchedToday >= dailyLimit;
-      const canWatchAds = !limitReached && adRewardEnabled && remainingToday > 0;
-
-      const lastAdWatchedAt = watchedToday > 0 ? formatIsoTime(todayTxTimestamps[watchedToday - 1]) : null;
-      const limitReachedAt = (limitReached && watchedToday > 0)
-        ? formatIsoTime(todayTxTimestamps[Math.min(watchedToday - 1, dailyLimit - 1)])
-        : null;
-
-      // Calculate next reset time
-      const now = new Date();
-      const nextReset = new Date(now);
-      nextReset.setHours(dailyResetHour, 0, 0, 0);
-      if (now >= nextReset) {
-        nextReset.setDate(nextReset.getDate() + 1);
-      }
-      const nextResetAt = formatIsoTime(nextReset);
-      const resetInSeconds = Math.max(0, Math.floor((nextReset.getTime() - now.getTime()) / 1000));
-
-      // Compute reward options tier progress
-      let cumulativeAds = 0;
-      let optionCanWatchAssigned = false;
-
-      const rewardOptions = tiers.map((tier) => {
-        const startIndex = cumulativeAds;
-        const adsReq = tier.ads_required;
-        const endIndex = startIndex + adsReq;
-        cumulativeAds = endIndex;
-
-        const adsWatchedForTier = Math.max(0, Math.min(adsReq, watchedToday - startIndex));
-        const adsRemainingForTier = adsReq - adsWatchedForTier;
-        const isCompleted = adsWatchedForTier >= adsReq;
-
-        let status = 'pending';
-        let canWatch = false;
-
-        if (isCompleted) {
-          status = 'completed';
-          canWatch = false;
-        } else if (adsWatchedForTier > 0) {
-          status = 'in_progress';
-          if (canWatchAds && !optionCanWatchAssigned) {
-            canWatch = true;
-            optionCanWatchAssigned = true;
-          }
-        } else {
-          if (startIndex <= watchedToday) {
-            status = 'available';
-            if (canWatchAds && !optionCanWatchAssigned) {
-              canWatch = true;
-              optionCanWatchAssigned = true;
-            }
-          } else {
-            status = 'locked';
-            canWatch = false;
-          }
-        }
-
-        const startedAt = todayTxTimestamps.length > startIndex ? formatIsoTime(todayTxTimestamps[startIndex]) : null;
-        const tierLastWatchedAt = adsWatchedForTier > 0 && todayTxTimestamps.length >= (startIndex + adsWatchedForTier)
-          ? formatIsoTime(todayTxTimestamps[startIndex + adsWatchedForTier - 1])
-          : null;
-        const completedAt = isCompleted && todayTxTimestamps.length >= endIndex
-          ? formatIsoTime(todayTxTimestamps[endIndex - 1])
-          : null;
-
-        return {
-          id: tier.id,
-          title: tier.title,
-          description: tier.description,
-          ads_required: adsReq,
-          reward_coins: tier.reward_coins,
-          ads_watched: adsWatchedForTier,
-          ads_remaining: adsRemainingForTier,
-          status: status,
-          is_completed: isCompleted,
-          can_watch: canWatch,
-          started_at: startedAt,
-          last_ad_watched_at: tierLastWatchedAt,
-          completed_at: completedAt,
-        };
-      });
-
-      const limitMessage = {
-        show: limitReached,
-        limit_reached_at: limitReached ? limitReachedAt : null,
-        available_again_at: nextResetAt,
-      };
-
-      return ApiResponse.success(res, {
-        wallet: {
-          coins: walletCoins,
-        },
-        daily_ad_status: {
-          daily_limit: dailyLimit,
-          watched_today: watchedToday,
-          remaining_today: remainingToday,
-          limit_reached: limitReached,
-          can_watch_ads: canWatchAds,
-          last_ad_watched_at: lastAdWatchedAt,
-          limit_reached_at: limitReachedAt,
-          next_reset_at: nextResetAt,
-          reset_in_seconds: resetInSeconds,
-        },
-        reward_options: rewardOptions,
-        limit_message: limitMessage,
-      }, 'Ad rewards fetched successfully');
+      const statusData = await AdminAdRewardSettingsController.getAdRewardStatusData(targetUserId);
+      return ApiResponse.success(res, statusData, 'Ad rewards fetched successfully');
     } catch (error) {
       console.error('Admin Get Ad Reward Settings Error:', error);
       return ApiResponse.error(res, 'Failed to fetch ad reward settings.', 500);

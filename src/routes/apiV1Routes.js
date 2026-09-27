@@ -150,6 +150,9 @@ router.get('/analytics/stories/:storyId/episodes', EpisodeAnalyticsController.in
 // Watch Ad & Earn Coins API (Authenticated)
 router.get('/ads/reward-config', AdRewardController.config);
 router.post('/ads/watch', AdRewardController.watch);
+router.post('/ads/watch-ad', AdRewardController.watch);
+router.post('/ad-reward-settings/watch', AdRewardController.watch);
+router.post('/admin/ad-reward-settings/watch', AdRewardController.watch);
 router.get('/ads/history', AdRewardController.history);
 router.get('/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);
 router.get('/admin/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);

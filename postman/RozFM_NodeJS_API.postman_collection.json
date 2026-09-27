@@ -3998,7 +3998,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ads_count\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_impression_abc123\",\n  \"episode_id\": null\n}",
+              "raw": "{\n  \"option_id\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_impression_abc123\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -4006,8 +4006,37 @@
               "host": ["{{base_url}}"],
               "path": ["ads", "watch"]
             },
-            "description": "Called after a user finishes watching one or more ads. Awards coins and records each ad in `coin_transactions`.\n\n**Request body:**\n- `episode_id` *(optional)* — ID of the episode. When provided (non-null/non-empty), `ads_count` is automatically considered `1` and coins are awarded from the `episodes` table.\n- `ads_count` *(required if episode_id is null/empty)* — number of ads watched in this request (e.g. `1`, `2`, `3`)\n- `ad_type` *(optional)* — ad network type label: `rewarded`, `interstitial`, `banner` (default: `rewarded`)\n- `reference_id` *(optional)* — ad network impression ID for deduplication / reconciliation\n\n**Coin calculation:**\n```\n// If episode_id is passed:\ntotal_coins = 1 × episode.coins (from episodes table)\n\n// If episode_id is null or empty:\ntotal_coins = ads_count × coins_per_ad (from settings table)\n```\n\n**Safety:**\n- If `ads_count` exceeds the remaining daily quota, it is automatically capped\n- Returns `ads_skipped` count and `skipped_reason` when capping occurs\n- Returns HTTP 429 if daily limit is already fully exhausted\n\n**Response fields:**\n- `episode_id`, `episode_title`, `episode_position` — included when `episode_id` is supplied\n- `ads_watched` — effective ads counted (may be less than requested)\n- `coins_per_ad` — coins awarded per ad (from episode or settings)\n- `coins_earned` — total coins credited this request\n- `wallet_balance` — new wallet balance after crediting\n- `ads_watched_today` / `ads_remaining_today` — daily progress\n- `daily_limit_reached` — boolean\n\n**coin_transactions row inserted (per ad):**\n```json\n{ \"type\": \"ad_reward\", \"coins\": 10, \"description\": \"Ad Reward — rewarded ad #1 watched\" }\n```"
-          }
+            "description": "Called after a user finishes watching an ad for a reward option/tier or episode. Awards coins, credits wallet, and returns full updated status data for the 'Watch Ads to Earn' screen.\n\n**Request body parameters:**\n- `option_id` / `tier_id` *(optional)* — ID of the reward option/tier selected (1, 2, 3, 4)\n- `ads_count` *(optional)* — number of ads watched (default: 1)\n- `episode_id` *(optional)* — ID of episode if watching for episode unlock\n- `ad_type` *(optional)* — ad network type label (default: `rewarded`)\n- `reference_id` *(optional)* — ad network impression ID for deduplication\n\n**Response data:**\n- `coins_earned` — coins awarded in this watch call\n- `ads_watched` — number of ads recorded\n- `wallet` — `{ coins }` updated wallet balance\n- `daily_ad_status` — `{ daily_limit, watched_today, remaining_today, limit_reached, can_watch_ads, ... }`\n- `reward_options` — updated array of reward tier objects with status (`completed`, `available`, `locked`), `can_watch` boolean, and timestamps\n- `limit_message` — `{ show, limit_reached_at, available_again_at }`"
+          },
+          "response": [
+            {
+              "name": "200 OK — Watch Ad Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"option_id\": 1,\n  \"ad_type\": \"rewarded\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/ads/watch",
+                  "host": ["{{base_url}}"],
+                  "path": ["ads", "watch"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"1 coin credited for watching 1 ad.\",\n  \"data\": {\n    \"coins_earned\": 1,\n    \"ads_watched\": 1,\n    \"wallet\": {\n      \"coins\": 271\n    },\n    \"daily_ad_status\": {\n      \"daily_limit\": 20,\n      \"watched_today\": 1,\n      \"remaining_today\": 19,\n      \"limit_reached\": false,\n      \"can_watch_ads\": true,\n      \"last_ad_watched_at\": \"2026-09-27T10:38:04+05:30\",\n      \"limit_reached_at\": null,\n      \"next_reset_at\": \"2026-09-28T00:00:00+05:30\",\n      \"reset_in_seconds\": 48115\n    },\n    \"reward_options\": [\n      {\n        \"id\": 1,\n        \"title\": \"1 Coin\",\n        \"description\": \"Per Ad\",\n        \"ads_required\": 1,\n        \"reward_coins\": 1,\n        \"ads_watched\": 1,\n        \"ads_remaining\": 0,\n        \"status\": \"completed\",\n        \"is_completed\": true,\n        \"can_watch\": false,\n        \"started_at\": \"2026-09-27T10:38:04+05:30\",\n        \"last_ad_watched_at\": \"2026-09-27T10:38:04+05:30\",\n        \"completed_at\": \"2026-09-27T10:38:04+05:30\"\n      },\n      {\n        \"id\": 2,\n        \"title\": \"3 Coins\",\n        \"description\": \"Watch 3 ads\",\n        \"ads_required\": 3,\n        \"reward_coins\": 3,\n        \"ads_watched\": 0,\n        \"ads_remaining\": 3,\n        \"status\": \"available\",\n        \"is_completed\": false,\n        \"can_watch\": true,\n        \"started_at\": null,\n        \"last_ad_watched_at\": null,\n        \"completed_at\": null\n      },\n      {\n        \"id\": 3,\n        \"title\": \"5 Coins\",\n        \"description\": \"Watch 5 ads\",\n        \"ads_required\": 5,\n        \"reward_coins\": 5,\n        \"ads_watched\": 0,\n        \"ads_remaining\": 5,\n        \"status\": \"locked\",\n        \"is_completed\": false,\n        \"can_watch\": false,\n        \"started_at\": null,\n        \"last_ad_watched_at\": null,\n        \"completed_at\": null\n      },\n      {\n        \"id\": 4,\n        \"title\": \"10 Coins\",\n        \"description\": \"Watch 10 ads\",\n        \"ads_required\": 10,\n        \"reward_coins\": 10,\n        \"ads_watched\": 0,\n        \"ads_remaining\": 10,\n        \"status\": \"locked\",\n        \"is_completed\": false,\n        \"can_watch\": false,\n        \"started_at\": null,\n        \"last_ad_watched_at\": null,\n        \"completed_at\": null\n      }\n    ],\n    \"limit_message\": {\n      \"show\": false,\n      \"limit_reached_at\": null,\n      \"available_again_at\": \"2026-09-28T00:00:00+05:30\"\n    }\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Watch Ad for Episode (Episode Coins)",
