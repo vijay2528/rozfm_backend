@@ -34,7 +34,7 @@ class SubscriptionController {
 
       // Query active subscription
       const [rows] = await pool.query(
-        `SELECT s.*, p.name as plan_name, p.price
+        `SELECT s.*, p.name as plan_name, p.amount
          FROM subscriptions s
          LEFT JOIN purchase_plans p ON s.plan_id = p.id
          WHERE s.user_id = ? AND s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at > NOW())
@@ -47,15 +47,15 @@ class SubscriptionController {
 
       const activeSubscription = activeSub
         ? {
-            id: Number(activeSub.id),
-            plan_id: activeSub.plan_id ? Number(activeSub.plan_id) : null,
-            plan_name: activeSub.plan_name || 'VIP Subscription',
-            price: activeSub.price ? Number(activeSub.price) : null,
-            status: activeSub.status || 'active',
-            is_active: activeSub.status === 'active',
-            starts_at: activeSub.starts_at ? new Date(activeSub.starts_at).toISOString() : null,
-            expires_at: activeSub.expires_at ? new Date(activeSub.expires_at).toISOString() : null,
-          }
+          id: Number(activeSub.id),
+          plan_id: activeSub.plan_id ? Number(activeSub.plan_id) : null,
+          plan_name: activeSub.plan_name || 'VIP Subscription',
+          price: activeSub.price ? Number(activeSub.price) : null,
+          status: activeSub.status || 'active',
+          is_active: activeSub.status === 'active',
+          starts_at: activeSub.starts_at ? new Date(activeSub.starts_at).toISOString() : null,
+          expires_at: activeSub.expires_at ? new Date(activeSub.expires_at).toISOString() : null,
+        }
         : null;
 
       return ApiResponse.success(
@@ -99,7 +99,7 @@ class SubscriptionController {
             planName = planRows[0].name || planName;
             planPrice = planRows[0].price ? Number(planRows[0].price) : null;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const startsAt = new Date();
