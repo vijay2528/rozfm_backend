@@ -79,6 +79,11 @@ router.get('/categories', CategoryController.index);
 router.get('/plans', PlanController.index);
 router.get('/coin-packs', CoinPackController.index);
 
+// Ad Reward Settings API (Public / Optional Auth for App Users)
+router.get('/ads/reward-config', authMiddleware.optional, AdRewardController.config);
+router.get('/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);
+router.get('/admin/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);
+
 // Leaderboard API (Single endpoint for 3 sections or tab-specific endpoints)
 router.get('/leaderboard', authMiddleware.optional, LeaderboardController.index);
 router.get('/leaderboard/writers', authMiddleware.optional, LeaderboardController.writers);
@@ -148,14 +153,11 @@ router.get('/analytics/episodes/:id', EpisodeAnalyticsController.showEpisode);
 router.get('/analytics/stories/:storyId/episodes', EpisodeAnalyticsController.index);
 
 // Watch Ad & Earn Coins API (Authenticated)
-router.get('/ads/reward-config', AdRewardController.config);
 router.post('/ads/watch', AdRewardController.watch);
 router.post('/ads/watch-ad', AdRewardController.watch);
 router.post('/ad-reward-settings/watch', AdRewardController.watch);
 router.post('/admin/ad-reward-settings/watch', AdRewardController.watch);
 router.get('/ads/history', AdRewardController.history);
-router.get('/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);
-router.get('/admin/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);
 
 
 // Notifications API

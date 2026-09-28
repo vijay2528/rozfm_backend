@@ -22,6 +22,7 @@ const AdminCreatorWithdrawalController = require('../controllers/admin/creatorWi
 const AdminPublishedStoriesController = require('../controllers/admin/publishedStoriesController');
 const AdminRevenueShareController = require('../controllers/admin/revenueShareController');
 const AdminAdRewardSettingsController = require('../controllers/admin/adRewardSettingsController');
+const AdRewardController = require('../controllers/adRewardController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -30,6 +31,10 @@ const upload = require('../middleware/uploadMiddleware');
 // ── 0. Public Admin Auth Endpoints ───────────────────────────────────────────
 router.post('/login', AdminAuthController.login);
 router.post('/auth/login', AdminAuthController.login);
+
+// Public / App User Ad Reward Endpoints (Accessible without admin privileges)
+router.get('/ad-reward-settings', authMiddleware.optional, AdminAdRewardSettingsController.getSettings);
+router.post('/ad-reward-settings/watch', authMiddleware, AdRewardController.watch);
 
 // Protect subsequent admin routes with authentication & admin privilege check
 router.use(authMiddleware);
@@ -192,8 +197,7 @@ router.post('/withdrawals/:id/action', AdminWithdrawalController.processWithdraw
 router.put('/withdrawals/:id/action', AdminWithdrawalController.processWithdrawal);
 router.delete('/withdrawals/:id', AdminWithdrawalController.destroy);
 
-// ── 19. Ad Reward Settings ─────────────────────────────────────────────────
-router.get('/ad-reward-settings', AdminAdRewardSettingsController.getSettings);
+// ── 19. Ad Reward Settings (Admin Management) ──────────────────────────────
 router.put('/ad-reward-settings', AdminAdRewardSettingsController.updateSettings);
 router.post('/ad-reward-settings', AdminAdRewardSettingsController.updateSettings);
 router.get('/ad-reward-settings/stats', AdminAdRewardSettingsController.getStats);

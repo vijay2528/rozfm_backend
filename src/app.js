@@ -76,8 +76,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes (v1)
-app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1', apiV1Routes);
+app.use('/api/v1/admin', adminRoutes);
 
 // 404 Route Handler
 app.use((req, res) => {
