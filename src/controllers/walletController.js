@@ -31,7 +31,7 @@ class WalletController {
       return ApiResponse.success(res, {
         wallet_balance: balance,
         total_earned_coins: totalEarned,
-        total_spent_coins: totalSpent,
+        total_purchased_coins: totalSpent,
       });
     } catch (error) {
       console.error('Get Wallet Error:', error);
