@@ -98,14 +98,15 @@ class AdRewardController {
    * Called after a user watches an ad for a specific reward option, tier, or episode.
    *
    * Request body parameters (all optional with smart defaults):
-   *   option_id / tier_id : number  — optional ID of the reward option/tier selected (1, 2, 3, 4)
+   *   option_id / tier_id : number  — ID of the reward option/tier selected (1, 2, 3, 4)
+   *   reward_coins / coins: number  — optional explicit reward coins to credit
    *   ads_count           : number  — optional number of ads watched (default 1)
    *   episode_id          : number  — optional episode ID if watching for episode access
    *   ad_type             : string  — optional label ('rewarded', 'interstitial')
    *   reference_id        : string  — optional ad network transaction ID
    *
    * Returns:
-   *   coins_earned, ads_watched, and updated status data (wallet, daily_ad_status, reward_options, limit_message)
+   *   coins_earned, reward_coins, option_id, ads_watched, and updated status data (wallet, daily_ad_status, reward_options, limit_message)
    */
   static async watch(req, res) {
     try {
@@ -114,6 +115,8 @@ class AdRewardController {
         ads_count,
         option_id,
         tier_id,
+        reward_coins,
+        coins,
         ad_type = 'rewarded',
         reference_id = null,
         episode_id = null,
@@ -137,23 +140,38 @@ class AdRewardController {
 
       let rawTiers = [];
       try {
-        rawTiers = settingsMap.ad_reward_tiers ? JSON.parse(settingsMap.ad_reward_tiers) : [];
-      } catch (_) {}
+        rawTiers = settingsMap.ad_reward_tiers ? JSON.parse(settingsMap.ad_reward_tiers) : AdminAdRewardSettingsController._defaultTiers();
+      } catch (_) {
+        rawTiers = AdminAdRewardSettingsController._defaultTiers();
+      }
+      if (!Array.isArray(rawTiers) || rawTiers.length === 0) {
+        rawTiers = AdminAdRewardSettingsController._defaultTiers();
+      }
 
-      const selectedOptionId = option_id || tier_id;
+      const selectedOptionId = option_id !== undefined && option_id !== null && option_id !== ''
+        ? option_id
+        : (tier_id !== undefined && tier_id !== null && tier_id !== '' ? tier_id : null);
+
       let targetTier = null;
-      if (selectedOptionId) {
+      if (selectedOptionId !== null) {
         targetTier = rawTiers.find((t, idx) => String(t.id ?? (idx + 1)) === String(selectedOptionId));
       }
 
       const hasEpisode = episode_id !== undefined && episode_id !== null && String(episode_id).trim() !== '';
 
-      let adsCountRaw = 1;
-      let coinsPerAd = defaultCoinsPerAd;
       let episode = null;
+      let rewardCoinsToAward = null;
+
+      // Priority 1: If client explicitly passed reward_coins or coins in the request body
+      const bodyRewardCoins = reward_coins !== undefined
+        ? parseFloat(reward_coins)
+        : (coins !== undefined ? parseFloat(coins) : null);
+
+      if (bodyRewardCoins !== null && !isNaN(bodyRewardCoins) && bodyRewardCoins > 0) {
+        rewardCoinsToAward = bodyRewardCoins;
+      }
 
       if (hasEpisode) {
-        adsCountRaw = 1;
         const epId = parseInt(episode_id, 10);
         if (isNaN(epId) || epId <= 0) {
           return ApiResponse.error(res, 'Invalid episode_id provided.', 422);
@@ -169,20 +187,28 @@ class AdRewardController {
         }
 
         episode = epRows[0];
-        const epCoins = Number(episode.coins);
-        if (!isNaN(epCoins) && epCoins > 0) {
-          coinsPerAd = epCoins;
+        if (rewardCoinsToAward === null) {
+          const epCoins = Number(episode.coins);
+          rewardCoinsToAward = (!isNaN(epCoins) && epCoins > 0) ? epCoins : defaultCoinsPerAd;
         }
       } else if (targetTier) {
-        const reqAds = Number(targetTier.ads_required ?? targetTier.ads_count ?? 1);
-        const rewCoins = Number(targetTier.reward_coins ?? targetTier.coins ?? 1);
-        coinsPerAd = reqAds > 0 ? (rewCoins / reqAds) : defaultCoinsPerAd;
-        adsCountRaw = ads_count ? parseInt(ads_count, 10) : 1;
-      } else {
-        adsCountRaw = ads_count ? parseInt(ads_count, 10) : 1;
-        if (isNaN(adsCountRaw) || adsCountRaw < 1) {
-          return ApiResponse.error(res, 'ads_count must be a positive integer (e.g. 1, 2, 3).', 422);
+        // Priority 2: Use the option ID's specific reward_coins (not default setting coins!)
+        if (rewardCoinsToAward === null) {
+          const tierReward = Number(targetTier.reward_coins ?? targetTier.coins);
+          rewardCoinsToAward = (!isNaN(tierReward) && tierReward > 0) ? tierReward : defaultCoinsPerAd;
         }
+      } else {
+        // Priority 3: Fallback if no option_id, no episode, no body reward_coins
+        if (rewardCoinsToAward === null) {
+          const count = ads_count ? parseInt(ads_count, 10) : 1;
+          const validCount = (!isNaN(count) && count > 0) ? count : 1;
+          rewardCoinsToAward = validCount * defaultCoinsPerAd;
+        }
+      }
+
+      rewardCoinsToAward = Math.round(rewardCoinsToAward);
+      if (rewardCoinsToAward <= 0) {
+        return ApiResponse.error(res, 'No coins to award.', 422);
       }
 
       // ── 2. Check Daily Limit ───────────────────────────────────────────────
@@ -205,39 +231,28 @@ class AdRewardController {
         );
       }
 
-      // ── 3. Calculate Effective Ads & Coins ──────────────────────────────────
-      const effectiveAdsCount = Math.min(adsCountRaw, adsRemainingToday);
-      const totalCoins = Math.round(effectiveAdsCount * coinsPerAd);
-
-      if (totalCoins <= 0) {
-        return ApiResponse.error(res, 'No coins to award.', 422);
-      }
-
-      // ── 4. DB Transaction: Credit wallet & insert transaction rows ────────
+      // ── 3. DB Transaction: Credit wallet & insert transaction row ─────────
       const connection = await pool.getConnection();
       try {
         await connection.beginTransaction();
 
         await connection.query(
           'UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?',
-          [totalCoins, userId]
+          [rewardCoinsToAward, userId]
         );
 
-        for (let i = 0; i < effectiveAdsCount; i++) {
-          const adIndex = adsAlreadyWatched + i + 1;
-          const description = episode
-            ? `Ad Reward — ${ad_type} ad watched for Episode #${episode.position || episode.id}: ${episode.title}`
-            : (targetTier ? `Ad Reward — ${targetTier.title || 'Tier Ad'} (Ad #${adIndex})` : `Ad Reward — ${ad_type} ad #${adIndex} watched`);
-          const refId = effectiveAdsCount === 1
-            ? (reference_id || null)
-            : (reference_id ? `${reference_id}_${i + 1}` : null);
+        const adIndex = adsAlreadyWatched + 1;
+        const description = episode
+          ? `Ad Reward — ${ad_type} ad watched for Episode #${episode.position || episode.id}: ${episode.title}`
+          : (targetTier
+              ? `Ad Reward — ${targetTier.title || targetTier.label || `Option #${selectedOptionId}`} (+${rewardCoinsToAward} coins)`
+              : `Ad Reward — ${ad_type} ad #${adIndex} watched (+${rewardCoinsToAward} coins)`);
 
-          await connection.query(
-            `INSERT INTO coin_transactions (user_id, type, coins, description, reference_id, created_at)
-             VALUES (?, 'ad_reward', ?, ?, ?, NOW())`,
-            [userId, Math.round(coinsPerAd), description, refId]
-          );
-        }
+        await connection.query(
+          `INSERT INTO coin_transactions (user_id, type, coins, description, reference_id, created_at)
+           VALUES (?, 'ad_reward', ?, ?, ?, NOW())`,
+          [userId, rewardCoinsToAward, description, reference_id || null]
+        );
 
         await connection.commit();
       } catch (txErr) {
@@ -247,14 +262,16 @@ class AdRewardController {
         connection.release();
       }
 
-      // ── 5. Fetch fresh ad reward status data for instant UI refresh ───────
+      // ── 4. Fetch fresh ad reward status data for instant UI refresh ───────
       const statusData = await AdminAdRewardSettingsController.getAdRewardStatusData(userId);
 
       return ApiResponse.success(res, {
-        coins_earned: totalCoins,
-        ads_watched: effectiveAdsCount,
+        coins_earned: rewardCoinsToAward,
+        reward_coins: rewardCoinsToAward,
+        option_id: selectedOptionId ? Number(selectedOptionId) : null,
+        ads_watched: 1,
         ...statusData,
-      }, `${totalCoins} coin${totalCoins > 1 ? 's' : ''} credited for watching ${effectiveAdsCount} ad${effectiveAdsCount > 1 ? 's' : ''}.`);
+      }, `${rewardCoinsToAward} coin${rewardCoinsToAward > 1 ? 's' : ''} credited for ad reward.`);
     } catch (error) {
       console.error('Ad Watch Reward Error:', error);
       return ApiResponse.error(res, 'Failed to process ad reward.', 500);
