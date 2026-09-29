@@ -75,9 +75,12 @@ app.get('/api/health', (req, res) => {
   return ApiResponse.success(res, { uptime: process.uptime(), timestamp: new Date() }, 'ROZ FM Backend service is healthy');
 });
 
+// Admin Routes (mounted before apiV1Routes so /api/v1/admin is not intercepted by apiV1 authMiddleware)
+app.use('/api/v1/admin', adminRoutes);
+app.use('/admin', adminRoutes);
+
 // API Routes (v1)
 app.use('/api/v1', apiV1Routes);
-app.use('/api/v1/admin', adminRoutes);
 
 // 404 Route Handler
 app.use((req, res) => {
