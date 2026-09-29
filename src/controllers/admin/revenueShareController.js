@@ -116,9 +116,9 @@ class AdminRevenueShareController {
       if (status && status !== 'all') {
         const lowerStatus = status.toLowerCase();
         if (lowerStatus === 'inactive' || lowerStatus === 'suspended' || lowerStatus === 'blocked') {
-          whereClauses.push('(u.is_blocked = 1 OR u.status = "inactive")');
+          whereClauses.push('u.is_blocked = 1');
         } else if (lowerStatus === 'active') {
-          whereClauses.push('(u.is_blocked = 0 AND (u.status IS NULL OR u.status = "active"))');
+          whereClauses.push('u.is_blocked = 0');
         }
       }
 
@@ -176,7 +176,6 @@ class AdminRevenueShareController {
           u.avatar_path,
           u.is_verified,
           u.is_blocked,
-          u.status,
           u.created_at,
           u.updated_at,
           (
@@ -211,7 +210,7 @@ class AdminRevenueShareController {
         const revShareVal = defaultRevShare;
         const thisMonthVal = Number(c.this_month_earnings || 0);
         const totalVal = Number(c.total_earnings || 0);
-        const effectiveStatus = c.is_blocked === 1 ? 'inactive' : (c.status || 'active');
+        const effectiveStatus = c.is_blocked === 1 ? 'inactive' : 'active';
 
         return {
           id: c.id,
@@ -318,7 +317,6 @@ class AdminRevenueShareController {
           u.phone,
           u.avatar_path,
           u.is_blocked,
-          u.status,
           u.created_at,
           (
             SELECT COALESCE(SUM(we.amount), 0) 
