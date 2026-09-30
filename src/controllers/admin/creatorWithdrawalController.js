@@ -371,14 +371,8 @@ class AdminCreatorWithdrawalController {
         );
       }
 
-      // Validate rejection_reason is provided when rejecting
-      if (normalizedStatus === 'rejected' && !rejection_reason) {
-        return ApiResponse.error(
-          res,
-          'A rejection_reason is required when rejecting a withdrawal request.',
-          422
-        );
-      }
+      // Make rejection_reason optional when rejecting — default to admin_notes or 'Rejected by Admin' if blank
+      const effectiveRejectionReason = normalizedStatus === 'rejected' ? (rejection_reason || admin_notes || 'Rejected by Admin') : (rejection_reason || null);
 
       // Verify the withdrawal belongs to a creator
       const [rows] = await pool.query(
@@ -411,9 +405,9 @@ class AdminCreatorWithdrawalController {
         queryParams.push(admin_notes || null);
       }
 
-      if (rejection_reason !== undefined) {
+      if (normalizedStatus === 'rejected' || rejection_reason !== undefined) {
         updateFields.push('rejection_reason = ?');
-        queryParams.push(rejection_reason || null);
+        queryParams.push(effectiveRejectionReason);
       }
 
       await pool.query(
