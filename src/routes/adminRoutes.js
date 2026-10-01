@@ -23,6 +23,7 @@ const AdminPublishedStoriesController = require('../controllers/admin/publishedS
 const AdminRevenueShareController = require('../controllers/admin/revenueShareController');
 const AdminAdRewardSettingsController = require('../controllers/admin/adRewardSettingsController');
 const AdRewardController = require('../controllers/adRewardController');
+const AdminMembershipPlanController = require('../controllers/admin/membershipPlanController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -108,6 +109,14 @@ router.get('/plans', AdminMonetizationController.listPlans);
 router.post('/plans', AdminMonetizationController.storePlan);
 router.put('/plans/:id', AdminMonetizationController.updatePlan);
 router.delete('/plans/:id', AdminMonetizationController.deletePlan);
+
+// ── 6a. Membership Plans CRUD ─────────────────────────────────────────────────
+router.get('/membership-plans', AdminMembershipPlanController.index);
+router.get('/membership-plans/:id', AdminMembershipPlanController.show);
+router.post('/membership-plans', AdminMembershipPlanController.store);
+router.put('/membership-plans/:id', AdminMembershipPlanController.update);
+router.post('/membership-plans/:id', AdminMembershipPlanController.update);
+router.delete('/membership-plans/:id', AdminMembershipPlanController.destroy);
 
 router.get('/coin-packs', AdminMonetizationController.listPacks);
 router.get('/coin-packs/:id', AdminMonetizationController.showPack);
