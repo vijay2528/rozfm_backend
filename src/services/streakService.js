@@ -95,22 +95,16 @@ class StreakService {
    * Ensure user_streaks record exists for the user
    */
   static async ensureUserStreak(userId) {
-    const [userRows] = await pool.query('SELECT wallet_balance FROM users WHERE id = ? LIMIT 1', [userId]);
-    const walletBalance = userRows.length > 0 ? Math.max(0, parseInt(userRows[0].wallet_balance, 10) || 0) : 0;
-
     const [rows] = await pool.query('SELECT * FROM user_streaks WHERE user_id = ? LIMIT 1', [userId]);
     if (rows.length === 0) {
       await pool.query(
         `INSERT INTO user_streaks (user_id, current_streak_days, best_streak_days, total_energy, shields_available, shield_progress_days)
-         VALUES (?, 0, 0, ?, 1, 0)`,
-        [userId, walletBalance]
+         VALUES (?, 0, 0, 0, 1, 0)`,
+        [userId]
       );
       const [newRows] = await pool.query('SELECT * FROM user_streaks WHERE user_id = ? LIMIT 1', [userId]);
       return newRows[0];
     } else {
-      // Sync total energy with wallet balance
-      await pool.query('UPDATE user_streaks SET total_energy = ? WHERE user_id = ?', [walletBalance, userId]);
-      rows[0].total_energy = walletBalance;
       return rows[0];
     }
   }
@@ -576,6 +570,7 @@ class StreakService {
     // Construct Response matching exact user payload specification
     return {
       screen_data: {
+        total_energy: Number(userStreak.total_energy || 0),
         streak_overview: summary,
         today_goal: {
           today_listened_seconds: listenedSeconds,

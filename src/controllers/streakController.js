@@ -27,7 +27,17 @@ class StreakController {
     try {
       const userId = req.user.id;
       const fullData = await StreakService.getFullStreakData(userId);
-      return ApiResponse.success(res, { screen_data: fullData.screen_data }, 'OK');
+      const totalEnergy = Number(fullData.screen_data?.streak_overview?.total_energy || 0);
+
+      return ApiResponse.success(
+        res,
+        {
+          total_energy: totalEnergy,
+          ...fullData.screen_data?.streak_overview,
+          screen_data: fullData.screen_data,
+        },
+        'OK'
+      );
     } catch (error) {
       console.error('Get Streak Summary Error:', error);
       return ApiResponse.error(res, 'Failed to fetch streak summary.', 500);
@@ -56,6 +66,7 @@ class StreakController {
   static async claimDailyReward(req, res) {
     try {
       const userId = req.user.id;
+      await StreakService.ensureUserStreak(userId);
       const settings = await StreakService.getStreakSettings();
       const todayStr = StreakService.getTodayDateString();
 
