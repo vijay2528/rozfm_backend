@@ -4,6 +4,8 @@ const userService = require('../services/userService');
 const { sendSuccess, sendError } = require('../utils/response');
 const { toProfileFieldsArray, toUserProfileDetailsArray, formatNumber } = require('../utils/userPresenter');
 const { toStoryFieldsArray, resolveUrl } = require('../utils/storyPresenter');
+const PushNotificationService = require('../services/pushNotificationService');
+const PushNotificationSettings = require('../services/pushNotificationSettings');
 
 class UserController {
   /**
@@ -130,6 +132,21 @@ class UserController {
       } else {
         await pool.query('INSERT INTO user_follows (follower_id, following_id) VALUES (?, ?)', [currentUserId, targetUserId]);
         isFollowing = true;
+        // ── Push: new follower ──────────────────────────────────────────────
+        PushNotificationSettings.isEnabled('push_notify_new_follower').then((on) => {
+          if (!on) return;
+          const [followerRows] = [req.user ? [{ name: req.user.name || 'Someone' }] : [{ name: 'Someone' }]];
+          pool.query('SELECT name FROM users WHERE id = ? LIMIT 1', [currentUserId])
+            .then(([rows]) => {
+              const followerName = rows.length ? rows[0].name : 'Someone';
+              PushNotificationService.sendToUser(
+                Number(targetUserId),
+                '👤 New Follower',
+                `${followerName} started following you!`,
+                { action_type: 'profile', action_id: String(currentUserId) }
+              ).catch(() => {});
+            }).catch(() => {});
+        }).catch(() => {});
       }
 
       const [[{ followersCount }]] = await pool.query(
@@ -177,6 +194,20 @@ class UserController {
 
       if (existing.length === 0) {
         await pool.query('INSERT INTO user_follows (follower_id, following_id) VALUES (?, ?)', [currentUserId, targetUserId]);
+        // ── Push: new follower ────────────────────────────────────────────
+        PushNotificationSettings.isEnabled('push_notify_new_follower').then((on) => {
+          if (!on) return;
+          pool.query('SELECT name FROM users WHERE id = ? LIMIT 1', [currentUserId])
+            .then(([rows]) => {
+              const followerName = rows.length ? rows[0].name : 'Someone';
+              PushNotificationService.sendToUser(
+                Number(targetUserId),
+                '👤 New Follower',
+                `${followerName} started following you!`,
+                { action_type: 'profile', action_id: String(currentUserId) }
+              ).catch(() => {});
+            }).catch(() => {});
+        }).catch(() => {});
       }
 
       const [[{ followersCount }]] = await pool.query(

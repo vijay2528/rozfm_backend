@@ -1,5 +1,6 @@
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
+const PushNotificationService = require('../../services/pushNotificationService');
 
 class SettingsController {
   // ── System Settings ─────────────────────────────────────────────────────
@@ -40,6 +41,10 @@ class SettingsController {
         settingsMap[r.key] = r.value;
       });
 
+      // Invalidate push notification settings cache so changes take effect immediately
+      const PushNotificationSettings = require('../../services/pushNotificationSettings');
+      PushNotificationSettings.invalidateCache();
+
       return ApiResponse.success(res, { settings: settingsMap }, 'System settings updated successfully.');
     } catch (error) {
       console.error('Admin Update Settings Error:', error);
@@ -57,20 +62,34 @@ class SettingsController {
         return ApiResponse.error(res, 'Notification title and body are required.', 422);
       }
 
+      const fcmData = {
+        action_type: action_type || 'none',
+        action_id: action_value ? String(action_value) : '',
+      };
+
       let recipientCount = 0;
+      let fcmResult = { successCount: 0, failureCount: 0 };
+
       if (user_id) {
+        // ── Send to a single user ──────────────────────────────────────────────
         const [users] = await pool.query('SELECT id FROM users WHERE id = ? LIMIT 1', [user_id]);
         if (users.length > 0) {
           recipientCount = 1;
+          // Insert DB notification
           await pool.query(
             `INSERT INTO notifications (user_id, type, title, message, icon_type, action_type, action_id, is_read, created_at)
              VALUES (?, 'system', ?, ?, 'bell', ?, ?, 0, NOW())`,
             [users[0].id, title.trim(), body.trim(), action_type || 'none', action_value || null]
           );
+          // Send FCM push
+          const msgId = await PushNotificationService.sendToUser(users[0].id, title.trim(), body.trim(), fcmData);
+          fcmResult = { successCount: msgId ? 1 : 0, failureCount: msgId ? 0 : 1 };
         }
       } else {
+        // ── Broadcast to all active users ──────────────────────────────────────
         const [users] = await pool.query('SELECT id FROM users WHERE is_blocked = 0');
         recipientCount = users.length;
+
         for (const u of users) {
           await pool.query(
             `INSERT INTO notifications (user_id, type, title, message, icon_type, action_type, action_id, is_read, created_at)
@@ -78,6 +97,9 @@ class SettingsController {
             [u.id, title.trim(), body.trim(), action_type || 'none', action_value || null]
           );
         }
+
+        // Send FCM pushes in batch (uses device_token from users table directly)
+        fcmResult = await PushNotificationService.sendToAllUsers(title.trim(), body.trim(), fcmData);
       }
 
       return ApiResponse.success(
@@ -91,9 +113,10 @@ class SettingsController {
             action_type: action_type || 'none',
             action_value: action_value || null,
             sent_at: new Date(),
+            fcm: fcmResult,
           },
         },
-        `Push notification broadcast queued for ${recipientCount} user(s).`
+        `Push notification sent to ${recipientCount} user(s). FCM delivered: ${fcmResult.successCount}.`
       );
     } catch (error) {
       console.error('Admin Send Notification Error:', error);

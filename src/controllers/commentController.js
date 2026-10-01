@@ -1,5 +1,7 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
+const PushNotificationService = require('../services/pushNotificationService');
+const PushNotificationSettings = require('../services/pushNotificationSettings');
 
 class CommentController {
   static async index(req, res) {
@@ -101,6 +103,25 @@ class CommentController {
         'INSERT INTO comments (user_id, story_id, parent_id, comment) VALUES (?, ?, ?, ?)',
         [userId, storyId, parent_id || null, comment.trim()]
       );
+
+      // ── Push: new comment on story ────────────────────────────────────────
+      PushNotificationSettings.isEnabled('push_notify_new_comment').then((on) => {
+        if (!on) return;
+        pool.query(
+          'SELECT s.user_id AS author_id, s.title, u.name AS commenter_name FROM stories s JOIN users u ON u.id = ? WHERE s.id = ? LIMIT 1',
+          [userId, storyId]
+        ).then(([rows]) => {
+          if (!rows.length) return;
+          const { author_id, title: storyTitle, commenter_name } = rows[0];
+          if (Number(author_id) === Number(userId)) return; // skip self-comment
+          PushNotificationService.sendToUser(
+            Number(author_id),
+            '💬 New Comment',
+            `${commenter_name} commented on "${storyTitle}"`,
+            { action_type: 'story', action_id: String(storyId) }
+          ).catch(() => {});
+        }).catch(() => {});
+      }).catch(() => {});
 
       return ApiResponse.success(
         res,

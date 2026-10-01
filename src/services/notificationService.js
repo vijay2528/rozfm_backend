@@ -1,4 +1,5 @@
 const { pool } = require('../config/db');
+const PushNotificationService = require('./pushNotificationService');
 
 class NotificationService {
   /**
@@ -35,6 +36,7 @@ class NotificationService {
     iconType = 'bell',
     actionType = 'none',
     actionId = null,
+    pushData = {},
   }) {
     if (!userId || !title || !message) return null;
 
@@ -44,7 +46,21 @@ class NotificationService {
       [userId, type, title, message, avatarPath, iconType, actionType, actionId ? String(actionId) : null]
     );
 
-    return result.insertId;
+    const notificationId = result.insertId;
+
+    // Fire FCM push notification (non-blocking — never fails the main flow)
+    const fcmData = {
+      notification_id: String(notificationId),
+      type: type,
+      action_type: actionType,
+      action_id: actionId ? String(actionId) : '',
+      ...pushData,
+    };
+    PushNotificationService.sendToUser(userId, title, message, fcmData).catch((err) =>
+      console.error('[FCM] Push failed for user', userId, err.message)
+    );
+
+    return notificationId;
   }
 
   /**

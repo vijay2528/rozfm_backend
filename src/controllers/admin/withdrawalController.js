@@ -1,5 +1,7 @@
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
+const PushNotificationService = require('../../services/pushNotificationService');
+const PushNotificationSettings = require('../../services/pushNotificationSettings');
 
 function formatCurrencyINR(amount) {
   const num = Number(amount) || 0;
@@ -292,6 +294,26 @@ class AdminWithdrawalController {
         `UPDATE writer_withdrawals SET ${updateFields.join(', ')} WHERE id = ?`,
         [...queryParams, withdrawalId]
       );
+
+      // ── Push: withdrawal status update ───────────────────────────────────
+      if (['approved', 'paid', 'rejected'].includes(normalizedStatus)) {
+        PushNotificationSettings.isEnabled('push_notify_withdrawal').then((on) => {
+          if (!on) return;
+          const withdrawal = rows[0];
+          const msgMap = {
+            approved: `Your withdrawal request of ₹${withdrawal.amount} has been approved. Payment is being processed.`,
+            paid:     `Your withdrawal of ₹${withdrawal.amount} has been paid! Check your bank account.`,
+            rejected: `Your withdrawal request of ₹${withdrawal.amount} was rejected. ${rejection_reason || 'Please contact support.'}`,
+          };
+          const titleMap = { approved: '💸 Withdrawal Approved', paid: '💰 Payment Sent!', rejected: '❌ Withdrawal Rejected' };
+          PushNotificationService.sendToUser(
+            Number(withdrawal.user_id),
+            titleMap[normalizedStatus],
+            msgMap[normalizedStatus],
+            { action_type: 'withdrawal', action_id: String(withdrawalId) }
+          ).catch(() => {});
+        }).catch(() => {});
+      }
 
       return ApiResponse.success(
         res,

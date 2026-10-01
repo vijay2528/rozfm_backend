@@ -2,6 +2,8 @@ const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const { toStoryFieldsArray } = require('../utils/storyPresenter');
 const { uploadToR2 } = require('../services/r2StorageService');
+const PushNotificationService = require('../services/pushNotificationService');
+const PushNotificationSettings = require('../services/pushNotificationSettings');
 
 class StoryController {
   /**
@@ -745,6 +747,25 @@ class StoryController {
       } else {
         await pool.query('INSERT INTO story_likes (user_id, story_id) VALUES (?, ?)', [userId, storyId]);
         isLiked = true;
+
+        // ── Push: story liked ──────────────────────────────────────────────
+        PushNotificationSettings.isEnabled('push_notify_story_liked').then((on) => {
+          if (!on) return;
+          pool.query(
+            'SELECT s.user_id, s.title, u.name as liker_name FROM stories s JOIN users u ON u.id = ? WHERE s.id = ? LIMIT 1',
+            [userId, storyId]
+          ).then(([rows]) => {
+            if (!rows.length) return;
+            const { user_id: authorId, title: storyTitle, liker_name } = rows[0];
+            if (Number(authorId) === Number(userId)) return; // don't notify self-likes
+            PushNotificationService.sendToUser(
+              Number(authorId),
+              '❤️ Story Liked',
+              `${liker_name} liked your story "${storyTitle}"`,
+              { action_type: 'story', action_id: String(storyId) }
+            ).catch(() => {});
+          }).catch(() => {});
+        }).catch(() => {});
       }
 
       const [countRow] = await pool.query(

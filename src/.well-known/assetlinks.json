@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rozfm",
+      "sha256_cert_fingerprints": [
+        "BF:0C:83:9B:98:AF:93:44:B3:FB:C7:1B:6A:19:58:CE:05:99:7E:75:6B:50:CE:D3:BA:A9:B8:53:16:22:78:15"
+      ]
+    }
+  }
+]

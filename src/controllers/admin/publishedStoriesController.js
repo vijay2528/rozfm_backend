@@ -1,6 +1,8 @@
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
 const { formatNumber, resolveUrl } = require('../../utils/storyPresenter');
+const PushNotificationService = require('../../services/pushNotificationService');
+const PushNotificationSettings = require('../../services/pushNotificationSettings');
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 
@@ -23,11 +25,7 @@ async function fetchStoryList({ approvalStatus, search, category_id, language, p
   let whereClauses = [`s.is_approved = ?`];
   let queryParams = [approvalStatus];
 
-  // For Pending / Approved lists, restrict to creator roles only
-  if (approvalStatus !== 'Rejected') {
-    whereClauses.push("(u.role = 'creator' OR u.role = 'Creator')");
-  }
-
+  // No role restriction — admin should see ALL stories regardless of submitter role
   if (search) {
     whereClauses.push('(s.title LIKE ? OR u.name LIKE ?)');
     queryParams.push(`%${search}%`, `%${search}%`);
@@ -127,10 +125,7 @@ async function fetchStoryList({ approvalStatus, search, category_id, language, p
  */
 async function fetchApprovalSummary() {
   const [[{ total_approved }]] = await pool.query(
-    `SELECT COUNT(*) AS total_approved FROM stories s
-     LEFT JOIN users u ON s.user_id = u.id
-     WHERE s.is_approved = 'Approved'
-       AND (u.role = 'creator' OR u.role = 'Creator')`
+    `SELECT COUNT(*) AS total_approved FROM stories WHERE is_approved = 'Approved'`
   );
   const [[{ total_pending }]] = await pool.query(
     `SELECT COUNT(*) AS total_pending FROM stories WHERE is_approved = 'Pending'`
@@ -346,6 +341,17 @@ class AdminPublishedStoriesController {
         [remarks, storyId]
       );
 
+      // ── Push: story approved ──────────────────────────────────────────────
+      PushNotificationSettings.isEnabled('push_notify_story_approval').then((on) => {
+        if (!on) return;
+        PushNotificationService.sendToUser(
+          Number(existing[0].user_id),
+          '✅ Story Approved!',
+          `Your story "${existing[0].title}" has been approved and is now live!`,
+          { action_type: 'story', action_id: String(storyId) }
+        ).catch(() => {});
+      }).catch(() => {});
+
       return ApiResponse.success(
         res,
         {
@@ -398,6 +404,17 @@ class AdminPublishedStoriesController {
         "UPDATE stories SET is_approved = 'Rejected', admin_remarks = ?, updated_at = NOW() WHERE id = ?",
         [remarks.trim(), storyId]
       );
+
+      // ── Push: story rejected ──────────────────────────────────────────────
+      PushNotificationSettings.isEnabled('push_notify_story_approval').then((on) => {
+        if (!on) return;
+        PushNotificationService.sendToUser(
+          Number(existing[0].user_id),
+          '❌ Story Rejected',
+          `Your story "${existing[0].title}" was not approved. Reason: ${remarks.trim()}`,
+          { action_type: 'story', action_id: String(storyId) }
+        ).catch(() => {});
+      }).catch(() => {});
 
       return ApiResponse.success(
         res,
@@ -463,6 +480,22 @@ class AdminPublishedStoriesController {
         'UPDATE stories SET is_approved = ?, admin_remarks = ?, updated_at = NOW() WHERE id = ?',
         [status, remarks ? remarks.trim() : null, storyId]
       );
+
+      // ── Push: story approval status changed ───────────────────────────────
+      if (status === 'Approved' || status === 'Rejected') {
+        PushNotificationSettings.isEnabled('push_notify_story_approval').then((on) => {
+          if (!on) return;
+          const isApproved = status === 'Approved';
+          PushNotificationService.sendToUser(
+            Number(existing[0].user_id),
+            isApproved ? '✅ Story Approved!' : '❌ Story Rejected',
+            isApproved
+              ? `Your story "${existing[0].title}" has been approved and is now live!`
+              : `Your story "${existing[0].title}" was not approved. ${remarks ? 'Reason: ' + remarks.trim() : ''}`,
+            { action_type: 'story', action_id: String(storyId) }
+          ).catch(() => {});
+        }).catch(() => {});
+      }
 
       return ApiResponse.success(
         res,

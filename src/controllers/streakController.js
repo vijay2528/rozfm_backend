@@ -1,6 +1,8 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const StreakService = require('../services/streakService');
+const PushNotificationService = require('../services/pushNotificationService');
+const PushNotificationSettings = require('../services/pushNotificationSettings');
 
 class StreakController {
   /**
@@ -203,6 +205,17 @@ class StreakController {
       }
 
       const updatedStreak = await StreakService.getFullStreakData(userId);
+
+      // ── Push: streak milestone ──────────────────────────────────────────
+      PushNotificationSettings.isEnabled('push_notify_streak_milestone').then((on) => {
+        if (!on) return;
+        PushNotificationService.sendToUser(
+          userId,
+          '🔥 Streak Milestone!',
+          `You claimed the "${milestone.name}" milestone reward (+${rewardCoins} Energy)! Keep your streak alive!`,
+          { action_type: 'streak', action_id: String(milestoneId) }
+        ).catch(() => {});
+      }).catch(() => {});
 
       return ApiResponse.success(
         res,

@@ -1,6 +1,8 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const { toEpisodeFieldsArray } = require('../utils/storyPresenter');
+const PushNotificationService = require('../services/pushNotificationService');
+const PushNotificationSettings = require('../services/pushNotificationSettings');
 
 class EpisodeController {
   /**
@@ -400,6 +402,37 @@ class EpisodeController {
         'SELECT e.*, s.title as story_title, s.cover_image_path as story_cover_image_path FROM episodes e JOIN stories s ON e.story_id = s.id WHERE e.id = ? LIMIT 1',
         [episodeId]
       );
+
+      // ── Push: new episode — notify all followers of the story's author ───────
+      PushNotificationSettings.isEnabled('push_notify_new_episode').then((on) => {
+        if (!on) return;
+        // Only push for immediately published episodes (not scheduled)
+        if (publishAsMode === 'schedule_for_later') return;
+        // Fetch story author + story title, then fetch author's followers
+        pool.query(
+          `SELECT s.user_id AS author_id, s.title AS story_title, u.name AS author_name
+           FROM stories s JOIN users u ON u.id = s.user_id WHERE s.id = ? LIMIT 1`,
+          [targetStoryId]
+        ).then(([rows]) => {
+          if (!rows.length) return;
+          const { author_id, story_title, author_name } = rows[0];
+          // Get all follower user IDs
+          pool.query(
+            'SELECT follower_id FROM user_follows WHERE following_id = ?',
+            [author_id]
+          ).then(([followers]) => {
+            if (!followers.length) return;
+            const followerIds = followers.map((f) => f.follower_id);
+            PushNotificationService.sendToUserIds(
+              followerIds,
+              '📖 New Episode',
+              `${author_name} published a new episode in "${story_title}"`,
+              { action_type: 'episode', action_id: String(episodeId), story_id: String(targetStoryId) }
+            ).catch(() => {});
+          }).catch(() => {});
+        }).catch(() => {});
+      }).catch(() => {});
+
       return ApiResponse.success(
         res,
         { episode: toEpisodeFieldsArray(newEp[0], storyRows[0].title, true) },
