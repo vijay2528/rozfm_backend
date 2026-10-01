@@ -6,6 +6,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
+const path = require('path');
+
 const apiV1Routes = require('./routes/apiV1Routes');
 const adminRoutes = require('./routes/adminRoutes');
 const ApiResponse = require('./utils/apiResponse');
@@ -26,6 +28,23 @@ app.use(express.urlencoded({
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
+
+// Serve Privacy Policy HTML Page
+const privacyHtmlPath = path.join(__dirname, 'privacy.html');
+const servePrivacyPolicy = (req, res) => {
+  res.sendFile(privacyHtmlPath);
+};
+
+app.get('/privacy', servePrivacyPolicy);
+app.get('/privacy-policy', servePrivacyPolicy);
+app.get('/privacy.html', servePrivacyPolicy);
+app.get('/legal/privacy', servePrivacyPolicy);
+app.get('/legal/privacy-policy', servePrivacyPolicy);
+app.get('/legal/privacy.html', servePrivacyPolicy);
+app.get('/api/privacy', servePrivacyPolicy);
+app.get('/api/privacy-policy', servePrivacyPolicy);
+app.get('/api/v1/privacy-policy', servePrivacyPolicy);
+app.get('/api/v1/privacy.html', servePrivacyPolicy);
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

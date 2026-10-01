@@ -13,13 +13,16 @@ const path = require('path');
 const fs = require('fs');
 
 function loadServiceAccount() {
-  // 1. Try the JSON file first (local dev)
-  const filePath = path.resolve(
-    __dirname,
-    '../../rozfm-d8966-firebase-adminsdk-fbsvc-1716955377.json'
-  );
-  if (fs.existsSync(filePath)) {
-    return require(filePath);
+  // 1. Try local dev file paths
+  const candidatePaths = [
+    path.resolve(__dirname, '../../rozfm-d8966-firebase-adminsdk-fbsvc-1716955377.json'),
+    path.resolve(__dirname, '../../../rozfm-d8966-firebase-adminsdk-fbsvc-1716955377.json'),
+    path.resolve(process.cwd(), 'rozfm-d8966-firebase-adminsdk-fbsvc-1716955377.json'),
+  ];
+  for (const filePath of candidatePaths) {
+    if (fs.existsSync(filePath)) {
+      return require(filePath);
+    }
   }
 
   // 2. Fall back to environment variable (production server)
@@ -27,28 +30,33 @@ function loadServiceAccount() {
     try {
       return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
     } catch {
-      throw new Error('[Firebase] FIREBASE_SERVICE_ACCOUNT_JSON env variable is not valid JSON.');
+      console.warn('[Firebase] Warning: FIREBASE_SERVICE_ACCOUNT_JSON env variable is not valid JSON.');
+      return null;
     }
   }
 
-  throw new Error(
-    '[Firebase] Service account not found. ' +
-    'Either place the JSON file in the project root or set FIREBASE_SERVICE_ACCOUNT_JSON env variable.'
-  );
+  return null;
 }
 
 // Initialize only once (safe for hot-reload / multiple requires)
 if (!getApps().length) {
   const serviceAccount = loadServiceAccount();
-  initializeApp({
-    credential: cert(serviceAccount),
-  });
-  console.log('[Firebase] Admin SDK initialized for project:', serviceAccount.project_id);
+  if (serviceAccount) {
+    initializeApp({
+      credential: cert(serviceAccount),
+    });
+    console.log('[Firebase] Admin SDK initialized for project:', serviceAccount.project_id);
+  } else {
+    console.warn('[Firebase] Notice: Service account not found. Push notifications will be skipped.');
+  }
 }
 
-const firebaseApp = getApp();
+const firebaseApp = getApps().length ? getApp() : null;
 
 module.exports = {
   firebaseApp,
-  getMessaging,
+  getMessaging: () => (getApps().length ? getMessaging() : {
+    send: async () => null,
+    sendEachForMulticast: async () => ({ successCount: 0, failureCount: 0, responses: [] }),
+  }),
 };
