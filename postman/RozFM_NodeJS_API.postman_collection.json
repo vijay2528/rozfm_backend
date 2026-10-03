@@ -3976,13 +3976,24 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/ads/reward-config",
-              "host": ["{{base_url}}"],
-              "path": ["ads", "reward-config"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ads",
+                "reward-config"
+              ]
             },
             "description": "Call this **before showing ads** to get the current reward configuration and the user's daily progress.\n\nResponse fields:\n- `coins_per_ad` — coins awarded per single ad (read from `settings.coins_per_ad`, default `10`)\n- `max_ads_per_day` — maximum ads a user can watch per day (from `settings.max_ads_per_day`, default `10`)\n- `ads_watched_today` — number of ads already watched today by this user\n- `ads_remaining_today` — remaining ad slots for today\n- `can_watch_ad` — `true` if user can still watch more ads today\n- `wallet_balance` — user's current coin balance\n\n**Settings keys to configure in DB:**\n```sql\nINSERT INTO settings (`key`, `value`) VALUES ('coins_per_ad', '10');\nINSERT INTO settings (`key`, `value`) VALUES ('max_ads_per_day', '10');\n```"
           }
@@ -3992,19 +4003,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"option_id\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_impression_abc123\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/ads/watch",
-              "host": ["{{base_url}}"],
-              "path": ["ads", "watch"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ads",
+                "watch"
+              ]
             },
             "description": "Called after a user finishes watching an ad for a reward option/tier or episode. Awards coins, credits wallet, and returns full updated status data for the 'Watch Ads to Earn' screen.\n\n**Request body parameters:**\n- `option_id` / `tier_id` *(optional)* — ID of the reward option/tier selected (1, 2, 3, 4)\n- `ads_count` *(optional)* — number of ads watched (default: 1)\n- `episode_id` *(optional)* — ID of episode if watching for episode unlock\n- `ad_type` *(optional)* — ad network type label (default: `rewarded`)\n- `reference_id` *(optional)* — ad network impression ID for deduplication\n\n**Response data:**\n- `coins_earned` — coins awarded in this watch call\n- `ads_watched` — number of ads recorded\n- `wallet` — `{ coins }` updated wallet balance\n- `daily_ad_status` — `{ daily_limit, watched_today, remaining_today, limit_reached, can_watch_ads, ... }`\n- `reward_options` — updated array of reward tier objects with status (`completed`, `available`, `locked`), `can_watch` boolean, and timestamps\n- `limit_message` — `{ show, limit_reached_at, available_again_at }`"
           },
@@ -4014,9 +4043,18 @@
               "originalRequest": {
                 "method": "POST",
                 "header": [
-                  { "key": "Accept", "value": "application/json" },
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "Authorization", "value": "Bearer {{token}}" }
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
@@ -4024,15 +4062,23 @@
                 },
                 "url": {
                   "raw": "{{base_url}}/ads/watch",
-                  "host": ["{{base_url}}"],
-                  "path": ["ads", "watch"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "ads",
+                    "watch"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
               "header": [
-                { "key": "Content-Type", "value": "application/json" }
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
               ],
               "body": "{\n  \"success\": true,\n  \"message\": \"1 coin credited for watching 1 ad.\",\n  \"data\": {\n    \"coins_earned\": 1,\n    \"ads_watched\": 1,\n    \"wallet\": {\n      \"coins\": 271\n    },\n    \"daily_ad_status\": {\n      \"daily_limit\": 20,\n      \"watched_today\": 1,\n      \"remaining_today\": 19,\n      \"limit_reached\": false,\n      \"can_watch_ads\": true,\n      \"last_ad_watched_at\": \"2026-09-27T10:38:04+05:30\",\n      \"limit_reached_at\": null,\n      \"next_reset_at\": \"2026-09-28T00:00:00+05:30\",\n      \"reset_in_seconds\": 48115\n    },\n    \"reward_options\": [\n      {\n        \"id\": 1,\n        \"title\": \"1 Coin\",\n        \"description\": \"Per Ad\",\n        \"ads_required\": 1,\n        \"reward_coins\": 1,\n        \"ads_watched\": 1,\n        \"ads_remaining\": 0,\n        \"status\": \"completed\",\n        \"is_completed\": true,\n        \"can_watch\": false,\n        \"started_at\": \"2026-09-27T10:38:04+05:30\",\n        \"last_ad_watched_at\": \"2026-09-27T10:38:04+05:30\",\n        \"completed_at\": \"2026-09-27T10:38:04+05:30\"\n      },\n      {\n        \"id\": 2,\n        \"title\": \"3 Coins\",\n        \"description\": \"Watch 3 ads\",\n        \"ads_required\": 3,\n        \"reward_coins\": 3,\n        \"ads_watched\": 0,\n        \"ads_remaining\": 3,\n        \"status\": \"available\",\n        \"is_completed\": false,\n        \"can_watch\": true,\n        \"started_at\": null,\n        \"last_ad_watched_at\": null,\n        \"completed_at\": null\n      },\n      {\n        \"id\": 3,\n        \"title\": \"5 Coins\",\n        \"description\": \"Watch 5 ads\",\n        \"ads_required\": 5,\n        \"reward_coins\": 5,\n        \"ads_watched\": 0,\n        \"ads_remaining\": 5,\n        \"status\": \"locked\",\n        \"is_completed\": false,\n        \"can_watch\": false,\n        \"started_at\": null,\n        \"last_ad_watched_at\": null,\n        \"completed_at\": null\n      },\n      {\n        \"id\": 4,\n        \"title\": \"10 Coins\",\n        \"description\": \"Watch 10 ads\",\n        \"ads_required\": 10,\n        \"reward_coins\": 10,\n        \"ads_watched\": 0,\n        \"ads_remaining\": 10,\n        \"status\": \"locked\",\n        \"is_completed\": false,\n        \"can_watch\": false,\n        \"started_at\": null,\n        \"last_ad_watched_at\": null,\n        \"completed_at\": null\n      }\n    ],\n    \"limit_message\": {\n      \"show\": false,\n      \"limit_reached_at\": null,\n      \"available_again_at\": \"2026-09-28T00:00:00+05:30\"\n    }\n  }\n}"
             }
@@ -4043,19 +4089,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"episode_id\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_episode_1\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/ads/watch",
-              "host": ["{{base_url}}"],
-              "path": ["ads", "watch"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ads",
+                "watch"
+              ]
             },
             "description": "Watch an ad for a specific episode. When `episode_id` is passed, `ads_count` is automatically considered 1 and coins are awarded based on `coins` in the `episodes` table."
           }
@@ -4065,19 +4129,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"ads_count\": 3,\n  \"ad_type\": \"rewarded\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/ads/watch",
-              "host": ["{{base_url}}"],
-              "path": ["ads", "watch"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ads",
+                "watch"
+              ]
             },
             "description": "Example: user watches 3 ads at once. If `coins_per_ad = 10`, the user earns `30 coins` and 3 rows are inserted into `coin_transactions`.\n\nIf fewer than 3 ad slots remain today, `ads_watched` will be less than 3 and `ads_skipped` will reflect the difference."
           }
@@ -4087,19 +4169,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"option_id\": 1,\n  \"ad_type\": \"rewarded\",\n  \"reference_id\": \"admob_impression_abc123\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/ad-reward-settings/watch",
-              "host": ["{{base_url}}"],
-              "path": ["ad-reward-settings", "watch"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-reward-settings",
+                "watch"
+              ]
             },
             "description": "Alias watch ad endpoint using `{{base_url}}/ad-reward-settings/watch` path. Called after a user finishes watching an ad for a reward option/tier or episode. Awards coins, credits wallet, and returns full updated status data for the 'Watch Ads to Earn' screen.\n\n**Request body parameters:**\n- `option_id` / `tier_id` *(optional)* — ID of the reward option/tier selected (1, 2, 3, 4)\n- `ads_count` *(optional)* — number of ads watched (default: 1)\n- `episode_id` *(optional)* — ID of episode if watching for episode unlock\n- `ad_type` *(optional)* — ad network type label (default: `rewarded`)\n- `reference_id` *(optional)* — ad network impression ID for deduplication"
           }
@@ -4109,16 +4209,33 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/ads/history?page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["ads", "history"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ads",
+                "history"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "Paginated list of all `ad_reward` entries from `coin_transactions` for the authenticated user.\n\n**Response:**\n- `summary.today_ads_watched` — ads watched today\n- `summary.today_coins_earned` — coins earned today from ads\n- `summary.total_ads_watched` — all-time ad count\n- `summary.total_coins_earned` — all-time coins from ads\n- `transactions[]` — paginated list of individual ad reward transactions\n  - `id`, `coins`, `description`, `reference_id`, `created_at`"
@@ -4130,24 +4247,51 @@
       "name": "Episode Analytics API",
       "description": "Analytics for a writer's episodes — summary stats (plays, listeners, likes), plays-over-time chart data, and top episodes list. Requires authentication. All data is scoped to the authenticated writer's own content.",
       "item": [
-
         {
           "name": "Get Episode Analytics (This Month)",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/analytics/episodes?period=this_month&limit=10&page=1",
-              "host": ["{{base_url}}"],
-              "path": ["analytics", "episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "analytics",
+                "episodes"
+              ],
               "query": [
-                { "key": "period", "value": "this_month", "description": "Period filter: today | this_week | this_month | last_month | all_time" },
-                { "key": "limit", "value": "10", "description": "Number of top episodes to return (max 50)" },
-                { "key": "page", "value": "1", "description": "Page number for top episodes list" },
-                { "key": "story_id", "value": "", "description": "Optional: filter analytics to a specific story the writer owns", "disabled": true }
+                {
+                  "key": "period",
+                  "value": "this_month",
+                  "description": "Period filter: today | this_week | this_month | last_month | all_time"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of top episodes to return (max 50)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for top episodes list"
+                },
+                {
+                  "key": "story_id",
+                  "value": "",
+                  "description": "Optional: filter analytics to a specific story the writer owns",
+                  "disabled": true
+                }
               ]
             },
             "description": "Unified episode analytics page endpoint — returns all three sections in a single call:\n\n**summary**: Plays, Listeners, Likes for the selected period with growth % vs previous period.\n- `plays.count` / `plays.formatted` (e.g. `12.5K`)\n- `plays.growth_text` (e.g. `+14.2%`), `plays.arrow` (`↑` or `↓`)\n\n**plays_over_time**: Time-series data array for chart rendering.\n- `data[].label` — date or hour bucket\n- `data[].plays`, `data[].listeners`\n- `peak` — point with most plays\n- `chart_type` — `'date'` | `'hour'` | `'month'`\n\n**top_episodes**: Episodes ranked by plays in the period.\n- `plays`, `plays_formatted`, `listeners`, `likes`\n- `share_percent` / `share_percent_text` (e.g. `21.4%`) — share of total plays this period\n- `completion_rate`, `cover_image`\n\n**Requires Bearer token.**"
@@ -4158,16 +4302,33 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/analytics/episodes?period=today&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["analytics", "episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "analytics",
+                "episodes"
+              ],
               "query": [
-                { "key": "period", "value": "today" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "period",
+                  "value": "today"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Same as main analytics endpoint but filtered to today. Plays-over-time chart uses **hourly** buckets (`chart_type: 'hour'`). Growth is compared to yesterday."
@@ -4178,16 +4339,33 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/analytics/episodes?period=this_week&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["analytics", "episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "analytics",
+                "episodes"
+              ],
               "query": [
-                { "key": "period", "value": "this_week" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "period",
+                  "value": "this_week"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Analytics filtered to the current calendar week (Monday–today). Growth is compared to last week."
@@ -4198,17 +4376,38 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/analytics/episodes?period=this_month&story_id=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["analytics", "episodes"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "analytics",
+                "episodes"
+              ],
               "query": [
-                { "key": "period", "value": "this_month" },
-                { "key": "story_id", "value": "1", "description": "Replace with the target story ID" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "period",
+                  "value": "this_month"
+                },
+                {
+                  "key": "story_id",
+                  "value": "1",
+                  "description": "Replace with the target story ID"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "Analytics filtered to a specific story owned by the writer. All three sections (summary, chart, top episodes) will only include data for episodes belonging to that story.\n\nReturns 404 if the story does not belong to the authenticated user."
@@ -4219,15 +4418,31 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/analytics/episodes/1?period=this_month",
-              "host": ["{{base_url}}"],
-              "path": ["analytics", "episodes", "1"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "analytics",
+                "episodes",
+                "1"
+              ],
               "query": [
-                { "key": "period", "value": "this_month", "description": "Period: today | this_week | this_month | last_month | all_time" }
+                {
+                  "key": "period",
+                  "value": "this_month",
+                  "description": "Period: today | this_week | this_month | last_month | all_time"
+                }
               ]
             },
             "description": "Detailed analytics for a **single episode** (replace `1` in the URL with the episode ID).\n\nReturns:\n- `episode` — id, title, episode_number, story_title, cover_image, is_premium\n- `summary.plays` — plays + growth vs previous period\n- `summary.listeners` — unique listeners + growth\n- `summary.likes` — total story likes\n- `summary.completion_rate` — percentage of plays that completed the episode\n- `summary.avg_progress_seconds` — average listening progress in seconds\n- `plays_over_time` — daily/hourly time-series for mini chart\n\nReturns 404 if the episode does not belong to the authenticated user's stories."
@@ -4239,7 +4454,6 @@
       "name": "Trending API",
       "description": "Trending stories screen: user writer ranking, trending stories by category, and fast-growing stories this week.",
       "item": [
-
         {
           "name": "Get Trending Page (Unified)",
           "request": {
@@ -4436,7 +4650,6 @@
     {
       "name": "Audience Statistics API",
       "item": [
-
         {
           "name": "Get Audience Statistics",
           "request": {
@@ -5035,12 +5248,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/ad-reward-settings",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "ad-reward-settings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "ad-reward-settings"
+              ]
             },
             "description": "Fetch the current ad reward configuration from the database.\n\nResponse fields:\n\n| Field | Type | Description |\n|---|---|---|\n| `coins_per_ad` | number | Coins per single ad watch |\n| `max_ads_per_day` | number | Daily cap per user |\n| `daily_reset_hour` | number | UTC hour for reset (0–23) |\n| `ad_reward_enabled` | bool | Master on/off toggle |\n| `instant_reward` | bool | Instant coin credit |\n| `no_limit_mode` | bool | Bypass daily cap |\n| `ad_reward_tiers` | array | Tier configs shown in app UI |"
           },
@@ -5049,17 +5271,32 @@
               "name": "200 OK — Ad Reward Settings",
               "originalRequest": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
                 "url": {
                   "raw": "{{base_url}}/admin/ad-reward-settings",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "ad-reward-settings"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ad-reward-settings"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"message\": \"Ad rewards fetched successfully\",\n  \"data\": {\n    \"wallet\": {\n      \"coins\": 270\n    },\n    \"daily_ad_status\": {\n      \"daily_limit\": 20,\n      \"watched_today\": 20,\n      \"remaining_today\": 0,\n      \"limit_reached\": true,\n      \"can_watch_ads\": false,\n      \"last_ad_watched_at\": \"2026-09-26T19:15:42+05:30\",\n      \"limit_reached_at\": \"2026-09-26T19:15:42+05:30\",\n      \"next_reset_at\": \"2026-09-27T00:00:00+05:30\",\n      \"reset_in_seconds\": 17058\n    },\n    \"reward_options\": [\n      {\n        \"id\": 1,\n        \"title\": \"1 Coin\",\n        \"description\": \"Per Ad\",\n        \"ads_required\": 1,\n        \"reward_coins\": 1,\n        \"ads_watched\": 1,\n        \"ads_remaining\": 0,\n        \"status\": \"completed\",\n        \"is_completed\": true,\n        \"can_watch\": false,\n        \"started_at\": \"2026-09-26T10:15:20+05:30\",\n        \"last_ad_watched_at\": \"2026-09-26T10:16:02+05:30\",\n        \"completed_at\": \"2026-09-26T10:16:02+05:30\"\n      },\n      {\n        \"id\": 2,\n        \"title\": \"3 Coins\",\n        \"description\": \"Watch 3 ads\",\n        \"ads_required\": 3,\n        \"reward_coins\": 3,\n        \"ads_watched\": 3,\n        \"ads_remaining\": 0,\n        \"status\": \"completed\",\n        \"is_completed\": true,\n        \"can_watch\": false,\n        \"started_at\": \"2026-09-26T11:20:10+05:30\",\n        \"last_ad_watched_at\": \"2026-09-26T11:27:32+05:30\",\n        \"completed_at\": \"2026-09-26T11:27:32+05:30\"\n      },\n      {\n        \"id\": 3,\n        \"title\": \"5 Coins\",\n        \"description\": \"Watch 5 ads\",\n        \"ads_required\": 5,\n        \"reward_coins\": 5,\n        \"ads_watched\": 5,\n        \"ads_remaining\": 0,\n        \"status\": \"completed\",\n        \"is_completed\": true,\n        \"can_watch\": false,\n        \"started_at\": \"2026-09-26T14:05:15+05:30\",\n        \"last_ad_watched_at\": \"2026-09-26T14:18:40+05:30\",\n        \"completed_at\": \"2026-09-26T14:18:40+05:30\"\n      },\n      {\n        \"id\": 4,\n        \"title\": \"10 Coins\",\n        \"description\": \"Watch 10 ads\",\n        \"ads_required\": 10,\n        \"reward_coins\": 10,\n        \"ads_watched\": 10,\n        \"ads_remaining\": 0,\n        \"status\": \"completed\",\n        \"is_completed\": true,\n        \"can_watch\": false,\n        \"started_at\": \"2026-09-26T18:30:12+05:30\",\n        \"last_ad_watched_at\": \"2026-09-26T19:15:42+05:30\",\n        \"completed_at\": \"2026-09-26T19:15:42+05:30\"\n      }\n    ],\n    \"limit_message\": {\n      \"show\": true,\n      \"limit_reached_at\": \"2026-09-26T19:15:42+05:30\",\n      \"available_again_at\": \"2026-09-27T00:00:00+05:30\"\n    }\n  }\n}"
             }
           ]
@@ -5069,18 +5306,35 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"coins_per_ad\": 1,\n  \"max_ads_per_day\": 10,\n  \"daily_reset_hour\": 0,\n  \"ad_reward_enabled\": true,\n  \"instant_reward\": true,\n  \"no_limit_mode\": false,\n  \"ad_reward_tiers\": [\n    { \"ads_count\": 1,  \"coins\": 1,  \"label\": \"1 Coin\",   \"subtitle\": \"Per Ad\" },\n    { \"ads_count\": 3,  \"coins\": 3,  \"label\": \"3 Coins\",  \"subtitle\": \"Watch 3 ads\" },\n    { \"ads_count\": 5,  \"coins\": 5,  \"label\": \"5 Coins\",  \"subtitle\": \"Watch 5 ads\" },\n    { \"ads_count\": 10, \"coins\": 10, \"label\": \"10 Coins\", \"subtitle\": \"Watch 10 ads\" }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/admin/ad-reward-settings",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "ad-reward-settings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "ad-reward-settings"
+              ]
             },
             "description": "Update any subset of ad reward settings. Only include the fields you want to change — partial updates are supported.\n\n**Accepted body fields:**\n| Field | Type | Validation |\n|---|---|---|\n| `coins_per_ad` | number | >= 0 |\n| `max_ads_per_day` | number | >= 1 |\n| `daily_reset_hour` | number | 0–23 |\n| `ad_reward_enabled` | bool / 0 / 1 | Master on/off |\n| `instant_reward` | bool / 0 / 1 | |\n| `no_limit_mode` | bool / 0 / 1 | |\n| `ad_reward_tiers` | array | Each tier: `{ ads_count, coins, label, subtitle }` |\n\nAccepts both `PUT` and `POST`."
           },
@@ -5090,20 +5344,39 @@
               "originalRequest": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "body": { "mode": "raw", "raw": "{\n  \"coins_per_ad\": 2,\n  \"max_ads_per_day\": 15\n}" },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"coins_per_ad\": 2,\n  \"max_ads_per_day\": 15\n}"
+                },
                 "url": {
                   "raw": "{{base_url}}/admin/ad-reward-settings",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "ad-reward-settings"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ad-reward-settings"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Ad reward settings updated successfully.\",\n  \"data\": {\n    \"settings\": {\n      \"coins_per_ad\": 2,\n      \"max_ads_per_day\": 15,\n      \"daily_reset_hour\": 0,\n      \"ad_reward_enabled\": true,\n      \"instant_reward\": true,\n      \"no_limit_mode\": false,\n      \"ad_reward_tiers\": [\n        { \"ads_count\": 1,  \"coins\": 1,  \"label\": \"1 Coin\",   \"subtitle\": \"Per Ad\" },\n        { \"ads_count\": 3,  \"coins\": 3,  \"label\": \"3 Coins\",  \"subtitle\": \"Watch 3 ads\" },\n        { \"ads_count\": 5,  \"coins\": 5,  \"label\": \"5 Coins\",  \"subtitle\": \"Watch 5 ads\" },\n        { \"ads_count\": 10, \"coins\": 10, \"label\": \"10 Coins\", \"subtitle\": \"Watch 10 ads\" }\n      ]\n    }\n  }\n}"
             },
             {
@@ -5111,20 +5384,39 @@
               "originalRequest": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "body": { "mode": "raw", "raw": "{\n  \"max_ads_per_day\": 0\n}" },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"max_ads_per_day\": 0\n}"
+                },
                 "url": {
                   "raw": "{{base_url}}/admin/ad-reward-settings",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "ad-reward-settings"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ad-reward-settings"
+                  ]
                 }
               },
               "status": "Unprocessable Entity",
               "code": 422,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": false,\n  \"message\": \"max_ads_per_day must be an integer >= 1.\"\n}"
             },
             {
@@ -5132,20 +5424,39 @@
               "originalRequest": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "body": { "mode": "raw", "raw": "{}" },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
                 "url": {
                   "raw": "{{base_url}}/admin/ad-reward-settings",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "ad-reward-settings"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ad-reward-settings"
+                  ]
                 }
               },
               "status": "Unprocessable Entity",
               "code": 422,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": false,\n  \"message\": \"No valid settings fields provided.\"\n}"
             }
           ]
@@ -5155,18 +5466,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"coins_per_ad\": 1,\n  \"max_ads_per_day\": 10,\n  \"ad_reward_enabled\": true,\n  \"no_limit_mode\": false\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/admin/ad-reward-settings",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "ad-reward-settings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "ad-reward-settings"
+              ]
             },
             "description": "POST alias for the PUT update endpoint. Accepts the exact same body fields."
           },
@@ -5177,18 +5505,35 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"ad_reward_tiers\": [\n    { \"ads_count\": 1,  \"coins\": 2,  \"label\": \"2 Coins\",  \"subtitle\": \"Per Ad\" },\n    { \"ads_count\": 3,  \"coins\": 6,  \"label\": \"6 Coins\",  \"subtitle\": \"Watch 3 ads\" },\n    { \"ads_count\": 5,  \"coins\": 10, \"label\": \"10 Coins\", \"subtitle\": \"Watch 5 ads\" },\n    { \"ads_count\": 10, \"coins\": 20, \"label\": \"20 Coins\", \"subtitle\": \"Watch 10 ads\" }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/admin/ad-reward-settings",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "ad-reward-settings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "ad-reward-settings"
+              ]
             },
             "description": "Update only the `ad_reward_tiers` array without touching other settings.\n\nEach tier maps to one row in the 'Watch Ads to Earn' app screen.\n\n**Tier object fields:**\n| Field | Required | Notes |\n|---|---|---|\n| `ads_count` | ✅ | Number of ads the user must watch (integer >= 1) |\n| `coins` | ✅ | Coins to award (>= 0) |\n| `label` | — | Display label e.g. '5 Coins' |\n| `subtitle` | — | Subtitle text shown below label |"
           },
@@ -5198,20 +5543,39 @@
               "originalRequest": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{admin_token}}" },
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "body": { "mode": "raw", "raw": "{\n  \"ad_reward_tiers\": [\n    { \"ads_count\": 1, \"coins\": 2, \"label\": \"2 Coins\", \"subtitle\": \"Per Ad\" }\n  ]\n}" },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ad_reward_tiers\": [\n    { \"ads_count\": 1, \"coins\": 2, \"label\": \"2 Coins\", \"subtitle\": \"Per Ad\" }\n  ]\n}"
+                },
                 "url": {
                   "raw": "{{base_url}}/admin/ad-reward-settings",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "ad-reward-settings"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ad-reward-settings"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Ad reward settings updated successfully.\",\n  \"data\": {\n    \"settings\": {\n      \"coins_per_ad\": 1,\n      \"max_ads_per_day\": 10,\n      \"daily_reset_hour\": 0,\n      \"ad_reward_enabled\": true,\n      \"instant_reward\": true,\n      \"no_limit_mode\": false,\n      \"ad_reward_tiers\": [\n        { \"ads_count\": 1, \"coins\": 2, \"label\": \"2 Coins\", \"subtitle\": \"Per Ad\" }\n      ]\n    }\n  }\n}"
             }
           ]
@@ -5221,18 +5585,35 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"ad_reward_enabled\": false\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/admin/ad-reward-settings",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "ad-reward-settings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "ad-reward-settings"
+              ]
             },
             "description": "Instantly disables the entire 'Watch Ads to Earn' feature for all users by setting `ad_reward_enabled = false`.\n\nThe app should check this flag via `GET /api/v1/ads/reward-config` and hide the Watch Ads screen when `false`.\n\nRe-enable by sending `{ \"ad_reward_enabled\": true }`."
           },
@@ -5243,18 +5624,35 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"no_limit_mode\": true\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/admin/ad-reward-settings",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "ad-reward-settings"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "ad-reward-settings"
+              ]
             },
             "description": "Sets `no_limit_mode = true` to remove the `max_ads_per_day` cap for all users — they can watch unlimited ads and earn coins without restriction.\n\nUseful for promotional events or testing. Re-disable by sending `{ \"no_limit_mode\": false }`."
           },
@@ -5265,12 +5663,22 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/ad-reward-settings/stats",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "ad-reward-settings", "stats"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "ad-reward-settings",
+                "stats"
+              ]
             },
             "description": "Returns aggregate usage statistics for the ad reward system.\n\n**Response blocks:**\n\n`today`\n- `total_ad_rewards` — total ad reward transactions today\n- `total_coins_rewarded` — total coins given for ad watches today\n- `unique_users` — distinct users who earned via ads today\n\n`alltime`\n- `total_ad_rewards` — all-time ad reward transaction count\n- `total_coins_rewarded` — all-time coins awarded via ads\n\n`top_users_today` — top 10 users by coins earned via ads today (`user_id`, `name`, `email`, `ads_watched`, `coins_earned`)"
           },
@@ -5279,17 +5687,33 @@
               "name": "200 OK — Ad Reward Stats",
               "originalRequest": {
                 "method": "GET",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
                 "url": {
                   "raw": "{{base_url}}/admin/ad-reward-settings/stats",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "ad-reward-settings", "stats"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ad-reward-settings",
+                    "stats"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Ad reward stats fetched successfully.\",\n  \"data\": {\n    \"today\": {\n      \"total_ad_rewards\": 2840,\n      \"total_coins_rewarded\": 2840,\n      \"unique_users\": 618\n    },\n    \"alltime\": {\n      \"total_ad_rewards\": 184200,\n      \"total_coins_rewarded\": 184200\n    },\n    \"top_users_today\": [\n      { \"user_id\": 42, \"name\": \"Priya Sharma\", \"email\": \"priya@example.com\", \"ads_watched\": 10, \"coins_earned\": 10 },\n      { \"user_id\": 87, \"name\": \"Rahul Verma\",  \"email\": \"rahul@example.com\", \"ads_watched\": 10, \"coins_earned\": 10 },\n      { \"user_id\": 33, \"name\": \"Anjali Singh\", \"email\": \"anjali@example.com\", \"ads_watched\": 10, \"coins_earned\": 10 }\n    ]\n  }\n}"
             }
           ]
@@ -5299,12 +5723,22 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/admin/ad-reward-settings/reset-defaults",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "ad-reward-settings", "reset-defaults"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "ad-reward-settings",
+                "reset-defaults"
+              ]
             },
             "description": "Resets all ad reward settings to factory defaults.\n\n| Key | Default Value |\n|---|---|\n| `coins_per_ad` | 1 |\n| `max_ads_per_day` | 10 |\n| `daily_reset_hour` | 0 (midnight UTC) |\n| `ad_reward_enabled` | true |\n| `instant_reward` | true |\n| `no_limit_mode` | false |\n| `ad_reward_tiers` | 1 / 3 / 5 / 10 coin tiers |\n\n⚠️ This will overwrite any previously saved custom configuration."
           },
@@ -5313,17 +5747,33 @@
               "name": "200 OK — Reset to Defaults",
               "originalRequest": {
                 "method": "POST",
-                "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
                 "url": {
                   "raw": "{{base_url}}/admin/ad-reward-settings/reset-defaults",
-                  "host": ["{{base_url}}"],
-                  "path": ["admin", "ad-reward-settings", "reset-defaults"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "ad-reward-settings",
+                    "reset-defaults"
+                  ]
                 }
               },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": true,\n  \"message\": \"Ad reward settings reset to defaults successfully.\",\n  \"data\": {\n    \"settings\": {\n      \"coins_per_ad\": 1,\n      \"max_ads_per_day\": 10,\n      \"daily_reset_hour\": 0,\n      \"ad_reward_enabled\": true,\n      \"instant_reward\": true,\n      \"no_limit_mode\": false,\n      \"ad_reward_tiers\": [\n        { \"ads_count\": 1,  \"coins\": 1,  \"label\": \"1 Coin\",   \"subtitle\": \"Per Ad\" },\n        { \"ads_count\": 3,  \"coins\": 3,  \"label\": \"3 Coins\",  \"subtitle\": \"Watch 3 ads\" },\n        { \"ads_count\": 5,  \"coins\": 5,  \"label\": \"5 Coins\",  \"subtitle\": \"Watch 5 ads\" },\n        { \"ads_count\": 10, \"coins\": 10, \"label\": \"10 Coins\", \"subtitle\": \"Watch 10 ads\" }\n      ]\n    }\n  }\n}"
             }
           ]
