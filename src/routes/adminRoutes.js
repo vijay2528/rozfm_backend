@@ -139,6 +139,10 @@ router.post('/settings', AdminSettingsController.updateSettings);
 router.get('/streak-settings', AdminStreakSettingsController.getSettings);
 router.post('/streak-settings', AdminStreakSettingsController.updateSettings);
 router.put('/streak-settings', AdminStreakSettingsController.updateSettings);
+router.get('/streak-rewards', AdminStreakSettingsController.listStreakRewards);
+router.get('/streak-rewards/list', AdminStreakSettingsController.listStreakRewards);
+router.post('/streak-rewards', AdminStreakSettingsController.updateSettings);
+router.put('/streak-rewards/:id', AdminStreakSettingsController.updateStreakReward);
 router.post('/notifications/send', AdminSettingsController.sendNotification);
 
 router.post('/faqs', AdminSettingsController.storeFaq);

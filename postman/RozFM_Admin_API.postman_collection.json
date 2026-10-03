@@ -5072,6 +5072,149 @@
           ]
         }
       ]
+    },
+    {
+      "name": "21. Streak Rewards Management",
+      "description": "Manage streak milestone reward coins (streak_milestone_1_days, streak_milestone_2_days, etc. stored in settings table).\n\nBase URL: {{base_url}}/admin/streak-rewards\n\nAll endpoints require Bearer token authentication.",
+      "item": [
+        {
+          "name": "List Streak Rewards",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/streak-rewards",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "streak-rewards"
+              ]
+            },
+            "description": "Returns the list of streak milestone reward tiers reading `streak_milestone_1_days`, `streak_milestone_2_days`, `streak_milestone_3_days`, `streak_milestone_4_days` from settings table along with user counts at each tier."
+          },
+          "response": [
+            {
+              "name": "200 OK — List Streak Rewards",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/streak-rewards",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "streak-rewards"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"OK\",\n  \"data\": {\n    \"streak_rewards\": [\n      {\n        \"id\": 1,\n        \"key\": \"streak_milestone_1\",\n        \"name\": \"First Spark\",\n        \"streak_length\": \"3 days\",\n        \"days_required\": 3,\n        \"coins\": 30,\n        \"reward_coins\": 30,\n        \"reward\": \"30 coins\",\n        \"users_at_tier\": 182000,\n        \"users_at_tier_formatted\": \"182K\"\n      },\n      {\n        \"id\": 2,\n        \"key\": \"streak_milestone_2\",\n        \"name\": \"Power Listener\",\n        \"streak_length\": \"7 days\",\n        \"days_required\": 7,\n        \"coins\": 100,\n        \"reward_coins\": 100,\n        \"reward\": \"100 coins\",\n        \"users_at_tier\": 64000,\n        \"users_at_tier_formatted\": \"64K\"\n      },\n      {\n        \"id\": 3,\n        \"key\": \"streak_milestone_3\",\n        \"name\": \"Energy Master\",\n        \"streak_length\": \"30 days\",\n        \"days_required\": 30,\n        \"coins\": 500,\n        \"reward_coins\": 500,\n        \"reward\": \"500 coins + Gold trial\",\n        \"users_at_tier\": 9200,\n        \"users_at_tier_formatted\": \"9.2K\"\n      },\n      {\n        \"id\": 4,\n        \"key\": \"streak_milestone_4\",\n        \"name\": \"Legendary\",\n        \"streak_length\": \"100 days\",\n        \"days_required\": 100,\n        \"coins\": 2000,\n        \"reward_coins\": 2000,\n        \"reward\": \"2,000 coins + Badge\",\n        \"users_at_tier\": 640,\n        \"users_at_tier_formatted\": \"640\"\n      }\n    ],\n    \"settings\": {\n      \"streak_milestone_1_days\": 3,\n      \"streak_milestone_1_reward\": 30,\n      \"streak_milestone_2_days\": 7,\n      \"streak_milestone_2_reward\": 100,\n      \"streak_milestone_3_days\": 30,\n      \"streak_milestone_3_reward\": 500,\n      \"streak_milestone_4_days\": 100,\n      \"streak_milestone_4_reward\": 2000\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Streak Reward Tier",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"days_required\": 3,\n  \"reward_coins\": 30,\n  \"name\": \"First Spark\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/streak-rewards/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "streak-rewards",
+                "1"
+              ]
+            },
+            "description": "Update days required or reward coins for milestone tier 1 (updates `streak_milestone_1_days` & `streak_milestone_1_reward` in settings table)."
+          },
+          "response": [
+            {
+              "name": "200 OK — Reward Tier Updated",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"days_required\": 3,\n  \"reward_coins\": 30\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/streak-rewards/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "streak-rewards",
+                    "1"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"OK\",\n  \"data\": {\n    \"streak_rewards\": [\n      {\n        \"id\": 1,\n        \"key\": \"streak_milestone_1\",\n        \"name\": \"First Spark\",\n        \"streak_length\": \"3 days\",\n        \"days_required\": 3,\n        \"coins\": 30,\n        \"reward_coins\": 30,\n        \"reward\": \"30 coins\",\n        \"users_at_tier\": 182000,\n        \"users_at_tier_formatted\": \"182K\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
