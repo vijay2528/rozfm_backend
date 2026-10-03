@@ -35,6 +35,7 @@ async function ensureCouponTable() {
         ['WELCOME100', 'bonus_coins', 100.00, '100 bonus coins', 'all', null, 18204, null, 1],
         ['MONSOON20', 'percentage', 20.00, '20% off any pack', 'any pack', 10000, 6880, '2026-07-01 23:59:59', 0],
         ['CREATOR2026', 'bonus_coins', 150.00, '150 bonus coins', 'all', 2000, 940, '2026-12-31 23:59:59', 1],
+        ['FESTIVE50', 'percentage', 50.00, '50% off festive sale', 'all', 1000, 520, '2026-11-30 23:59:59', 1],
       ];
 
       for (const coupon of seedCoupons) {
@@ -151,17 +152,19 @@ class CouponController {
 
       const coupons = rows.map(formatCoupon);
 
-      return ApiResponse.success(res, 'Coupons fetched successfully', {
-        coupons,
-        coupon_codes: coupons,
-        data: coupons,
-        pagination: {
-          total,
-          page: parseInt(page, 10),
-          limit: limitNum,
-          totalPages: Math.ceil(total / limitNum) || 1,
+      return ApiResponse.success(
+        res,
+        {
+          coupons,
+          pagination: {
+            total,
+            page: parseInt(page, 10),
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum) || 1,
+          },
         },
-      });
+        'Coupons fetched successfully'
+      );
     } catch (err) {
       console.error('Error fetching coupons:', err);
       return ApiResponse.error(res, err.message || 'Failed to fetch coupons', 500);
@@ -182,10 +185,13 @@ class CouponController {
       }
 
       const coupon = formatCoupon(rows[0]);
-      return ApiResponse.success(res, 'Coupon details retrieved successfully', {
-        coupon,
-        coupon_code: coupon,
-      });
+      return ApiResponse.success(
+        res,
+        {
+          coupon,
+        },
+        'Coupon details retrieved successfully'
+      );
     } catch (err) {
       console.error('Error fetching coupon details:', err);
       return ApiResponse.error(res, err.message || 'Failed to fetch coupon details', 500);
@@ -248,10 +254,14 @@ class CouponController {
       const [newRow] = await pool.query(`SELECT * FROM \`coupon_codes\` WHERE id = ?`, [result.insertId]);
       const created = formatCoupon(newRow[0]);
 
-      return ApiResponse.success(res, `Coupon code ${cleanCode} created successfully`, {
-        coupon: created,
-        coupon_code: created,
-      }, 201);
+      return ApiResponse.success(
+        res,
+        {
+          coupon: created,
+        },
+        `Coupon code ${cleanCode} created successfully`,
+        201
+      );
     } catch (err) {
       console.error('Error creating coupon:', err);
       return ApiResponse.error(res, err.message || 'Failed to create coupon', 500);
@@ -352,10 +362,13 @@ class CouponController {
       const [updatedRow] = await pool.query(`SELECT * FROM \`coupon_codes\` WHERE id = ?`, [id]);
       const updated = formatCoupon(updatedRow[0]);
 
-      return ApiResponse.success(res, 'Coupon updated successfully', {
-        coupon: updated,
-        coupon_code: updated,
-      });
+      return ApiResponse.success(
+        res,
+        {
+          coupon: updated,
+        },
+        'Coupon updated successfully'
+      );
     } catch (err) {
       console.error('Error updating coupon:', err);
       return ApiResponse.error(res, err.message || 'Failed to update coupon', 500);
@@ -376,7 +389,7 @@ class CouponController {
       }
 
       await pool.query(`DELETE FROM \`coupon_codes\` WHERE id = ?`, [id]);
-      return ApiResponse.success(res, 'Coupon deleted successfully');
+      return ApiResponse.success(res, null, 'Coupon deleted successfully');
     } catch (err) {
       console.error('Error deleting coupon:', err);
       return ApiResponse.error(res, err.message || 'Failed to delete coupon', 500);
