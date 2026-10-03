@@ -24,6 +24,7 @@ const AdminRevenueShareController = require('../controllers/admin/revenueShareCo
 const AdminAdRewardSettingsController = require('../controllers/admin/adRewardSettingsController');
 const AdRewardController = require('../controllers/adRewardController');
 const AdminMembershipPlanController = require('../controllers/admin/membershipPlanController');
+const AdminCouponController = require('../controllers/admin/couponController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -229,5 +230,20 @@ router.get('/revenue-shares/export', AdminRevenueShareController.exportData);
 router.get('/revenue-share/export', AdminRevenueShareController.exportData);
 router.get('/revenue-shares', AdminRevenueShareController.index);
 router.get('/revenue-share', AdminRevenueShareController.index);
+
+// ── 20. Coupon Code Management ────────────────────────────────────────────────
+router.get('/coupons', AdminCouponController.index);
+router.get('/coupons/:id', AdminCouponController.show);
+router.post('/coupons', AdminCouponController.store);
+router.put('/coupons/:id', AdminCouponController.update);
+router.post('/coupons/:id', AdminCouponController.update);
+router.delete('/coupons/:id', AdminCouponController.destroy);
+
+router.get('/coupon-codes', AdminCouponController.index);
+router.get('/coupon-codes/:id', AdminCouponController.show);
+router.post('/coupon-codes', AdminCouponController.store);
+router.put('/coupon-codes/:id', AdminCouponController.update);
+router.post('/coupon-codes/:id', AdminCouponController.update);
+router.delete('/coupon-codes/:id', AdminCouponController.destroy);
 
 module.exports = router;

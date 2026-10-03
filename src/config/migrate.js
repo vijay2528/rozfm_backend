@@ -854,6 +854,27 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 34b. Coupon Codes table (Admin: Coins & Premium → Coupon Codes)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`coupon_codes\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`code\` VARCHAR(50) NOT NULL UNIQUE,
+        \`discount_type\` ENUM('percentage', 'fixed_amount', 'bonus_coins') NOT NULL DEFAULT 'percentage',
+        \`discount_value\` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        \`description\` VARCHAR(255) NULL,
+        \`applicable_target\` VARCHAR(100) NULL DEFAULT 'all',
+        \`max_redemptions\` INT NULL DEFAULT NULL,
+        \`redemptions_count\` INT NOT NULL DEFAULT 0,
+        \`user_limit\` INT DEFAULT 1,
+        \`min_order_amount\` DECIMAL(10,2) DEFAULT 0.00,
+        \`expires_at\` DATETIME NULL,
+        \`status\` TINYINT(1) DEFAULT 1,
+        \`is_active\` TINYINT(1) DEFAULT 1,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // Seed default streak & writer settings into settings table if not present
     const defaultSettings = [
       { key: 'streak_daily_goal_minutes', value: '15' },
