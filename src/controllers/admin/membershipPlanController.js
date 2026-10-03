@@ -77,8 +77,8 @@ class MembershipPlanController {
 
       if (is_active !== undefined && is_active !== '') {
         const activeVal = is_active === '1' || is_active === 1 || is_active === 'true' ? 1 : 0;
-        whereClauses.push('(`is_active` = ? OR `status` = ?)');
-        queryParams.push(activeVal, activeVal);
+        whereClauses.push('`is_active` = ?');
+        queryParams.push(activeVal);
       }
 
       if (search) {
@@ -94,7 +94,7 @@ class MembershipPlanController {
         queryParams
       );
 
-      // Order by sort_order if available, otherwise by id
+      // Order by sort_order ASC, id ASC
       const [rows] = await pool.query(
         `SELECT * FROM purchase_plans ${whereSql} ORDER BY sort_order ASC, id ASC LIMIT ? OFFSET ?`,
         [...queryParams, limitNum, offset]
@@ -153,7 +153,6 @@ class MembershipPlanController {
    *   monthly_amount number  optional (or price)
    *   yearly_amount  number  optional
    *   price          number  optional
-   *   currency       string  optional (default: INR)
    *   sort_order     int     optional (default: 0)
    *   is_active      boolean optional (default: true)
    */
@@ -166,7 +165,6 @@ class MembershipPlanController {
         monthly_amount,
         yearly_amount,
         price,
-        currency,
         sort_order,
         is_active,
         status,
@@ -192,15 +190,14 @@ class MembershipPlanController {
 
       const [result] = await pool.query(
         `INSERT INTO purchase_plans
-           (name, slug, description, monthly_amount, yearly_amount, currency, sort_order, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (name, slug, description, monthly_amount, yearly_amount, sort_order, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           planName,
           planSlug,
           description ? String(description).trim() : null,
           mAmount,
           yAmount,
-          currency ? String(currency).trim() : 'INR',
           sortVal,
           isActiveVal,
         ]
@@ -233,7 +230,6 @@ class MembershipPlanController {
         monthly_amount,
         yearly_amount,
         price,
-        currency,
         sort_order,
         is_active,
         status,
@@ -273,11 +269,6 @@ class MembershipPlanController {
       if (yearly_amount !== undefined && yearly_amount !== null && yearly_amount !== '') {
         updateFields.push('`yearly_amount` = ?');
         queryParams.push(parseFloat(yearly_amount) || 0);
-      }
-
-      if (currency !== undefined && String(currency).trim() !== '') {
-        updateFields.push('`currency` = ?');
-        queryParams.push(String(currency).trim());
       }
 
       if (sort_order !== undefined && sort_order !== null) {
