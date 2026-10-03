@@ -12,7 +12,7 @@ function formatPlan(p) {
     name: p.name || '',
     coins: Number(p.coins || 0),
     bonus_coins: Number(p.bonus_coins || 0),
-    price: p.price !== null && p.price !== undefined ? Number(p.price) : 0,
+    price: p.price !== null && p.price !== undefined ? Number(p.price) : (p.amount !== null && p.amount !== undefined ? Number(p.amount) : 0),
     currency: p.currency || 'INR',
     badge_text: p.badge_text || null,
     is_popular: p.is_popular === 1 || p.is_popular === true || p.is_popular === '1',
@@ -63,7 +63,7 @@ class MembershipPlanController {
       );
 
       const [rows] = await pool.query(
-        `SELECT * FROM purchase_plans ${whereSql} ORDER BY price ASC LIMIT ? OFFSET ?`,
+        `SELECT * FROM purchase_plans ${whereSql} ORDER BY id ASC LIMIT ? OFFSET ?`,
         [...queryParams, limitNum, offset]
       );
 
