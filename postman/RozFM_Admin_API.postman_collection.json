@@ -5359,6 +5359,66 @@
           }
         }
       ]
+    },
+    {
+      "name": "23. Coin Transactions Management",
+      "item": [
+        {
+          "name": "List Coin Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/coin-transactions?search=&type=all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "coin-transactions"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Coin Transaction",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/coin-transactions/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "coin-transactions",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

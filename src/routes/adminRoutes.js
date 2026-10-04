@@ -25,6 +25,7 @@ const AdminAdRewardSettingsController = require('../controllers/admin/adRewardSe
 const AdRewardController = require('../controllers/adRewardController');
 const AdminMembershipPlanController = require('../controllers/admin/membershipPlanController');
 const AdminCouponController = require('../controllers/admin/couponController');
+const AdminCoinTransactionController = require('../controllers/admin/coinTransactionController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -245,5 +246,10 @@ router.post('/coupon-codes', AdminCouponController.store);
 router.put('/coupon-codes/:id', AdminCouponController.update);
 router.post('/coupon-codes/:id', AdminCouponController.update);
 router.delete('/coupon-codes/:id', AdminCouponController.destroy);
+
+// ── 21. Coin Transactions Management ──────────────────────────────────────────
+router.get('/coin-transactions', AdminCoinTransactionController.index);
+router.get('/coin-transactions/:id', AdminCoinTransactionController.show);
+router.get('/coins/transactions', AdminCoinTransactionController.index);
 
 module.exports = router;
