@@ -26,6 +26,7 @@ const AdRewardController = require('../controllers/adRewardController');
 const AdminMembershipPlanController = require('../controllers/admin/membershipPlanController');
 const AdminCouponController = require('../controllers/admin/couponController');
 const AdminCoinTransactionController = require('../controllers/admin/coinTransactionController');
+const AdminRecommendationController = require('../controllers/admin/recommendationController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -251,5 +252,19 @@ router.delete('/coupon-codes/:id', AdminCouponController.destroy);
 router.get('/coin-transactions', AdminCoinTransactionController.index);
 router.get('/coin-transactions/:id', AdminCoinTransactionController.show);
 router.get('/coins/transactions', AdminCoinTransactionController.index);
+
+// ── 22. Recommendation Lists Management ─────────────────────────────────────
+router.get('/recommendations/continue-listening', AdminRecommendationController.continueListening);
+router.get('/recommendations/continue', AdminRecommendationController.continueListening);
+
+router.get('/recommendations/trending', AdminRecommendationController.trending);
+
+router.get('/recommendations/new-releases', AdminRecommendationController.newReleases);
+router.get('/recommendations/new', AdminRecommendationController.newReleases);
+
+router.get('/recommendations/top-picks', AdminRecommendationController.topPicks);
+router.get('/recommendations/top', AdminRecommendationController.topPicks);
+
+router.get('/recommendations/recommended', AdminRecommendationController.recommended);
 
 module.exports = router;
