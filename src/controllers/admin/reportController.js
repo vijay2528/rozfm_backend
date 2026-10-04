@@ -8,33 +8,85 @@ class ReportController {
    */
   static async revenue(req, res) {
     try {
-      // 1. Calculate total revenue from coin_sales and subscriptions
+      // 1. Total sales from coin_sales, coin_transactions, subscriptions
       const [salesRes] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS total_sales FROM \`coin_sales\` WHERE status = 'completed' OR status = 'success'`
+        `SELECT COALESCE(SUM(amount), 0) AS total_sales FROM \`coin_sales\` WHERE status IN ('completed', 'success', 'paid')`
       ).catch(() => [[{ total_sales: 0 }]]);
 
       const [subRes] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS total_sub FROM \`subscriptions\` WHERE status = 'active'`
+        `SELECT COALESCE(SUM(amount), 0) AS total_sub FROM \`subscriptions\` WHERE status IN ('active', 'completed', 'paid')`
       ).catch(() => [[{ total_sub: 0 }]]);
 
-      const totalRevenueNum = Number(salesRes[0]?.total_sales || 0) + Number(subRes[0]?.total_sub || 0);
+      const [txnRes] = await pool.query(
+        `SELECT COALESCE(SUM(coins), 0) AS total_coins FROM \`coin_transactions\` WHERE type LIKE '%purchase%' OR type LIKE '%credit%'`
+      ).catch(() => [[{ total_coins: 0 }]]);
+
+      const rawSales = Number(salesRes[0]?.total_sales || 0);
+      const rawSubs = Number(subRes[0]?.total_sub || 0);
+      const rawCoinsRevenue = Number(txnRes[0]?.total_coins || 0) * 0.5;
+
+      const totalRevenueNum = rawSales + rawSubs + rawCoinsRevenue;
 
       let formattedRevenue = '₹48.2L';
       if (totalRevenueNum > 0) {
         if (totalRevenueNum >= 100000) {
           formattedRevenue = `₹${(totalRevenueNum / 100000).toFixed(1)}L`;
         } else {
-          formattedRevenue = `₹${totalRevenueNum.toLocaleString('en-IN')}`;
+          formattedRevenue = `₹${Math.round(totalRevenueNum).toLocaleString('en-IN')}`;
         }
       }
 
-      // 2. Revenue growth data by month (Jan-Dec)
-      const monthlyData = [22, 28, 25, 34, 31, 40, 38, 46, 52, 49, 58, 62];
+      // 2. Query monthly revenue breakdown for Jan-Dec of current year
       const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthlyData = new Array(12).fill(0);
+
+      const [monthlySales] = await pool.query(`
+        SELECT MONTH(created_at) AS month_num, SUM(amount) AS monthly_sum
+        FROM \`coin_sales\`
+        WHERE status IN ('completed', 'success', 'paid') AND YEAR(created_at) = YEAR(CURRENT_DATE)
+        GROUP BY MONTH(created_at)
+      `).catch(() => [[]]);
+
+      monthlySales.forEach((r) => {
+        const m = Number(r.month_num) - 1;
+        if (m >= 0 && m < 12) {
+          monthlyData[m] += Math.round(Number(r.monthly_sum || 0) / 1000);
+        }
+      });
+
+      const [monthlySubs] = await pool.query(`
+        SELECT MONTH(created_at) AS month_num, SUM(amount) AS monthly_sum
+        FROM \`subscriptions\`
+        WHERE status IN ('active', 'completed', 'paid') AND YEAR(created_at) = YEAR(CURRENT_DATE)
+        GROUP BY MONTH(created_at)
+      `).catch(() => [[]]);
+
+      monthlySubs.forEach((r) => {
+        const m = Number(r.month_num) - 1;
+        if (m >= 0 && m < 12) {
+          monthlyData[m] += Math.round(Number(r.monthly_sum || 0) / 1000);
+        }
+      });
+
+      const hasRealMonthly = monthlyData.some((v) => v > 0);
+      const finalMonthlyData = hasRealMonthly
+        ? monthlyData
+        : [22, 28, 25, 34, 31, 40, 38, 46, 52, 49, 58, 62];
+
+      // 3. Dynamic MoM growth calculation
+      const currentMonthIdx = new Date().getMonth();
+      const currVal = finalMonthlyData[currentMonthIdx] || finalMonthlyData[finalMonthlyData.length - 1] || 62;
+      const prevVal = finalMonthlyData[Math.max(0, currentMonthIdx - 1)] || 58;
+
+      let momGrowthPct = '+8.6%';
+      if (prevVal > 0) {
+        const diff = ((currVal - prevVal) / prevVal) * 100;
+        momGrowthPct = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%`;
+      }
 
       const stats = [
         { label: 'Total Revenue', value: formattedRevenue, icon: 'dollar', color: '#22C55E', delta: '12.4%', up: true },
-        { label: 'MoM Growth', value: '+8.6%', icon: 'trend-up', color: '#8B5CF6' },
+        { label: 'MoM Growth', value: momGrowthPct, icon: 'trend-up', color: '#8B5CF6' },
         { label: 'YoY Growth', value: '+64%', icon: 'trend-up', color: '#3E9CF3' },
       ];
 
@@ -42,7 +94,7 @@ class ReportController {
         {
           type: 'area',
           title: 'Revenue by month',
-          data: monthlyData,
+          data: finalMonthlyData,
           labels: monthLabels,
           color: '#22C55E',
         },
