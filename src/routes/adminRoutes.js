@@ -276,6 +276,7 @@ router.get('/reports/listening', AdminReportController.listening);
 router.get('/reports/creators', AdminReportController.creators);
 router.get('/reports/growth', AdminReportController.growth);
 router.get('/reports/export-center', AdminReportController.exportCenter);
-router.get('/reports/export', AdminReportController.exportCenter);
+router.get('/reports/export', AdminReportController.exportReport);
+router.post('/reports/export', AdminReportController.exportReport);
 
 module.exports = router;

@@ -5773,6 +5773,39 @@
               ]
             }
           }
+        },
+        {
+          "name": "Export Report File",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/export?name=Revenue Report&format=csv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Revenue Report"
+                },
+                {
+                  "key": "format",
+                  "value": "csv"
+                }
+              ]
+            }
+          }
         }
       ]
     }
