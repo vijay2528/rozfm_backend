@@ -5609,6 +5609,172 @@
           }
         }
       ]
+    },
+    {
+      "name": "Reports Section",
+      "item": [
+        {
+          "name": "Get Revenue Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/revenue",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "revenue"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Story Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/stories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "stories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Listening Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/listening",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "listening"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Creator Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/creators",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "creators"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Growth Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/growth",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "growth"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Export Center Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/export-center",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "reports",
+                "export-center"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

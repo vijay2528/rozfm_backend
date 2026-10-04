@@ -27,6 +27,7 @@ const AdminMembershipPlanController = require('../controllers/admin/membershipPl
 const AdminCouponController = require('../controllers/admin/couponController');
 const AdminCoinTransactionController = require('../controllers/admin/coinTransactionController');
 const AdminRecommendationController = require('../controllers/admin/recommendationController');
+const AdminReportController = require('../controllers/admin/reportController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -266,5 +267,15 @@ router.get('/recommendations/top-picks', AdminRecommendationController.topPicks)
 router.get('/recommendations/top', AdminRecommendationController.topPicks);
 
 router.get('/recommendations/recommended', AdminRecommendationController.recommended);
+
+// ── 23. Reports Section Management ─────────────────────────────────────────
+router.get('/reports/revenue', AdminReportController.revenue);
+router.get('/reports/users', AdminReportController.users);
+router.get('/reports/stories', AdminReportController.stories);
+router.get('/reports/listening', AdminReportController.listening);
+router.get('/reports/creators', AdminReportController.creators);
+router.get('/reports/growth', AdminReportController.growth);
+router.get('/reports/export-center', AdminReportController.exportCenter);
+router.get('/reports/export', AdminReportController.exportCenter);
 
 module.exports = router;
