@@ -28,6 +28,7 @@ const AdminCouponController = require('../controllers/admin/couponController');
 const AdminCoinTransactionController = require('../controllers/admin/coinTransactionController');
 const AdminRecommendationController = require('../controllers/admin/recommendationController');
 const AdminReportController = require('../controllers/admin/reportController');
+const AdminNotificationController = require('../controllers/admin/notificationController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -278,5 +279,11 @@ router.get('/reports/growth', AdminReportController.growth);
 router.get('/reports/export-center', AdminReportController.exportCenter);
 router.get('/reports/export', AdminReportController.exportReport);
 router.post('/reports/export', AdminReportController.exportReport);
+
+// ── 24. Push Notifications ──────────────────────────────────────────────────
+router.post('/notifications/send', AdminNotificationController.sendPush);
+router.post('/notifications/push', AdminNotificationController.sendPush);
+router.get('/notifications/reach', AdminNotificationController.reach);
+router.get('/notifications/history', AdminNotificationController.history);
 
 module.exports = router;

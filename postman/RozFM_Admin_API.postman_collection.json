@@ -5808,6 +5808,137 @@
           }
         }
       ]
+    },
+    {
+      "name": "Push Notifications",
+      "item": [
+        {
+          "name": "Send Push Notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"🔥 New Episode Out Now!\",\n  \"body\": \"Listen to the latest episode on RozFM.\",\n  \"segment\": \"all\",\n  \"action_type\": \"story\",\n  \"action_value\": \"1\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/notifications/send",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "notifications",
+                "send"
+              ]
+            },
+            "description": "Sends an FCM push (via the global PushNotificationService) and saves it to each user's in-app inbox (notifications table, type = admin_push).\n\nBody:\n- title (required, max 255)\n- body | message (required)\n- segment: all | free | premium | users (default all)\n- user_ids: [1,2,3] (required when segment = users)\n- action_type: story | link | coins | none\n- action_value: story ID / URL\n\nAlias: POST /admin/notifications/push"
+          }
+        },
+        {
+          "name": "Send Push to Specific Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Your streak is about to end 🔥\",\n  \"body\": \"Listen for 5 minutes today to keep it going.\",\n  \"segment\": \"users\",\n  \"user_ids\": [3, 5],\n  \"action_type\": \"none\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/notifications/push",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "notifications",
+                "push"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Reach Estimate",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/notifications/reach?segment=all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "notifications",
+                "reach"
+              ],
+              "query": [
+                {
+                  "key": "segment",
+                  "value": "all",
+                  "description": "all | free | premium | users"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Notification History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/notifications/history?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "notifications",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }
