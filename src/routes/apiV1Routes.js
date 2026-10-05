@@ -218,6 +218,8 @@ router.post('/episodes/:id', upload.episodeMedia, EpisodeController.update);
 // Interactions & Engagement
 router.post('/stories/:id/reviews', ReviewController.store);
 router.post('/stories/:id/comments', CommentController.store);
+router.post('/comments/:id', CommentController.update);
+router.delete('/comments/:id', CommentController.destroy);
 router.post('/stories/:id/like', StoryController.toggleLike);
 router.post('/stories/:id/share', StoryController.share);
 router.post('/comments/:id/like', CommentController.toggleLike);

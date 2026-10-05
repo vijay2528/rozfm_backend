@@ -1428,6 +1428,50 @@
           }
         },
         {
+          "name": "Edit Story Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Updated comment text here!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/comments/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "comments",
+                "1"
+              ]
+            },
+            "description": "Edit an existing comment by its ID."
+          }
+        },
+        {
+          "name": "Delete Story Comment",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/comments/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "comments",
+                "1"
+              ]
+            },
+            "description": "Delete a comment by its ID. Allowed for comment author or story owner."
+          }
+        },
+        {
           "name": "Get Comment Replies",
           "request": {
             "auth": {

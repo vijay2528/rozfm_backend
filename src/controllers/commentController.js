@@ -202,6 +202,154 @@ class CommentController {
       return ApiResponse.error(res, 'Failed to update comment like status.', 500);
     }
   }
+
+  static async update(req, res) {
+    try {
+      const commentId =
+        req.params.commentId ||
+        (req.params.storyId ? req.params.id : null) ||
+        req.params.comment ||
+        req.body?.comment_id ||
+        req.query?.comment_id ||
+        req.params.id;
+      const userId = req.user.id;
+      const { comment } = req.body;
+
+      if (!commentId) {
+        return ApiResponse.error(res, 'Comment ID is required.', 422);
+      }
+
+      if (!comment || typeof comment !== 'string' || comment.trim() === '') {
+        return ApiResponse.error(res, 'Comment text is required.', 422);
+      }
+
+      const [rows] = await pool.query('SELECT * FROM comments WHERE id = ? LIMIT 1', [commentId]);
+      if (rows.length === 0) {
+        return ApiResponse.error(res, 'Comment not found.', 404);
+      }
+
+      const commentRecord = rows[0];
+
+      // If story ID was specified in route params, verify it matches
+      const routeStoryId = req.params.storyId || (req.params.commentId ? req.params.id : null);
+      if (routeStoryId && Number(commentRecord.story_id) !== Number(routeStoryId)) {
+        return ApiResponse.error(res, 'Comment does not belong to this story.', 400);
+      }
+
+      // Only the author of the comment can edit it
+      if (Number(commentRecord.user_id) !== Number(userId)) {
+        return ApiResponse.error(res, 'You are not authorized to edit this comment.', 403);
+      }
+
+      const trimmedComment = comment.trim();
+      await pool.query('UPDATE comments SET comment = ?, updated_at = NOW() WHERE id = ?', [
+        trimmedComment,
+        commentId,
+      ]);
+
+      const [updatedRows] = await pool.query(
+        `SELECT c.*, u.name as user_name, u.avatar_path as user_avatar,
+                (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count,
+                (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as replies_count
+         FROM comments c
+         JOIN users u ON c.user_id = u.id
+         WHERE c.id = ? LIMIT 1`,
+        [commentId]
+      );
+
+      const updated = updatedRows[0] || {};
+
+      return ApiResponse.success(
+        res,
+        {
+          id: Number(commentId),
+          comment_id: Number(commentId),
+          story_id: Number(commentRecord.story_id),
+          parent_id: commentRecord.parent_id ? Number(commentRecord.parent_id) : null,
+          user_id: Number(userId),
+          user_name: updated.user_name || null,
+          user_avatar: updated.user_avatar || null,
+          comment: trimmedComment,
+          likes_count: Number(updated.likes_count || 0),
+          replies_count: Number(updated.replies_count || 0),
+          created_at: commentRecord.created_at,
+          updated_at: updated.updated_at || new Date(),
+        },
+        'Comment updated successfully.'
+      );
+    } catch (error) {
+      console.error('Update Comment Error:', error);
+      return ApiResponse.error(res, 'Failed to update comment.', 500);
+    }
+  }
+
+  static async destroy(req, res) {
+    try {
+      const commentId =
+        req.params.commentId ||
+        (req.params.storyId ? req.params.id : null) ||
+        req.params.comment ||
+        req.body?.comment_id ||
+        req.query?.comment_id ||
+        req.params.id;
+      const userId = req.user.id;
+
+      if (!commentId) {
+        return ApiResponse.error(res, 'Comment ID is required.', 422);
+      }
+
+      const [rows] = await pool.query(
+        `SELECT c.*, s.user_id as story_author_id 
+         FROM comments c 
+         LEFT JOIN stories s ON c.story_id = s.id 
+         WHERE c.id = ? LIMIT 1`,
+        [commentId]
+      );
+
+      if (rows.length === 0) {
+        return ApiResponse.error(res, 'Comment not found.', 404);
+      }
+
+      const commentRecord = rows[0];
+
+      // If story ID was specified in route params, verify it matches
+      const routeStoryId = req.params.storyId || (req.params.commentId ? req.params.id : null);
+      if (routeStoryId && Number(commentRecord.story_id) !== Number(routeStoryId)) {
+        return ApiResponse.error(res, 'Comment does not belong to this story.', 400);
+      }
+
+      // Check authorization: comment owner OR story owner can delete
+      const isCommentAuthor = Number(commentRecord.user_id) === Number(userId);
+      const isStoryAuthor = Number(commentRecord.story_author_id) === Number(userId);
+
+      if (!isCommentAuthor && !isStoryAuthor) {
+        return ApiResponse.error(res, 'You are not authorized to delete this comment.', 403);
+      }
+
+      // Delete replies and likes to prevent orphaned records
+      const [replies] = await pool.query('SELECT id FROM comments WHERE parent_id = ?', [commentId]);
+      if (replies.length > 0) {
+        const replyIds = replies.map((r) => r.id);
+        await pool.query('DELETE FROM comment_likes WHERE comment_id IN (?)', [replyIds]);
+        await pool.query('DELETE FROM comments WHERE parent_id = ?', [commentId]);
+      }
+      await pool.query('DELETE FROM comment_likes WHERE comment_id = ?', [commentId]);
+      await pool.query('DELETE FROM comments WHERE id = ?', [commentId]);
+
+      return ApiResponse.success(
+        res,
+        {
+          id: Number(commentId),
+          comment_id: Number(commentId),
+          story_id: Number(commentRecord.story_id),
+        },
+        'Comment deleted successfully.'
+      );
+    } catch (error) {
+      console.error('Delete Comment Error:', error);
+      return ApiResponse.error(res, 'Failed to delete comment.', 500);
+    }
+  }
 }
 
 module.exports = CommentController;
