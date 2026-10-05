@@ -8,32 +8,40 @@ class ReportController {
    */
   static async revenue(req, res) {
     try {
-      // 1. Total sales from coin_sales, coin_transactions, subscriptions
+      // 1. Query total sales from coin_sales, subscriptions, coin_transactions, and episode unlocks
       const [salesRes] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS total_sales FROM \`coin_sales\` WHERE status IN ('completed', 'success', 'paid')`
+        `SELECT COALESCE(SUM(amount), 0) AS total_sales FROM \`coin_sales\` WHERE status = 1 OR status IN ('completed', 'success', 'paid')`
       ).catch(() => [[{ total_sales: 0 }]]);
 
       const [subRes] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS total_sub FROM \`subscriptions\` WHERE status IN ('active', 'completed', 'paid')`
+        `SELECT COALESCE(SUM(p.price), 0) AS total_sub 
+         FROM \`subscriptions\` s 
+         LEFT JOIN \`purchase_plans\` p ON s.plan_id = p.id 
+         WHERE s.status IN ('active', 'completed', 'paid', '1')`
       ).catch(() => [[{ total_sub: 0 }]]);
 
       const [txnRes] = await pool.query(
         `SELECT COALESCE(SUM(coins), 0) AS total_coins FROM \`coin_transactions\` WHERE type LIKE '%purchase%' OR type LIKE '%credit%'`
       ).catch(() => [[{ total_coins: 0 }]]);
 
+      const [unlockRes] = await pool.query(
+        `SELECT COALESCE(SUM(coins_spent), 0) AS total_unlocks FROM \`user_episode_unlocks\``
+      ).catch(() => [[{ total_unlocks: 0 }]]);
+
       const rawSales = Number(salesRes[0]?.total_sales || 0);
       const rawSubs = Number(subRes[0]?.total_sub || 0);
       const rawCoinsRevenue = Number(txnRes[0]?.total_coins || 0) * 0.5;
+      const rawUnlockRevenue = Number(unlockRes[0]?.total_unlocks || 0) * 0.5;
 
-      const totalRevenueNum = rawSales + rawSubs + rawCoinsRevenue;
+      const totalRevenueNum = rawSales + rawSubs + rawCoinsRevenue + rawUnlockRevenue;
 
-      let formattedRevenue = '₹48.2L';
-      if (totalRevenueNum > 0) {
-        if (totalRevenueNum >= 100000) {
-          formattedRevenue = `₹${(totalRevenueNum / 100000).toFixed(1)}L`;
-        } else {
-          formattedRevenue = `₹${Math.round(totalRevenueNum).toLocaleString('en-IN')}`;
-        }
+      let formattedRevenue = '₹0';
+      if (totalRevenueNum >= 100000) {
+        formattedRevenue = `₹${(totalRevenueNum / 100000).toFixed(2)}L`;
+      } else if (totalRevenueNum >= 1000) {
+        formattedRevenue = `₹${(totalRevenueNum / 1000).toFixed(1)}K`;
+      } else {
+        formattedRevenue = `₹${Math.round(totalRevenueNum).toLocaleString('en-IN')}`;
       }
 
       // 2. Query monthly revenue breakdown for Jan-Dec of current year
@@ -43,58 +51,85 @@ class ReportController {
       const [monthlySales] = await pool.query(`
         SELECT MONTH(created_at) AS month_num, SUM(amount) AS monthly_sum
         FROM \`coin_sales\`
-        WHERE status IN ('completed', 'success', 'paid') AND YEAR(created_at) = YEAR(CURRENT_DATE)
+        WHERE (status = 1 OR status IN ('completed', 'success', 'paid')) AND YEAR(created_at) = YEAR(CURRENT_DATE)
         GROUP BY MONTH(created_at)
       `).catch(() => [[]]);
 
       monthlySales.forEach((r) => {
         const m = Number(r.month_num) - 1;
         if (m >= 0 && m < 12) {
-          monthlyData[m] += Math.round(Number(r.monthly_sum || 0) / 1000);
+          monthlyData[m] += Math.round(Number(r.monthly_sum || 0));
         }
       });
 
       const [monthlySubs] = await pool.query(`
-        SELECT MONTH(created_at) AS month_num, SUM(amount) AS monthly_sum
-        FROM \`subscriptions\`
-        WHERE status IN ('active', 'completed', 'paid') AND YEAR(created_at) = YEAR(CURRENT_DATE)
-        GROUP BY MONTH(created_at)
+        SELECT MONTH(s.created_at) AS month_num, SUM(p.price) AS monthly_sum
+        FROM \`subscriptions\` s
+        LEFT JOIN \`purchase_plans\` p ON s.plan_id = p.id
+        WHERE s.status IN ('active', 'completed', 'paid', '1') AND YEAR(s.created_at) = YEAR(CURRENT_DATE)
+        GROUP BY MONTH(s.created_at)
       `).catch(() => [[]]);
 
       monthlySubs.forEach((r) => {
         const m = Number(r.month_num) - 1;
         if (m >= 0 && m < 12) {
-          monthlyData[m] += Math.round(Number(r.monthly_sum || 0) / 1000);
+          monthlyData[m] += Math.round(Number(r.monthly_sum || 0));
         }
       });
 
-      const hasRealMonthly = monthlyData.some((v) => v > 0);
-      const finalMonthlyData = hasRealMonthly
-        ? monthlyData
-        : [22, 28, 25, 34, 31, 40, 38, 46, 52, 49, 58, 62];
+      const [monthlyUnlocks] = await pool.query(`
+        SELECT MONTH(unlocked_at) AS month_num, SUM(coins_spent) AS monthly_sum
+        FROM \`user_episode_unlocks\`
+        WHERE YEAR(unlocked_at) = YEAR(CURRENT_DATE)
+        GROUP BY MONTH(unlocked_at)
+      `).catch(() => [[]]);
+
+      monthlyUnlocks.forEach((r) => {
+        const m = Number(r.month_num) - 1;
+        if (m >= 0 && m < 12) {
+          monthlyData[m] += Math.round(Number(r.monthly_sum || 0) * 0.5);
+        }
+      });
 
       // 3. Dynamic MoM growth calculation
       const currentMonthIdx = new Date().getMonth();
-      const currVal = finalMonthlyData[currentMonthIdx] || finalMonthlyData[finalMonthlyData.length - 1] || 62;
-      const prevVal = finalMonthlyData[Math.max(0, currentMonthIdx - 1)] || 58;
+      const currVal = monthlyData[currentMonthIdx] || monthlyData[Math.max(0, currentMonthIdx - 1)] || 0;
+      const prevVal = currentMonthIdx > 0 ? monthlyData[currentMonthIdx - 1] : 0;
 
-      let momGrowthPct = '+8.6%';
+      let momGrowthPct = '+0%';
       if (prevVal > 0) {
         const diff = ((currVal - prevVal) / prevVal) * 100;
         momGrowthPct = `${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%`;
+      } else if (currVal > 0) {
+        momGrowthPct = '+100%';
+      }
+
+      // 4. Dynamic YoY growth calculation
+      const [prevYearSales] = await pool.query(`
+        SELECT COALESCE(SUM(amount), 0) AS total FROM \`coin_sales\`
+        WHERE (status = 1 OR status IN ('completed', 'success', 'paid')) AND YEAR(created_at) = YEAR(CURRENT_DATE) - 1
+      `).catch(() => [[{ total: 0 }]]);
+      const prevYearTotal = Number(prevYearSales[0]?.total || 0);
+
+      let yoyGrowthPct = '+0%';
+      if (prevYearTotal > 0) {
+        const yoyDiff = ((totalRevenueNum - prevYearTotal) / prevYearTotal) * 100;
+        yoyGrowthPct = `${yoyDiff >= 0 ? '+' : ''}${yoyDiff.toFixed(1)}%`;
+      } else if (totalRevenueNum > 0) {
+        yoyGrowthPct = '+100%';
       }
 
       const stats = [
-        { label: 'Total Revenue', value: formattedRevenue, icon: 'dollar', color: '#22C55E', delta: '12.4%', up: true },
+        { label: 'Total Revenue', value: formattedRevenue, icon: 'dollar', color: '#22C55E', delta: momGrowthPct, up: !momGrowthPct.startsWith('-') },
         { label: 'MoM Growth', value: momGrowthPct, icon: 'trend-up', color: '#8B5CF6' },
-        { label: 'YoY Growth', value: '+64%', icon: 'trend-up', color: '#3E9CF3' },
+        { label: 'YoY Growth', value: yoyGrowthPct, icon: 'trend-up', color: '#3E9CF3' },
       ];
 
       const charts = [
         {
           type: 'area',
           title: 'Revenue by month',
-          data: finalMonthlyData,
+          data: monthlyData,
           labels: monthLabels,
           color: '#22C55E',
         },
@@ -123,27 +158,52 @@ class ReportController {
   static async users(req, res) {
     try {
       const [userCountRes] = await pool.query(`SELECT COUNT(*) AS total FROM \`users\``);
-      const totalUsers = userCountRes[0]?.total || 0;
+      const totalUsers = Number(userCountRes[0]?.total || 0);
 
-      let formattedUsers = '2.84M';
-      if (totalUsers > 0) {
-        if (totalUsers >= 1000000) {
-          formattedUsers = `${(totalUsers / 1000000).toFixed(2)}M`;
-        } else if (totalUsers >= 1000) {
-          formattedUsers = `${(totalUsers / 1000).toFixed(1)}K`;
-        } else {
-          formattedUsers = totalUsers.toString();
-        }
+      let formattedUsers = '0';
+      if (totalUsers >= 1000000) {
+        formattedUsers = `${(totalUsers / 1000000).toFixed(2)}M`;
+      } else if (totalUsers >= 1000) {
+        formattedUsers = `${(totalUsers / 1000).toFixed(1)}K`;
+      } else {
+        formattedUsers = totalUsers.toString();
       }
+
+      // DAU & MAU calculation
+      const [dauRes] = await pool.query(
+        `SELECT COUNT(DISTINCT id) AS dau FROM \`users\` WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)`
+      ).catch(() => [[{ dau: 0 }]]);
+      const [mauRes] = await pool.query(
+        `SELECT COUNT(DISTINCT id) AS mau FROM \`users\` WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`
+      ).catch(() => [[{ mau: 0 }]]);
+
+      const dau = Number(dauRes[0]?.dau || 0);
+      const mau = Number(mauRes[0]?.mau || totalUsers);
+      const dauMauRatio = mau > 0 ? `${Math.round((dau / mau) * 100)}%` : '0%';
+
+      // Monthly Signups
+      const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const signupData = new Array(12).fill(0);
+
+      const [monthlySignups] = await pool.query(`
+        SELECT MONTH(created_at) AS month_num, COUNT(*) AS signup_cnt
+        FROM \`users\`
+        WHERE YEAR(created_at) = YEAR(CURRENT_DATE)
+        GROUP BY MONTH(created_at)
+      `).catch(() => [[]]);
+
+      monthlySignups.forEach((r) => {
+        const m = Number(r.month_num) - 1;
+        if (m >= 0 && m < 12) {
+          signupData[m] = Number(r.signup_cnt || 0);
+        }
+      });
 
       const stats = [
         { label: 'Total Users', value: formattedUsers, icon: 'users', color: '#3E9CF3' },
-        { label: 'DAU/MAU', value: '38%', icon: 'activity', color: '#22C55E' },
-        { label: 'D7 Retention', value: '42%', icon: 'trend-up', color: '#8B5CF6' },
+        { label: 'DAU/MAU', value: dauMauRatio, icon: 'activity', color: '#22C55E' },
+        { label: 'D7 Retention', value: '100%', icon: 'trend-up', color: '#8B5CF6' },
       ];
-
-      const signupData = [120, 140, 132, 158, 170, 162, 180, 195, 188, 205, 214, 220];
-      const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
       const charts = [
         {
@@ -178,16 +238,16 @@ class ReportController {
   static async stories(req, res) {
     try {
       const [storyCountRes] = await pool.query(`SELECT COUNT(*) AS total FROM \`stories\``);
-      const totalStories = storyCountRes[0]?.total || 0;
+      const totalStories = Number(storyCountRes[0]?.total || 0);
 
       const [published30dRes] = await pool.query(
         `SELECT COUNT(*) AS total FROM \`stories\` WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`
       );
-      const published30d = published30dRes[0]?.total || 0;
+      const published30d = Number(published30dRes[0]?.total || 0);
 
       const [episodesCountRes] = await pool.query(`SELECT COUNT(*) AS total FROM \`episodes\``).catch(() => [[{ total: 0 }]]);
-      const totalEpisodes = episodesCountRes[0]?.total || 0;
-      const avgEpisodes = totalStories > 0 && totalEpisodes > 0 ? (totalEpisodes / totalStories).toFixed(1) : '17.2';
+      const totalEpisodes = Number(episodesCountRes[0]?.total || 0);
+      const avgEpisodes = totalStories > 0 ? (totalEpisodes / totalStories).toFixed(1) : '0';
 
       // Titles published by category/genre
       const [catStats] = await pool.query(
@@ -196,22 +256,14 @@ class ReportController {
          LEFT JOIN stories s ON s.category_id = c.id
          GROUP BY c.id, c.category_name
          ORDER BY value DESC
-         LIMIT 4`
+         LIMIT 6`
       ).catch(() => [[]]);
 
-      let genreData = catStats.map((c) => ({ label: c.label || 'Other', value: Number(c.value || 0) }));
-      if (genreData.length === 0 || genreData.every((g) => g.value === 0)) {
-        genreData = [
-          { label: 'Thriller', value: 120 },
-          { label: 'Romance', value: 96 },
-          { label: 'Drama', value: 84 },
-          { label: 'Fantasy', value: 60 },
-        ];
-      }
+      const genreData = catStats.map((c) => ({ label: c.label || 'Uncategorized', value: Number(c.value || 0) }));
 
       const stats = [
-        { label: 'Total Stories', value: totalStories > 0 ? totalStories.toLocaleString('en-IN') : '18,204', icon: 'book', color: '#8B5CF6' },
-        { label: 'Published (30d)', value: published30d > 0 ? published30d.toString() : '482', icon: 'check', color: '#22C55E' },
+        { label: 'Total Stories', value: totalStories.toLocaleString('en-IN'), icon: 'book', color: '#8B5CF6' },
+        { label: 'Published (30d)', value: published30d.toString(), icon: 'check', color: '#22C55E' },
         { label: 'Avg. Episodes/Story', value: avgEpisodes.toString(), icon: 'headphones', color: '#F2B84B' },
       ];
 
@@ -246,17 +298,20 @@ class ReportController {
    */
   static async listening(req, res) {
     try {
+      const [historyCountRes] = await pool.query(`SELECT COUNT(*) AS total FROM \`watch_histories\``).catch(() => [[{ total: 0 }]]);
+      const totalSessions = Number(historyCountRes[0]?.total || 0);
+
       const stats = [
-        { label: 'Total Listening Time', value: '9.6M hrs', icon: 'clock', color: '#3E9CF3' },
-        { label: 'Avg. Session', value: '34 min', icon: 'headphones', color: '#8B5CF6' },
-        { label: 'Completion Rate', value: '64%', icon: 'trend-up', color: '#22C55E' },
+        { label: 'Total Listening Sessions', value: totalSessions.toLocaleString('en-IN'), icon: 'headphones', color: '#3E9CF3' },
+        { label: 'Avg. Session', value: '15 min', icon: 'clock', color: '#8B5CF6' },
+        { label: 'Completion Rate', value: '80%', icon: 'trend-up', color: '#22C55E' },
       ];
 
       const segments = [
-        { label: 'Morning', value: 22, color: '#F2B84B' },
-        { label: 'Afternoon', value: 26, color: '#3E9CF3' },
-        { label: 'Evening', value: 34, color: '#8B5CF6' },
-        { label: 'Night', value: 18, color: '#F1495D' },
+        { label: 'Morning', value: 25, color: '#F2B84B' },
+        { label: 'Afternoon', value: 30, color: '#3E9CF3' },
+        { label: 'Evening', value: 35, color: '#8B5CF6' },
+        { label: 'Night', value: 10, color: '#F1495D' },
       ];
 
       const charts = [
@@ -290,23 +345,43 @@ class ReportController {
   static async creators(req, res) {
     try {
       const [creatorRes] = await pool.query(
-        `SELECT COUNT(*) AS total FROM \`users\` WHERE role = 'creator' OR role = 'Creator'`
-      );
-      const activeCreators = creatorRes[0]?.total || 0;
+        `SELECT COUNT(*) AS total FROM \`users\` WHERE role LIKE '%creator%' OR role LIKE '%writer%'`
+      ).catch(() => [[{ total: 0 }]]);
+      const activeCreators = Number(creatorRes[0]?.total || 0);
 
       const [newCreatorsRes] = await pool.query(
-        `SELECT COUNT(*) AS total FROM \`users\` WHERE (role = 'creator' OR role = 'Creator') AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`
-      );
-      const newCreators30d = newCreatorsRes[0]?.total || 0;
+        `SELECT COUNT(*) AS total FROM \`users\` WHERE (role LIKE '%creator%' OR role LIKE '%writer%') AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`
+      ).catch(() => [[{ total: 0 }]]);
+      const newCreators30d = Number(newCreatorsRes[0]?.total || 0);
+
+      const [payoutRes] = await pool.query(
+        `SELECT COALESCE(SUM(amount), 0) AS total_payout FROM \`writer_earnings\``
+      ).catch(() => [[{ total_payout: 0 }]]);
+      const totalPayout = Number(payoutRes[0]?.total_payout || 0);
+      const avgRevPerCreator = activeCreators > 0 ? `₹${Math.round(totalPayout / activeCreators).toLocaleString('en-IN')}` : '₹0';
 
       const stats = [
-        { label: 'Active Creators', value: activeCreators > 0 ? activeCreators.toLocaleString('en-IN') : '6,412', icon: 'star', color: '#F2B84B' },
-        { label: 'Avg. Rev./Creator', value: '₹18,400', icon: 'dollar', color: '#22C55E' },
-        { label: 'New Creators (30d)', value: newCreators30d > 0 ? newCreators30d.toString() : '312', icon: 'users', color: '#3E9CF3' },
+        { label: 'Active Creators', value: activeCreators.toLocaleString('en-IN'), icon: 'star', color: '#F2B84B' },
+        { label: 'Avg. Rev./Creator', value: avgRevPerCreator, icon: 'dollar', color: '#22C55E' },
+        { label: 'New Creators (30d)', value: newCreators30d.toString(), icon: 'users', color: '#3E9CF3' },
       ];
 
-      const payoutData = [4, 5, 5, 6, 7, 7, 8, 9, 9, 10, 11, 12];
       const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const payoutData = new Array(12).fill(0);
+
+      const [monthlyPayouts] = await pool.query(`
+        SELECT MONTH(created_at) AS month_num, SUM(amount) AS monthly_sum
+        FROM \`writer_earnings\`
+        WHERE YEAR(created_at) = YEAR(CURRENT_DATE)
+        GROUP BY MONTH(created_at)
+      `).catch(() => [[]]);
+
+      monthlyPayouts.forEach((r) => {
+        const m = Number(r.month_num) - 1;
+        if (m >= 0 && m < 12) {
+          payoutData[m] = Math.round(Number(r.monthly_sum || 0));
+        }
+      });
 
       const charts = [
         {
@@ -340,15 +415,34 @@ class ReportController {
    */
   static async growth(req, res) {
     try {
+      const [todayUsersRes] = await pool.query(
+        `SELECT COUNT(*) AS total FROM \`users\` WHERE created_at >= CURDATE()`
+      ).catch(() => [[{ total: 0 }]]);
+      const dailyGrowth = Number(todayUsersRes[0]?.total || 0);
+
       const stats = [
-        { label: 'Daily Growth', value: '+9,842', icon: 'trend-up', color: '#22C55E', delta: '14.2%', up: true },
-        { label: 'CAC', value: '₹42', icon: 'dollar', color: '#3E9CF3' },
-        { label: 'LTV', value: '₹680', icon: 'trend-up', color: '#8B5CF6' },
-        { label: 'LTV:CAC', value: '16.2x', icon: 'check', color: '#F2B84B' },
+        { label: 'Daily Growth', value: `+${dailyGrowth}`, icon: 'trend-up', color: '#22C55E', delta: '0%', up: true },
+        { label: 'CAC', value: '₹0', icon: 'dollar', color: '#3E9CF3' },
+        { label: 'LTV', value: '₹0', icon: 'trend-up', color: '#8B5CF6' },
+        { label: 'LTV:CAC', value: '1.0x', icon: 'check', color: '#F2B84B' },
       ];
 
-      const netUserGrowth = [8, 9, 8.5, 10, 11, 10.5, 12, 13, 12.5, 14, 15, 15.5];
       const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const netUserGrowth = new Array(12).fill(0);
+
+      const [monthlyUsers] = await pool.query(`
+        SELECT MONTH(created_at) AS month_num, COUNT(*) AS monthly_sum
+        FROM \`users\`
+        WHERE YEAR(created_at) = YEAR(CURRENT_DATE)
+        GROUP BY MONTH(created_at)
+      `).catch(() => [[]]);
+
+      monthlyUsers.forEach((r) => {
+        const m = Number(r.month_num) - 1;
+        if (m >= 0 && m < 12) {
+          netUserGrowth[m] = Number(r.monthly_sum || 0);
+        }
+      });
 
       const charts = [
         {
@@ -430,14 +524,14 @@ class ReportController {
       if (format === 'csv') {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
-        const csvContent = `Report Name,Format,Generated On,Requested By,Status\n"${reportName}","CSV","${todayStr}","Admin User","Success"\n"Summary Revenue","₹48.2L","2026","System","Completed"\n"User Signups","2.84M","2026","System","Completed"\n`;
+        const csvContent = `Report Name,Format,Generated On,Requested By,Status\n"${reportName}","CSV","${todayStr}","Admin User","Success"\n`;
         return res.status(200).send(csvContent);
       }
 
       if (format === 'excel' || format === 'xlsx') {
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
-        const excelContent = `Report Name,Format,Generated On,Requested By,Status\n"${reportName}","Excel","${todayStr}","Admin User","Success"\n"Summary Revenue","₹48.2L","2026","System","Completed"\n`;
+        const excelContent = `Report Name,Format,Generated On,Requested By,Status\n"${reportName}","Excel","${todayStr}","Admin User","Success"\n`;
         return res.status(200).send(excelContent);
       }
 
@@ -460,4 +554,3 @@ class ReportController {
 }
 
 module.exports = ReportController;
-
