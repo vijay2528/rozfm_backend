@@ -432,24 +432,53 @@ class UserController {
       );
 
       // Fetch next_episode_number per story for the requesting user
-      // next_episode_number = last watched episode position + 1, or 1 if no history
       let nextEpisodeMap = {};
-      if (currentUserId && storyRows.length > 0) {
+      if (storyRows.length > 0) {
         const storyIds = storyRows.map((s) => s.id);
-        const [watchRows] = await pool.query(
-          `SELECT w.story_id, COALESCE(e.episode_number, e.position, 1) as last_episode_number
-           FROM watch_histories w
-           INNER JOIN (
-             SELECT story_id, MAX(id) as max_history_id
-             FROM watch_histories
-             WHERE user_id = ? AND story_id IN (?) AND episode_id IS NOT NULL
-             GROUP BY story_id
-           ) latest ON w.id = latest.max_history_id
-           LEFT JOIN episodes e ON w.episode_id = e.id`,
-          [currentUserId, storyIds]
-        );
-        watchRows.forEach((r) => {
-          nextEpisodeMap[r.story_id] = Number(r.last_episode_number) + 1;
+        let storyMaxMap = {};
+
+        try {
+          const [maxEpRows] = await pool.query(
+            `SELECT story_id, COALESCE(MAX(COALESCE(episode_number, position, 0)), 0) as max_ep, COUNT(*) as ep_cnt
+             FROM episodes
+             WHERE story_id IN (?)
+             GROUP BY story_id`,
+            [storyIds]
+          );
+          maxEpRows.forEach((r) => {
+            storyMaxMap[r.story_id] = Math.max(Number(r.max_ep || 0), Number(r.ep_cnt || 0));
+          });
+        } catch (err) {
+          console.error('Fetch story max episode map error:', err.message);
+        }
+
+        let watchMap = {};
+        if (currentUserId) {
+          try {
+            const [watchRows] = await pool.query(
+              `SELECT e.story_id, MAX(COALESCE(e.episode_number, e.position, 1)) as max_watched_ep
+               FROM watch_histories w
+               INNER JOIN episodes e ON w.episode_id = e.id
+               WHERE w.user_id = ? AND (w.story_id IN (?) OR e.story_id IN (?)) AND w.episode_id IS NOT NULL
+               GROUP BY e.story_id`,
+              [currentUserId, storyIds, storyIds]
+            );
+            watchRows.forEach((r) => {
+              watchMap[r.story_id] = Number(r.max_watched_ep);
+            });
+          } catch (err) {
+            console.error('Fetch watch map error:', err.message);
+          }
+        }
+
+        storyRows.forEach((s) => {
+          const maxWatched = watchMap[s.id];
+          const maxStoryEp = Math.max(storyMaxMap[s.id] || 0, Number(s.real_episodes_count || s.episodes_count || 0));
+          if (maxWatched !== undefined && maxWatched !== null) {
+            nextEpisodeMap[s.id] = maxWatched + 1;
+          } else {
+            nextEpisodeMap[s.id] = maxStoryEp + 1;
+          }
         });
       }
 

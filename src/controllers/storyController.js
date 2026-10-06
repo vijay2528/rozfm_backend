@@ -387,10 +387,53 @@ class StoryController {
       result.total_likes = totalLikes;
       result.is_author_followed = isAuthorFollowed;
 
-      // next_episode_number: last watched episode's episode_number + 1, or 1 if no history
-      result.next_episode_number = lastWatchedHistory
-        ? Number(lastWatchedHistory.episode_number || lastWatchedHistory.episode_position || 1) + 1
-        : 1;
+      // Calculate max episode number for the story (e.g., if story has 11 episodes, max_ep is 11)
+      let storyMaxEp = 0;
+      try {
+        const [maxEpRows] = await pool.query(
+          `SELECT COALESCE(MAX(COALESCE(episode_number, position, 0)), 0) as max_ep, COUNT(*) as ep_cnt
+           FROM episodes
+           WHERE story_id = ?`,
+          [storyId]
+        );
+        if (maxEpRows.length > 0) {
+          storyMaxEp = Math.max(
+            Number(maxEpRows[0].max_ep || 0),
+            Number(maxEpRows[0].ep_cnt || 0)
+          );
+        }
+      } catch (maxEpErr) {
+        console.error('Fetch max episode error:', maxEpErr);
+      }
+
+      const storyTotalCount = Number(story.real_episodes_count || story.episodes_count || 0);
+      storyMaxEp = Math.max(storyMaxEp, storyTotalCount);
+
+      // Determine next_episode_number:
+      // 1. If user has watch history, use (max watched episode number) + 1
+      // 2. Otherwise (no watch history / guest), use (story max episode number) + 1
+      let calculatedNextEp = storyMaxEp + 1;
+      if (userId) {
+        try {
+          const [maxWatchedRows] = await pool.query(
+            `SELECT MAX(COALESCE(e.episode_number, e.position, 1)) as max_watched_ep
+             FROM watch_histories w
+             INNER JOIN episodes e ON w.episode_id = e.id
+             WHERE w.user_id = ? AND (w.story_id = ? OR e.story_id = ?) AND w.episode_id IS NOT NULL`,
+            [userId, storyId, storyId]
+          );
+          if (maxWatchedRows.length > 0 && maxWatchedRows[0].max_watched_ep !== null && maxWatchedRows[0].max_watched_ep !== undefined) {
+            calculatedNextEp = Number(maxWatchedRows[0].max_watched_ep) + 1;
+          }
+        } catch (maxWatchedErr) {
+          console.error('Fetch max watched episode error:', maxWatchedErr);
+          if (lastWatchedHistory) {
+            calculatedNextEp = Number(lastWatchedHistory.episode_number || lastWatchedHistory.episode_position || 1) + 1;
+          }
+        }
+      }
+
+      result.next_episode_number = calculatedNextEp;
 
       return ApiResponse.success(res, {
         story: result,
