@@ -1,6 +1,7 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const StreakService = require('../services/streakService');
+const { resolveUrl } = require('../utils/storyPresenter');
 
 function formatTime(seconds) {
   const s = Math.max(0, parseInt(seconds, 10) || 0);
@@ -34,15 +35,17 @@ class WatchHistoryController {
       const history = historyRows.map((h) => {
         const totalDuration = Number(h.total_duration_seconds || h.episode_duration || 0);
         const progress = Number(h.progress_seconds || 0);
-        const completionPct = totalDuration > 0 
-          ? parseFloat(((progress / totalDuration) * 100).toFixed(2)) 
+        const completionPct = totalDuration > 0
+          ? parseFloat(((progress / totalDuration) * 100).toFixed(2))
           : Number(h.completion_percentage || 0);
+        const coverImageUrl = resolveUrl(h.cover_image_path);
 
         return {
           id: Number(h.id),
           story_id: Number(h.story_id),
           episode_id: h.episode_id ? Number(h.episode_id) : null,
           story_title: h.story_title,
+          story_cover_image: coverImageUrl,
           episode_title: h.episode_title || null,
           episode_number: h.episode_position || 1,
           episode_no: h.episode_position || 1,
@@ -116,7 +119,7 @@ class WatchHistoryController {
 
       // Check existing watch history row
       const [existing] = await pool.query(
-        episodeId 
+        episodeId
           ? 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1'
           : 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id IS NULL LIMIT 1',
         episodeId ? [userId, storyId, episodeId] : [userId, storyId]
@@ -289,8 +292,8 @@ class WatchHistoryController {
       const h = rows[0];
       const totalDuration = Number(h.total_duration_seconds || ep.duration || 0);
       const progress = Number(h.progress_seconds || 0);
-      const completionPct = totalDuration > 0 
-        ? parseFloat(((progress / totalDuration) * 100).toFixed(2)) 
+      const completionPct = totalDuration > 0
+        ? parseFloat(((progress / totalDuration) * 100).toFixed(2))
         : Number(h.completion_percentage || 0);
 
       return ApiResponse.success(res, {
@@ -345,8 +348,8 @@ class WatchHistoryController {
       const h = rows[0];
       const totalDuration = Number(h.total_duration_seconds || h.episode_duration || 0);
       const progress = Number(h.progress_seconds || 0);
-      const completionPct = totalDuration > 0 
-        ? parseFloat(((progress / totalDuration) * 100).toFixed(2)) 
+      const completionPct = totalDuration > 0
+        ? parseFloat(((progress / totalDuration) * 100).toFixed(2))
         : Number(h.completion_percentage || 0);
 
       return ApiResponse.success(res, {
