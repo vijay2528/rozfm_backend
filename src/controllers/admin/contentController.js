@@ -654,7 +654,7 @@ class ContentController {
         const filterItems = Array.isArray(rawFilter) ? rawFilter : String(rawFilter).split(',');
         filterItems.forEach((item) => {
           const trimmed = String(item).trim().toLowerCase();
-          if (['locked', 'unlocked', 'scheduled', 'downloadable', 'publish_now', 'schedule_for_later'].includes(trimmed)) {
+          if (['locked', 'unlocked', 'scheduled', 'downloadable', 'publish_now', 'schedule_for_later', 'schedule'].includes(trimmed)) {
             activeFilters.add(trimmed);
           }
         });
@@ -675,11 +675,11 @@ class ContentController {
       // Publish_as filter resolution
       let publishAsVal = publish_as;
       if (!publishAsVal) {
-        if (activeFilters.has('publish_now') && activeFilters.has('schedule_for_later')) {
+        if (activeFilters.has('publish_now') && (activeFilters.has('schedule_for_later') || activeFilters.has('schedule') || activeFilters.has('scheduled'))) {
           publishAsVal = 'publish_now,schedule_for_later';
         } else if (activeFilters.has('publish_now')) {
           publishAsVal = 'publish_now';
-        } else if (activeFilters.has('schedule_for_later')) {
+        } else if (activeFilters.has('schedule_for_later') || activeFilters.has('schedule') || activeFilters.has('scheduled')) {
           publishAsVal = 'schedule_for_later';
         }
       }
@@ -693,9 +693,9 @@ class ContentController {
           const conditions = [];
           publishAsItems.forEach((item) => {
             if (item === 'publish_now' || item === 'published' || item === 'now') {
-              conditions.push("((e.publish_as = 'publish_now' OR e.publish_as IS NULL OR e.publish_as = '') AND (e.scheduled_at IS NULL OR e.scheduled_at <= NOW()))");
-            } else if (item === 'schedule_for_later' || item === 'scheduled') {
-              conditions.push("(e.publish_as = 'schedule_for_later' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at > NOW()))");
+              conditions.push("((LOWER(COALESCE(e.publish_as, 'publish_now')) = 'publish_now' OR e.publish_as IS NULL OR e.publish_as = '') AND (e.scheduled_at IS NULL OR e.scheduled_at = '' OR e.scheduled_at = '0000-00-00 00:00:00') AND LOWER(COALESCE(e.publish_as, '')) NOT LIKE '%schedule%')");
+            } else if (item === 'schedule_for_later' || item === 'scheduled' || item === 'schedule' || item.includes('schedule')) {
+              conditions.push("(LOWER(COALESCE(e.publish_as, '')) LIKE '%schedule%' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at != '' AND e.scheduled_at != '0000-00-00 00:00:00'))");
             } else {
               conditions.push('LOWER(e.publish_as) = ?');
               queryParams.push(item);
@@ -709,7 +709,7 @@ class ContentController {
       }
 
       if (activeFilters.has('scheduled') && (!publishAsVal || !String(publishAsVal).toLowerCase().includes('schedule'))) {
-        whereClauses.push("(e.publish_as = 'schedule_for_later' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at > NOW()))");
+        whereClauses.push("(LOWER(COALESCE(e.publish_as, '')) LIKE '%schedule%' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at != '' AND e.scheduled_at != '0000-00-00 00:00:00'))");
       }
 
       if (activeFilters.has('downloadable')) {
@@ -808,6 +808,8 @@ class ContentController {
         storyId,
         story,
         description,
+        publish_as,
+        is_scheduled,
         duration,
         duration_seconds,
         duration_minutes,
@@ -861,6 +863,15 @@ class ContentController {
         }
       }
 
+      const isSchedFlag = is_scheduled === '1' || is_scheduled === 1 || is_scheduled === 'true' || is_scheduled === true;
+      const scheduledDateTime = scheduled_at || schedule_date_time || null;
+      let publishAsMode = publish_as;
+      if (!publishAsMode) {
+        publishAsMode = (isSchedFlag || scheduledDateTime) ? 'schedule_for_later' : 'publish_now';
+      }
+      const isPublishAsSchedule = publishAsMode && publishAsMode.toLowerCase().includes('schedule');
+      const finalScheduledAt = scheduledDateTime || (isPublishAsSchedule && rawDate ? publishedAt : null);
+
       const createdById = req.user ? req.user.id : null;
       const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
       const isDownloadableVal = (is_downloadable === undefined || is_downloadable === null || is_downloadable === '1' || is_downloadable === 1 || is_downloadable === 'true' || is_downloadable === true) ? 1 : 0;
@@ -884,8 +895,8 @@ class ContentController {
           nextEpisodeNumber,
           nextEpisodeNumber,
           description || null,
-          'publish_now',
-          rawDate ? publishedAt : null,
+          publishAsMode,
+          finalScheduledAt,
           finalAudioTitle,
           durSecs,
           durMins,
@@ -936,6 +947,8 @@ class ContentController {
         storyId,
         story,
         description,
+        publish_as,
+        is_scheduled,
         duration,
         duration_seconds,
         duration_minutes,
@@ -970,6 +983,15 @@ class ContentController {
       if (description !== undefined) {
         updateFields.push('`description` = ?');
         queryParams.push(description);
+      }
+
+      if (publish_as !== undefined) {
+        updateFields.push('`publish_as` = ?');
+        queryParams.push(publish_as);
+      } else if (is_scheduled !== undefined) {
+        const isSchedFlagU = is_scheduled === '1' || is_scheduled === 1 || is_scheduled === 'true' || is_scheduled === true;
+        updateFields.push('`publish_as` = ?');
+        queryParams.push(isSchedFlagU ? 'schedule_for_later' : 'publish_now');
       }
 
       if (is_premium !== undefined) {

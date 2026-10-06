@@ -71,7 +71,31 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, pro
   const storyImageUrl = resolveUrl(episode.story_cover_image_path || episode.cover_image_path || episode.story_image || episode.cover_image);
 
   const isUnl = Boolean(isUnlocked || !episode.is_premium);
-  const isSched = episode.publish_as === 'schedule_for_later' || (episode.scheduled_at && new Date(episode.scheduled_at) > new Date());
+
+  const rawPublishAs = String(episode.publish_as || '').trim().toLowerCase();
+  const rawStatus = String(episode.status || episode.release_status || '').trim().toLowerCase();
+  const hasScheduledAt = Boolean(
+    episode.scheduled_at &&
+    String(episode.scheduled_at).trim() !== '' &&
+    String(episode.scheduled_at).toLowerCase() !== 'null' &&
+    String(episode.scheduled_at) !== '0000-00-00 00:00:00'
+  );
+  const isExplicitFlag = Boolean(
+    episode.is_scheduled === 1 ||
+    episode.is_scheduled === '1' ||
+    episode.is_scheduled === true ||
+    episode.is_scheduled === 'true'
+  );
+  const isSchedPublish =
+    rawPublishAs === 'schedule' ||
+    rawPublishAs === 'scheduled' ||
+    rawPublishAs === 'schedule_for_later' ||
+    rawPublishAs === 'scheduled_for_later' ||
+    rawPublishAs.includes('schedule') ||
+    rawStatus === 'scheduled' ||
+    rawStatus.includes('schedule');
+
+  const isSched = Boolean(isSchedPublish || isExplicitFlag || hasScheduledAt);
   const isDownAllowed = episode.is_downloadable !== undefined && episode.is_downloadable !== null
     ? Boolean(Number(episode.is_downloadable))
     : true;
@@ -121,7 +145,9 @@ function toEpisodeFieldsArray(episode, storyTitle = null, isUnlocked = true, pro
     title: episode.title,
     audio_title: episode.audio_title || episode.title,
     description: episode.description || null,
-    publish_as: episode.publish_as || 'publish_now',
+    publish_as: episode.publish_as
+      ? episode.publish_as
+      : (isSched ? 'schedule_for_later' : 'publish_now'),
     scheduled_at: episode.scheduled_at || null,
     duration_seconds: totalDurationSecs,
     duration_formatted: formatTime(totalDurationSecs),

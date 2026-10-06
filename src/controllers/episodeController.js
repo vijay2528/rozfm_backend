@@ -38,7 +38,7 @@ class EpisodeController {
         const filterItems = Array.isArray(rawFilter) ? rawFilter : String(rawFilter).split(',');
         filterItems.forEach((item) => {
           const trimmed = String(item).trim().toLowerCase();
-          if (['locked', 'unlocked', 'scheduled', 'downloadable', 'publish_now', 'schedule_for_later'].includes(trimmed)) {
+          if (['locked', 'unlocked', 'scheduled', 'downloadable', 'publish_now', 'schedule_for_later', 'schedule'].includes(trimmed)) {
             activeFilters.add(trimmed);
           }
         });
@@ -69,11 +69,11 @@ class EpisodeController {
       // Publish_as filter resolution
       let publishAsVal = publish_as;
       if (!publishAsVal) {
-        if (activeFilters.has('publish_now') && activeFilters.has('schedule_for_later')) {
+        if (activeFilters.has('publish_now') && (activeFilters.has('schedule_for_later') || activeFilters.has('schedule') || activeFilters.has('scheduled'))) {
           publishAsVal = 'publish_now,schedule_for_later';
         } else if (activeFilters.has('publish_now')) {
           publishAsVal = 'publish_now';
-        } else if (activeFilters.has('schedule_for_later')) {
+        } else if (activeFilters.has('schedule_for_later') || activeFilters.has('schedule') || activeFilters.has('scheduled')) {
           publishAsVal = 'schedule_for_later';
         }
       }
@@ -87,9 +87,9 @@ class EpisodeController {
           const conditions = [];
           publishAsItems.forEach((item) => {
             if (item === 'publish_now' || item === 'published' || item === 'now') {
-              conditions.push("((e.publish_as = 'publish_now' OR e.publish_as IS NULL OR e.publish_as = '') AND (e.scheduled_at IS NULL OR e.scheduled_at <= NOW()))");
-            } else if (item === 'schedule_for_later' || item === 'scheduled') {
-              conditions.push("(e.publish_as = 'schedule_for_later' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at > NOW()))");
+              conditions.push("((LOWER(COALESCE(e.publish_as, 'publish_now')) = 'publish_now' OR e.publish_as IS NULL OR e.publish_as = '') AND (e.scheduled_at IS NULL OR e.scheduled_at = '' OR e.scheduled_at = '0000-00-00 00:00:00') AND LOWER(COALESCE(e.publish_as, '')) NOT LIKE '%schedule%')");
+            } else if (item === 'schedule_for_later' || item === 'scheduled' || item === 'schedule' || item.includes('schedule')) {
+              conditions.push("(LOWER(COALESCE(e.publish_as, '')) LIKE '%schedule%' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at != '' AND e.scheduled_at != '0000-00-00 00:00:00'))");
             } else {
               conditions.push('LOWER(e.publish_as) = ?');
               queryParams.push(item);
@@ -103,7 +103,7 @@ class EpisodeController {
       }
 
       if (activeFilters.has('scheduled') && (!publishAsVal || !String(publishAsVal).toLowerCase().includes('schedule'))) {
-        whereClauses.push("(e.publish_as = 'schedule_for_later' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at > NOW()))");
+        whereClauses.push("(LOWER(COALESCE(e.publish_as, '')) LIKE '%schedule%' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at != '' AND e.scheduled_at != '0000-00-00 00:00:00'))");
       }
 
       if (activeFilters.has('downloadable')) {
