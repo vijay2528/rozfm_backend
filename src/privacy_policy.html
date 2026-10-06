@@ -1,125 +1,139 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="system">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="index, follow">
-
+    <meta name="color-scheme" content="light dark">
     <title>Privacy Policy - Roz Fm</title>
 
     <style>
-        * {
-            box-sizing: border-box;
+        :root {
+            --bg: #f7f7f9;
+            --surface: #ffffff;
+            --text: #252525;
+            --muted: #737373;
+            --border: #e6e6e9;
+            --primary: #6c5ce7;
+            --highlight: #f2f0ff;
+            --shadow: 0 3px 18px rgba(0,0,0,.07);
         }
+
+        html[data-theme="dark"] {
+            --bg: #0f0f11;
+            --surface: #18181b;
+            --text: #f4f4f5;
+            --muted: #a1a1aa;
+            --border: #2c2c31;
+            --primary: #a99cff;
+            --highlight: #242136;
+            --shadow: 0 3px 18px rgba(0,0,0,.30);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            html[data-theme="system"] {
+                --bg: #0f0f11;
+                --surface: #18181b;
+                --text: #f4f4f5;
+                --muted: #a1a1aa;
+                --border: #2c2c31;
+                --primary: #a99cff;
+                --highlight: #242136;
+                --shadow: 0 3px 18px rgba(0,0,0,.30);
+            }
+        }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            padding: 0;
+            background: var(--bg);
+            color: var(--text);
             font-family: Arial, Helvetica, sans-serif;
-            background: #f7f7f9;
-            color: #333;
             line-height: 1.7;
+            transition: background .2s ease, color .2s ease;
         }
 
         .container {
             max-width: 900px;
             margin: 40px auto;
-            background: #ffffff;
             padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
         }
 
-        h1 {
-            color: #222;
-            margin-bottom: 5px;
-        }
+        h1 { margin: 0 0 5px; font-size: 32px; }
+        h2 { margin-top: 32px; font-size: 21px; }
+        p, li { font-size: 16px; }
+        .updated { color: var(--muted); margin-bottom: 30px; }
+        a { color: var(--primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
 
-        h2 {
-            color: #333;
-            margin-top: 30px;
-            margin-bottom: 10px;
-        }
-
-        p, li {
-            font-size: 16px;
-        }
-
-        .updated {
-            color: #777;
-            margin-bottom: 30px;
-        }
-
-        a {
-            color: #5b4bdb;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
+        .highlight {
+            background: var(--highlight);
+            border-left: 4px solid var(--primary);
+            padding: 15px 18px;
+            border-radius: 6px;
+            margin: 20px 0;
         }
 
         .footer {
             margin-top: 40px;
             padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #777;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
             font-size: 14px;
         }
 
         @media (max-width: 600px) {
+            body { background: var(--surface); }
             .container {
                 margin: 0;
-                padding: 25px 20px;
+                padding: 24px 20px;
+                border: 0;
                 border-radius: 0;
+                box-shadow: none;
             }
+            h1 { font-size: 27px; }
         }
     </style>
 </head>
 
 <body>
-
 <div class="container">
 
-    <h1>Privacy Policy for Roz Fm</h1>
+    <h1>Privacy Policy</h1>
     <p class="updated">Last updated: October 6, 2026</p>
 
     <p>
         Welcome to <strong>Roz Fm</strong>. We respect your privacy and are
-        committed to protecting your personal information.
-    </p>
-
-    <p>
-        This Privacy Policy explains how Roz Fm ("we", "our", or "us")
-        collects, uses, stores, and protects information when you use the
-        Roz Fm mobile application, website, and related services.
+        committed to protecting your personal information. This Privacy Policy
+        explains how we collect, use, store, share, and protect information when
+        you use the Roz Fm mobile application, website, and related services.
     </p>
 
     <h2>1. About Roz Fm</h2>
 
     <p>
-        Roz Fm is an audio entertainment platform that allows users to
-        discover, stream, and listen to audio series and other audio content.
-        Certain features may also allow eligible users or content creators
-        to upload audio, images, or other content.
+        Roz Fm is an audio entertainment platform that allows users to discover,
+        stream, and listen to audio series, stories, episodes, and other audio
+        content. Certain features may also allow users or content creators to
+        upload audio, images, and other content.
     </p>
 
     <h2>2. Information We Collect</h2>
 
-    <p>
-        Depending on how you use Roz Fm, we may collect the following
-        categories of information:
-    </p>
+    <p>Depending on how you use Roz Fm, we may collect:</p>
 
     <ul>
         <li>Name and profile information</li>
         <li>Email address</li>
         <li>Phone number</li>
-        <li>User/account identifiers</li>
-        <li>Authentication information required to sign in</li>
+        <li>User and account identifiers</li>
         <li>Profile image, if provided</li>
-        <li>Audio files uploaded or submitted by users</li>
-        <li>Images uploaded or submitted by users</li>
+        <li>Authentication information</li>
+        <li>Audio files and images uploaded by users</li>
         <li>Subscription and purchase information</li>
         <li>Transaction identifiers and payment status</li>
         <li>App usage and interaction information</li>
@@ -127,66 +141,57 @@
         <li>Crash, diagnostic, and performance information where applicable</li>
     </ul>
 
-    <h2>3. Login and Account Information</h2>
+    <h2>3. Login and Authentication</h2>
 
     <p>
-        Roz Fm may provide authentication options such as Google Sign-In
-        and phone number/OTP authentication.
+        Roz Fm may provide authentication methods including Google Sign-In and
+        phone number/OTP authentication.
     </p>
 
     <p>
-        When you use Google Sign-In, we may receive information made available
-        through your Google account, such as your name, email address,
-        profile image, and account identifier, depending on the permissions
-        you grant.
+        When using Google Sign-In, we may receive information such as your name,
+        email address, profile image, and account identifier depending on the
+        permissions granted.
     </p>
 
     <p>
-        When you use phone authentication, your phone number and related
-        verification information may be processed for authentication,
-        account security, and fraud prevention.
+        When phone authentication is used, your phone number and verification
+        information may be processed for authentication, security, and fraud
+        prevention.
     </p>
 
     <h2>4. Audio, Images and User Content</h2>
 
     <p>
-        Roz Fm may allow users or content creators to upload audio files,
-        cover images, profile images, and other content.
+        Users or creators may be able to upload audio files, cover images,
+        profile images, and other permitted content. This content may be stored
+        on our servers or through third-party hosting and storage providers.
     </p>
 
     <p>
-        Content you upload may be stored on our servers or through our
-        hosting/storage service providers in order to provide the service.
-    </p>
-
-    <p>
-        You should only upload content that you own or have the necessary
-        rights and permission to use and distribute.
+        You should only upload content that you own or have permission and
+        appropriate rights to use and distribute.
     </p>
 
     <h2>5. Payments and Subscriptions</h2>
 
     <p>
-        Roz Fm may offer paid subscriptions, premium content, digital
-        services, or other paid features.
+        Roz Fm may provide paid subscriptions, premium content, and other paid
+        digital services.
     </p>
 
     <p>
-        Payments may be processed through third-party payment processors
-        or app-store payment systems, depending on the platform and
-        availability.
+        Payments may be processed through authorized third-party payment
+        processors or applicable app-store payment systems.
     </p>
 
     <p>
-        Roz Fm does not intentionally store complete credit card, debit card,
-        UPI PIN, CVV, or online banking credentials on its own servers when
-        these details are collected directly by the payment provider.
+        Roz Fm does not intentionally store complete card details, CVV,
+        UPI PIN, or online banking credentials when those details are collected
+        directly by the payment provider.
     </p>
 
-    <p>
-        We may receive and store limited transaction-related information,
-        such as:
-    </p>
+    <p>We may retain limited transaction information including:</p>
 
     <ul>
         <li>Transaction or payment ID</li>
@@ -195,26 +200,18 @@
         <li>Amount and currency</li>
         <li>Payment status</li>
         <li>Purchase date</li>
-        <li>Subscription validity or expiry date</li>
+        <li>Subscription validity or expiry information</li>
     </ul>
 
-    <p>
-        This information may be used for subscription activation,
-        transaction verification, customer support, accounting,
-        fraud prevention, and compliance purposes.
-    </p>
-
-    <h2>6. How We Use Information</h2>
-
-    <p>We may use collected information to:</p>
+    <h2>6. How We Use Your Information</h2>
 
     <ul>
-        <li>Create and manage user accounts</li>
+        <li>Create and manage accounts</li>
         <li>Authenticate users</li>
-        <li>Provide audio streaming and other app functionality</li>
-        <li>Store and manage user-uploaded content</li>
+        <li>Provide audio streaming services</li>
+        <li>Manage uploaded content</li>
         <li>Process and verify subscriptions and purchases</li>
-        <li>Maintain purchase and subscription history</li>
+        <li>Maintain subscription and transaction history</li>
         <li>Provide customer support</li>
         <li>Improve app performance and user experience</li>
         <li>Detect fraud, abuse, and security threats</li>
@@ -224,154 +221,107 @@
 
     <h2>7. Sharing of Information</h2>
 
+    <p>We do not sell your personal information.</p>
+
     <p>
-        We do not sell your personal information.
+        We may share or process limited information with service providers
+        necessary to operate Roz Fm, including authentication, payment,
+        cloud hosting, storage, analytics, notifications, security, and
+        fraud-prevention providers.
     </p>
 
     <p>
-        We may share or process limited information with trusted third-party
-        service providers when necessary to operate Roz Fm, including:
-    </p>
-
-    <ul>
-        <li>Authentication providers</li>
-        <li>Payment processors</li>
-        <li>Cloud hosting and storage providers</li>
-        <li>Analytics and crash-reporting providers</li>
-        <li>Notification service providers</li>
-        <li>Security and fraud-prevention providers</li>
-    </ul>
-
-    <p>
-        We may also disclose information when required by applicable law,
-        legal process, government request, or when reasonably necessary to
-        protect our users, rights, property, or services.
+        Information may also be disclosed where required by applicable law,
+        legal process, or valid government request.
     </p>
 
     <h2>8. Data Security</h2>
 
     <p>
-        We use reasonable administrative, technical, and organizational
-        measures designed to protect personal information against
-        unauthorized access, loss, misuse, alteration, or disclosure.
+        We use reasonable technical, administrative, and organizational measures
+        designed to protect information against unauthorized access, loss,
+        misuse, alteration, or disclosure.
     </p>
 
     <p>
-        However, no internet transmission or electronic storage method can
-        be guaranteed to be completely secure.
+        However, no internet transmission or electronic storage system can be
+        guaranteed to be completely secure.
     </p>
 
     <h2>9. Data Retention</h2>
 
     <p>
-        We retain personal information for as long as reasonably necessary
-        to provide our services, maintain your account, meet legal or
-        accounting requirements, resolve disputes, prevent fraud, and
-        enforce our agreements.
+        We retain information for as long as reasonably necessary to provide
+        our services, maintain accounts, meet legal or accounting requirements,
+        prevent fraud, resolve disputes, and enforce agreements.
     </p>
 
     <p>
-        Some transaction records may need to be retained after account
-        deletion where required for legal, tax, accounting, fraud-prevention,
-        or regulatory purposes.
+        Certain transaction or legal records may be retained after account
+        deletion where required or permitted by law.
     </p>
 
     <h2>10. Account and Data Deletion</h2>
 
     <p>
         Users may request deletion of their Roz Fm account and associated
-        personal data.
+        personal information using available in-app functionality or by
+        contacting us.
     </p>
 
     <p>
-        Where available, users can initiate account deletion directly
-        through the Roz Fm application.
-    </p>
-
-    <p>
-        You may also contact us using the contact information below to
-        request deletion of your account or personal information.
-    </p>
-
-    <p>
-        After receiving and verifying a valid deletion request, we will
-        delete or anonymize applicable personal data unless retention is
-        required or permitted for legitimate legal, security, accounting,
-        fraud-prevention, or regulatory purposes.
+        After receiving and verifying a valid request, applicable information
+        will be deleted or anonymized unless retention is required or permitted
+        for legal, accounting, security, fraud-prevention, or regulatory reasons.
     </p>
 
     <h2>11. Third-Party Services</h2>
 
     <p>
         Roz Fm may use third-party services for authentication, payments,
-        hosting, storage, analytics, notifications, and other application
-        functionality.
-    </p>
-
-    <p>
-        These third-party services may process information according to
-        their own privacy policies and terms. We encourage users to review
-        the privacy practices of the relevant third-party services.
+        hosting, storage, analytics, notifications, and other functionality.
+        These providers may process information according to their own terms
+        and privacy policies.
     </p>
 
     <h2>12. Children's Privacy</h2>
 
     <p>
-        Roz Fm is not intended to knowingly collect personal information
-        from children in violation of applicable laws.
-    </p>
-
-    <p>
-        If we learn that personal information from a child has been collected
-        in violation of applicable requirements, we will take appropriate
-        steps to remove that information.
+        Roz Fm does not knowingly collect personal information from children
+        in violation of applicable law. If we become aware that such information
+        was collected unlawfully, we will take appropriate steps to remove it.
     </p>
 
     <h2>13. Your Privacy Rights</h2>
 
     <p>
-        Depending on your country or region, you may have certain rights
-        concerning your personal information, including the right to request
-        access, correction, or deletion of your information.
-    </p>
-
-    <p>
+        Depending on your country or region, you may have rights to request
+        access to, correction of, or deletion of certain personal information.
         You may contact us to exercise applicable privacy rights.
     </p>
 
-    <h2>14. Changes to This Privacy Policy</h2>
+    <h2>14. Changes to This Policy</h2>
 
     <p>
-        We may update this Privacy Policy from time to time to reflect
-        changes to Roz Fm, our data practices, legal requirements, or
-        third-party services.
-    </p>
-
-    <p>
-        When changes are made, the "Last updated" date at the top of this
-        Privacy Policy will be updated.
+        We may update this Privacy Policy to reflect changes to our services,
+        data practices, legal requirements, or third-party services.
+        The updated date will be displayed at the top of this page.
     </p>
 
     <h2>15. Contact Us</h2>
 
     <p>
-        If you have questions, concerns, or requests regarding this
-        Privacy Policy or your personal information, please contact us:
-    </p>
-
-    <p>
         <strong>App:</strong> Roz Fm<br>
         <strong>Website:</strong>
-        <a href="https://rozfm.com">https://rozfm.com</a><br>
+        <a href="https://rozfm.com">rozfm.com</a><br>
         <strong>Email:</strong>
         <a href="mailto:rozfm@support.com">rozfm@support.com</a>
     </p>
 
     <div class="footer">
-        <p>&copy; 2026 Roz Fm. All rights reserved.</p>
+        &copy; 2026 Roz Fm. All rights reserved.
     </div>
 
 </div>
-
 </body>
 </html>

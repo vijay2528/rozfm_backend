@@ -10,6 +10,10 @@ class ConfigController {
         settingsMap[row.key] = row.value;
       });
 
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const host = req.get('host') || 'api.rozfm.com';
+      const baseUrl = `${protocol}://${host}`;
+
       return ApiResponse.success(res, {
         app_name: settingsMap.app_name || 'ROZ FM',
         app_version: settingsMap.app_version || '1.0.0',
@@ -17,11 +21,28 @@ class ConfigController {
         coin_conversion_rate: Number(settingsMap.coin_conversion_rate || 10),
         currency_symbol: settingsMap.currency_symbol || '₹',
         support_email: settingsMap.support_email || 'support@rozfm.com',
+        privacy_policy_url: settingsMap.privacy_policy_url || `${baseUrl}/privacy-policy`,
+        refund_policy_url: settingsMap.refund_policy_url || `${baseUrl}/refund-policy`,
+        terms_and_condition_url: settingsMap.terms_and_condition_url || `${baseUrl}/terms-and-condition`,
+        terms_and_conditions_url: settingsMap.terms_and_conditions_url || `${baseUrl}/terms-and-condition`,
       });
     } catch (error) {
       console.error('Config Error:', error);
       return ApiResponse.error(res, 'Failed to fetch configuration.', 500);
     }
+  }
+
+  static async policies(req, res) {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.get('host') || 'api.rozfm.com';
+    const baseUrl = `${protocol}://${host}`;
+
+    return ApiResponse.success(res, {
+      privacy_policy_url: `${baseUrl}/privacy-policy`,
+      refund_policy_url: `${baseUrl}/refund-policy`,
+      terms_and_condition_url: `${baseUrl}/terms-and-condition`,
+      copy_right_policy: `${baseUrl}/copy_right_policy`,
+    });
   }
 
   static async languages(req, res) {

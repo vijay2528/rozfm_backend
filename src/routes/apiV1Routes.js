@@ -60,6 +60,10 @@ router.get('/legal/copyright', ConfigController.legalCopyright);
 router.get('/legal/privacy', ConfigController.legalPrivacy);
 router.get('/legal/terms', ConfigController.legalTerms);
 router.get('/legal/security-advice', ConfigController.legalSecurityAdvice);
+router.get('/policies', ConfigController.policies);
+router.get('/legal-urls', ConfigController.policies);
+router.get('/policy-urls', ConfigController.policies);
+router.get('/copy-right-policy', ConfigController.policies);
 
 // Location (Country, State, City)
 router.get('/countries', LocationController.getCountries);

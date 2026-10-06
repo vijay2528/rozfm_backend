@@ -9,29 +9,55 @@ class WalletController {
       const [userRows] = await pool.query('SELECT wallet_balance FROM users WHERE id = ? LIMIT 1', [userId]);
       const balance = Number(userRows[0]?.wallet_balance || 0);
 
-      // Aggregate spent and earned coins from coin_transactions
+      // Aggregate spent, purchased, and earned coins from coin_transactions
       const debitTypes = ['spend', 'debit', 'unlock', 'withdrawal', 'spent', 'admin_debit'];
+      const purchaseTypes = ['coin_pack', 'plan_purchase', 'coin', 'purchase', 'coin_purchase', 'buy', 'pack'];
+
       const [txRows] = await pool.query(
-        'SELECT type, coins FROM coin_transactions WHERE user_id = ?',
+        'SELECT type, coins, plan_id, coin_pack_id, amount, transaction_type, payment_status FROM coin_transactions WHERE user_id = ?',
         [userId]
       );
 
       let totalEarned = 0;
+      let totalPurchased = 0;
       let totalSpent = 0;
+
       txRows.forEach((tx) => {
+        const paymentStatus = String(tx.payment_status || 'paid').toLowerCase().trim();
+        if (paymentStatus === 'failed' || paymentStatus === 'faild') {
+          return;
+        }
+
         const coinVal = Math.abs(Number(tx.coins || 0));
-        const isDebit = debitTypes.includes(String(tx.type || '').toLowerCase()) || Number(tx.coins || 0) < 0;
+        const typeStr = String(tx.type || '').toLowerCase().trim();
+        const txTypeStr = String(tx.transaction_type || '').toLowerCase().trim();
+
+        const isDebit = txTypeStr === 'debit' || debitTypes.includes(typeStr) || Number(tx.coins || 0) < 0;
+
         if (isDebit) {
           totalSpent += coinVal;
         } else {
-          totalEarned += coinVal;
+          const isPurchase =
+            purchaseTypes.includes(typeStr) ||
+            typeStr.includes('purchase') ||
+            typeStr.includes('coin_pack') ||
+            Number(tx.plan_id) > 0 ||
+            Number(tx.coin_pack_id) > 0 ||
+            Number(tx.amount || 0) > 0;
+
+          if (isPurchase) {
+            totalPurchased += coinVal;
+          } else {
+            totalEarned += coinVal;
+          }
         }
       });
 
       return ApiResponse.success(res, {
         wallet_balance: balance,
         total_earned_coins: totalEarned,
-        total_purchased_coins: totalSpent,
+        total_purchased_coins: totalPurchased,
+        total_spent_coins: totalSpent,
       });
     } catch (error) {
       console.error('Get Wallet Error:', error);
@@ -227,20 +253,40 @@ class WalletController {
       );
 
       const debitTypes = ['spend', 'debit', 'unlock', 'withdrawal', 'spent', 'admin_debit'];
+      const purchaseTypes = ['coin_pack', 'plan_purchase', 'coin', 'purchase', 'coin_purchase', 'buy', 'pack'];
 
       let totalEarned = 0;
+      let totalPurchased = 0;
       let totalSpent = 0;
 
       const formattedTransactions = transactions.map((tx) => {
         const coinVal = Math.abs(Number(tx.coins || 0));
+        const paymentStatus = String(tx.payment_status || 'paid').toLowerCase().trim();
+        const typeStr = String(tx.type || '').toLowerCase().trim();
+        const isFailed = paymentStatus === 'failed' || paymentStatus === 'faild';
+
         const isDebit = tx.transaction_type
           ? String(tx.transaction_type).toLowerCase() === 'debit'
-          : (debitTypes.includes(String(tx.type || '').toLowerCase()) || Number(tx.coins || 0) < 0);
+          : (debitTypes.includes(typeStr) || Number(tx.coins || 0) < 0);
 
-        if (isDebit) {
-          totalSpent += coinVal;
-        } else {
-          totalEarned += coinVal;
+        if (!isFailed) {
+          if (isDebit) {
+            totalSpent += coinVal;
+          } else {
+            const isPurchase =
+              purchaseTypes.includes(typeStr) ||
+              typeStr.includes('purchase') ||
+              typeStr.includes('coin_pack') ||
+              Number(tx.plan_id) > 0 ||
+              Number(tx.coin_pack_id) > 0 ||
+              Number(tx.amount || 0) > 0;
+
+            if (isPurchase) {
+              totalPurchased += coinVal;
+            } else {
+              totalEarned += coinVal;
+            }
+          }
         }
 
         const transactionType = tx.transaction_type || (isDebit ? 'debit' : 'credit');
@@ -265,6 +311,8 @@ class WalletController {
         res,
         {
           total_earned: totalEarned,
+          total_purchased: totalPurchased,
+          total_spent: totalSpent,
           transactions: formattedTransactions,
         },
         'Coin transactions fetched successfully.'
