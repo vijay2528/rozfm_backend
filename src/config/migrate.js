@@ -221,6 +221,11 @@ async function runMigrations() {
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `completion_percentage` DECIMAL(5, 2) DEFAULT 0.00",
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `status` VARCHAR(50) DEFAULT 'playing'",
       "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `bonus` INT DEFAULT 0 AFTER `coins`",
+      "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `plan_id` INT NULL AFTER `coins`",
+      "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `coin_pack_id` INT NULL AFTER `plan_id`",
+      "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `amount` DECIMAL(10, 2) DEFAULT 0.00 AFTER `coin_pack_id`",
+      "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `transaction_type` ENUM('credit', 'debit') DEFAULT 'credit' AFTER `amount`",
+      "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `payment_status` VARCHAR(50) DEFAULT 'paid' AFTER `transaction_type`",
     ];
 
     for (const alterSql of alterQueries) {
@@ -381,6 +386,11 @@ async function runMigrations() {
         \`user_id\` INT NOT NULL,
         \`type\` VARCHAR(50) NOT NULL,
         \`coins\` INT NOT NULL,
+        \`plan_id\` INT NULL,
+        \`coin_pack_id\` INT NULL,
+        \`amount\` DECIMAL(10, 2) DEFAULT 0.00,
+        \`transaction_type\` ENUM('credit', 'debit') DEFAULT 'credit',
+        \`payment_status\` VARCHAR(50) DEFAULT 'paid',
         \`description\` VARCHAR(255) NULL,
         \`reference_id\` VARCHAR(255) NULL,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,

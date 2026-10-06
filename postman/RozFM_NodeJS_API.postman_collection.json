@@ -1888,6 +1888,22 @@
               ]
             }
           }
+        },
+        {
+          "name": "Get Subscription History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/subscriptions/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "subscriptions",
+                "history"
+              ]
+            }
+          }
         }
       ]
     },

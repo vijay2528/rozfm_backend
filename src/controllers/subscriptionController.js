@@ -195,6 +195,202 @@ class SubscriptionController {
       return ApiResponse.error(res, 'Failed to activate subscription.', 500);
     }
   }
+
+  /**
+   * GET /api/v1/subscriptions/history
+   * GET /api/v1/user/subscriptions/history
+   * List all subscription plan purchase history for the authenticated user.
+   */
+  static async history(req, res) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return ApiResponse.error(res, 'Unauthenticated.', 401);
+      }
+
+      // Auto-expire past active subscriptions
+      try {
+        await pool.query(
+          "UPDATE subscriptions SET status = 'expired' WHERE user_id = ? AND status = 'active' AND expires_at IS NOT NULL AND expires_at <= NOW()",
+          [userId]
+        );
+      } catch (_) {}
+
+      // Query all subscriptions for user
+      const [subRows] = await pool.query(
+        `SELECT s.*, 
+                p.name AS plan_name, 
+                p.slug AS plan_slug,
+                p.description AS plan_description,
+                p.price AS plan_price, 
+                p.amount AS plan_amount, 
+                p.monthly_amount, 
+                p.yearly_amount,
+                p.coins AS plan_coins, 
+                p.bonus_coins AS plan_bonus_coins, 
+                p.currency AS plan_currency, 
+                p.badge_text AS plan_badge
+         FROM subscriptions s
+         LEFT JOIN purchase_plans p ON s.plan_id = p.id
+         WHERE s.user_id = ?
+         ORDER BY s.created_at DESC, s.id DESC`,
+        [userId]
+      );
+
+      // Query plan transactions from coin_transactions (purchased via Razorpay / Wallet)
+      const [txnRows] = await pool.query(
+        `SELECT ct.*, 
+                p.name AS plan_name, 
+                p.slug AS plan_slug,
+                p.price AS plan_price, 
+                p.amount AS plan_amount, 
+                p.coins AS plan_coins, 
+                p.bonus_coins AS plan_bonus_coins, 
+                p.currency AS plan_currency, 
+                p.badge_text AS plan_badge
+         FROM coin_transactions ct
+         LEFT JOIN purchase_plans p ON ct.plan_id = p.id
+         WHERE ct.user_id = ? AND (ct.type = 'plan_purchase' OR ct.plan_id IS NOT NULL)
+         ORDER BY ct.created_at DESC, ct.id DESC`,
+        [userId]
+      );
+
+      // Build combined history
+      const historyList = [];
+      const matchedTxnIds = new Set();
+
+      for (const s of subRows) {
+        // Find matching transaction by plan_id
+        const matchingTxn = txnRows.find(
+          (t) => !matchedTxnIds.has(t.id) && Number(t.plan_id) === Number(s.plan_id)
+        );
+        if (matchingTxn) {
+          matchedTxnIds.add(matchingTxn.id);
+        }
+
+        const monthlyAmount = s.monthly_amount !== undefined && s.monthly_amount !== null ? Number(s.monthly_amount) : null;
+        const yearlyAmount = s.yearly_amount !== undefined && s.yearly_amount !== null ? Number(s.yearly_amount) : null;
+        const fallbackPrice = s.plan_price !== undefined && s.plan_price !== null 
+          ? Number(s.plan_price) 
+          : (s.plan_amount !== undefined && s.plan_amount !== null ? Number(s.plan_amount) : (matchingTxn ? Number(matchingTxn.amount || 0) : 0));
+        const effectiveAmount = monthlyAmount ?? yearlyAmount ?? fallbackPrice;
+
+        const startsAtDate = s.starts_at ? new Date(s.starts_at) : (s.created_at ? new Date(s.created_at) : new Date());
+        const expiresAtDate = s.expires_at ? new Date(s.expires_at) : null;
+        const isActive = s.status === 'active' && (!expiresAtDate || expiresAtDate > new Date());
+        const durationDays = expiresAtDate && startsAtDate 
+          ? Math.max(1, Math.round((expiresAtDate.getTime() - startsAtDate.getTime()) / (1000 * 60 * 60 * 24)))
+          : 30;
+
+        historyList.push({
+          id: Number(s.id),
+          subscription_id: Number(s.id),
+          transaction_id: matchingTxn ? Number(matchingTxn.id) : null,
+          plan_id: s.plan_id ? Number(s.plan_id) : null,
+          plan_name: s.plan_name || 'VIP Subscription',
+          plan_slug: s.plan_slug || null,
+          badge_text: s.plan_badge || null,
+          amount: effectiveAmount,
+          price: effectiveAmount,
+          currency: s.plan_currency || 'INR',
+          coins: Number(s.plan_coins || (matchingTxn ? matchingTxn.coins : 0) || 0),
+          bonus_coins: Number(s.plan_bonus_coins || 0),
+          status: isActive ? 'active' : (s.status || 'expired'),
+          is_active: isActive,
+          payment_status: matchingTxn ? (matchingTxn.payment_status || 'paid') : 'paid',
+          reference_id: matchingTxn ? matchingTxn.reference_id : null,
+          starts_at: s.starts_at ? new Date(s.starts_at).toISOString() : null,
+          expires_at: s.expires_at ? new Date(s.expires_at).toISOString() : null,
+          duration_days: durationDays,
+          created_at: s.created_at ? new Date(s.created_at).toISOString() : null,
+        });
+      }
+
+      // Include standalone plan transactions from coin_transactions that were not matched
+      for (const t of txnRows) {
+        if (!matchedTxnIds.has(t.id)) {
+          const priceVal = t.amount !== undefined && t.amount !== null 
+            ? Number(t.amount) 
+            : (t.plan_price !== undefined ? Number(t.plan_price) : 0);
+
+          historyList.push({
+            id: Number(t.id),
+            subscription_id: null,
+            transaction_id: Number(t.id),
+            plan_id: t.plan_id ? Number(t.plan_id) : null,
+            plan_name: t.plan_name || 'VIP Plan',
+            plan_slug: t.plan_slug || null,
+            badge_text: t.plan_badge || null,
+            amount: priceVal,
+            price: priceVal,
+            currency: t.plan_currency || 'INR',
+            coins: Number(t.coins || t.plan_coins || 0),
+            bonus_coins: Number(t.plan_bonus_coins || 0),
+            status: String(t.payment_status).toLowerCase() === 'failed' ? 'failed' : 'completed',
+            is_active: false,
+            payment_status: t.payment_status || 'paid',
+            reference_id: t.reference_id || null,
+            starts_at: t.created_at ? new Date(t.created_at).toISOString() : null,
+            expires_at: null,
+            duration_days: 30,
+            created_at: t.created_at ? new Date(t.created_at).toISOString() : null,
+          });
+        }
+      }
+
+      // Sort newest first
+      historyList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      // Optional status filtering (?status=active | ?status=expired | ?status=failed)
+      let filteredHistory = historyList;
+      if (req.query.status && req.query.status !== 'all') {
+        const filterStatus = String(req.query.status).toLowerCase();
+        if (filterStatus === 'active') {
+          filteredHistory = historyList.filter((h) => h.is_active);
+        } else if (filterStatus === 'expired') {
+          filteredHistory = historyList.filter((h) => !h.is_active && h.status !== 'failed');
+        } else if (filterStatus === 'failed') {
+          filteredHistory = historyList.filter((h) => h.status === 'failed' || h.payment_status === 'failed');
+        }
+      }
+
+      // Pagination support
+      const totalCount = filteredHistory.length;
+      let paginatedHistory = filteredHistory;
+      let pagination = null;
+
+      if (req.query.page || req.query.limit) {
+        const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+        const offset = (pageNum - 1) * limitNum;
+        paginatedHistory = filteredHistory.slice(offset, offset + limitNum);
+        pagination = {
+          total: totalCount,
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil(totalCount / limitNum),
+        };
+      }
+
+      const activeSub = historyList.find((h) => h.is_active) || null;
+
+      const responsePayload = {
+        total_plans_purchased: totalCount,
+        active_subscription: activeSub,
+        history: paginatedHistory,
+        subscriptions: paginatedHistory,
+      };
+
+      if (pagination) {
+        responsePayload.pagination = pagination;
+      }
+
+      return ApiResponse.success(res, responsePayload, 'Subscription plan history fetched successfully.');
+    } catch (error) {
+      console.error('Get Subscription History Error:', error);
+      return ApiResponse.error(res, 'Failed to fetch subscription plan history.', 500);
+    }
+  }
 }
 
 module.exports = SubscriptionController;

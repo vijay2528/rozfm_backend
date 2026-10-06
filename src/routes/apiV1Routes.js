@@ -298,6 +298,12 @@ router.get('/subscription', authMiddleware.optional, SubscriptionController.inde
 router.get('/user/subscription', authMiddleware.optional, SubscriptionController.index);
 router.get('/user/subscriptions', authMiddleware.optional, SubscriptionController.index);
 router.get('/me/subscription', authMiddleware.optional, SubscriptionController.index);
+router.get('/subscriptions/history', SubscriptionController.history);
+router.get('/subscription/history', SubscriptionController.history);
+router.get('/user/subscriptions/history', SubscriptionController.history);
+router.get('/user/subscription/history', SubscriptionController.history);
+router.get('/user/subscription-history', SubscriptionController.history);
+router.get('/plans/history', SubscriptionController.history);
 router.post('/subscriptions', SubscriptionController.store);
 router.post('/subscription', SubscriptionController.store);
 router.post('/user/subscriptions', SubscriptionController.store);

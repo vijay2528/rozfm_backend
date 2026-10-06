@@ -13,12 +13,23 @@ async function ensureCoinTransactionTable() {
         \`user_id\` INT NOT NULL,
         \`type\` VARCHAR(50) NOT NULL,
         \`coins\` INT NOT NULL,
+        \`plan_id\` INT NULL,
+        \`coin_pack_id\` INT NULL,
+        \`amount\` DECIMAL(10, 2) DEFAULT 0.00,
+        \`transaction_type\` VARCHAR(50) DEFAULT 'NULL',
+        \`payment_status\` VARCHAR(50) DEFAULT 'NULL',
         \`description\` VARCHAR(255) NULL,
         \`reference_id\` VARCHAR(255) NULL,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT \`fk_coin_transactions_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\` (\`id\`) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `plan_id` INT NULL AFTER `coins`"); } catch (_) { }
+    try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `coin_pack_id` INT NULL AFTER `plan_id`"); } catch (_) { }
+    try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `amount` DECIMAL(10, 2) DEFAULT 0.00 AFTER `coin_pack_id`"); } catch (_) { }
+    try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `transaction_type` ENUM('credit', 'debit') DEFAULT 'credit' AFTER `amount`"); } catch (_) { }
+    try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `payment_status` VARCHAR(50) DEFAULT 'paid' AFTER `transaction_type`"); } catch (_) { }
 
     // Check if table is empty
     const [rows] = await connection.query(`SELECT COUNT(*) AS total FROM \`coin_transactions\``);
@@ -31,19 +42,19 @@ async function ensureCoinTransactionTable() {
       let u3 = users[2]?.id || 3;
 
       const seedTxns = [
-        [u1, 'reward', 100, 'Streak Milestone Reward (3 Days)', 'STREAK-3D', '2026-07-27 10:30:00'],
-        [u2, 'spend', -40, 'Unlocked Episode #14', 'EP-104', '2026-07-26 14:15:00'],
-        [u3, 'purchase', 300, 'Purchased Popular Coin Pack (₹199)', 'RAZORPAY-8821', '2026-07-25 18:20:00'],
-        [u1, 'reward', 400, 'Daily Listening Bonus & Ad Reward', 'AD-REWARD-99', '2026-07-24 11:45:00'],
-        [u2, 'spend', -100, 'Unlocked Episode #20', 'EP-110', '2026-07-22 09:10:00'],
-        [u3, 'purchase', 600, 'Purchased Mega Coin Pack (₹399)', 'RAZORPAY-9932', '2026-07-19 16:50:00'],
-        [u1, 'reward', 700, 'Referral Bonus Reward', 'REF-2026', '2026-07-28 12:00:00'],
+        [u1, 'reward', 100, null, null, 0.00, 'credit', 'paid', 'Streak Milestone Reward (3 Days)', 'STREAK-3D', '2026-07-27 10:30:00'],
+        [u2, 'spend', -40, null, null, 0.00, 'debit', 'paid', 'Unlocked Episode #14', 'EP-104', '2026-07-26 14:15:00'],
+        [u3, 'coin_pack', 300, null, 2, 199.00, 'credit', 'paid', 'Purchased Popular Coin Pack (₹199)', 'RAZORPAY-8821', '2026-07-25 18:20:00'],
+        [u1, 'reward', 400, null, null, 0.00, 'credit', 'paid', 'Daily Listening Bonus & Ad Reward', 'AD-REWARD-99', '2026-07-24 11:45:00'],
+        [u2, 'spend', -100, null, null, 0.00, 'debit', 'paid', 'Unlocked Episode #20', 'EP-110', '2026-07-22 09:10:00'],
+        [u3, 'coin_pack', 600, null, 4, 399.00, 'credit', 'paid', 'Purchased Mega Coin Pack (₹399)', 'RAZORPAY-9932', '2026-07-19 16:50:00'],
+        [u1, 'reward', 700, null, null, 0.00, 'credit', 'paid', 'Referral Bonus Reward', 'REF-2026', '2026-07-28 12:00:00'],
       ];
 
       for (const txn of seedTxns) {
         await connection.query(
-          `INSERT INTO \`coin_transactions\` (\`user_id\`, \`type\`, \`coins\`, \`description\`, \`reference_id\`, \`created_at\`)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO \`coin_transactions\` (\`user_id\`, \`type\`, \`coins\`, \`plan_id\`, \`coin_pack_id\`, \`amount\`, \`transaction_type\`, \`payment_status\`, \`description\`, \`reference_id\`, \`created_at\`)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           txn
         );
       }
@@ -63,7 +74,7 @@ function formatTransaction(t) {
   const typeLower = String(t.type || '').toLowerCase();
 
   let formattedType = 'Reward';
-  if (typeLower.includes('purchase') || typeLower.includes('pack') || typeLower.includes('credit')) {
+  if (typeLower.includes('purchase') || typeLower.includes('pack') || typeLower.includes('credit') || typeLower.includes('coin')) {
     formattedType = 'Purchase';
   } else if (typeLower.includes('spend') || typeLower.includes('debit') || typeLower.includes('unlock')) {
     formattedType = 'Spend';
@@ -73,7 +84,7 @@ function formatTransaction(t) {
     formattedType = typeLower.charAt(0).toUpperCase() + typeLower.slice(1);
   }
 
-  const isSpend = formattedType === 'Spend' || coinsNum < 0;
+  const isSpend = formattedType === 'Spend' || coinsNum < 0 || String(t.transaction_type || '').toLowerCase() === 'debit';
   const absCoins = Math.abs(coinsNum);
   const formattedCoins = isSpend ? `-${absCoins}` : `+${absCoins}`;
 
@@ -109,6 +120,11 @@ function formatTransaction(t) {
     user_color: userColor,
     type: formattedType,
     raw_type: t.type,
+    plan_id: t.plan_id ? Number(t.plan_id) : null,
+    coin_pack_id: t.coin_pack_id ? Number(t.coin_pack_id) : null,
+    amount: Number(t.amount || 0),
+    transaction_type: t.transaction_type || (isSpend ? 'debit' : 'credit'),
+    payment_status: t.payment_status || 'paid',
     coins: isSpend ? -absCoins : absCoins,
     coins_formatted: formattedCoins,
     date: formattedDate,
