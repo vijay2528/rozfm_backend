@@ -25,6 +25,8 @@ class ConfigController {
         refund_policy_url: settingsMap.refund_policy_url || `${baseUrl}/refund-policy`,
         terms_and_condition_url: settingsMap.terms_and_condition_url || `${baseUrl}/terms-and-condition`,
         terms_and_conditions_url: settingsMap.terms_and_conditions_url || `${baseUrl}/terms-and-condition`,
+        copy_right_policy: settingsMap.copy_right_policy || `${baseUrl}/copy-right-policy`,
+        copy_right_policy_url: settingsMap.copy_right_policy_url || `${baseUrl}/copy-right-policy`,
       });
     } catch (error) {
       console.error('Config Error:', error);
@@ -41,7 +43,8 @@ class ConfigController {
       privacy_policy_url: `${baseUrl}/privacy-policy`,
       refund_policy_url: `${baseUrl}/refund-policy`,
       terms_and_condition_url: `${baseUrl}/terms-and-condition`,
-      copy_right_policy: `${baseUrl}/copy_right_policy`,
+      copy_right_policy: `${baseUrl}/copy-right-policy`,
+      copy_right_policy_url: `${baseUrl}/copy-right-policy`,
     });
   }
 

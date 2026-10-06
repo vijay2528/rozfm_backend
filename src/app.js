@@ -53,24 +53,7 @@ const servePrivacyPolicy = (req, res) => {
 };
 
 const privacyRoutes = [
-  '/privacy',
   '/privacy-policy',
-  '/privacy_policy',
-  '/privacy.html',
-  '/privacy-policy.html',
-  '/privacy_policy.html',
-  '/legal/privacy',
-  '/legal/privacy-policy',
-  '/legal/privacy_policy',
-  '/legal/privacy.html',
-  '/api/privacy',
-  '/api/privacy-policy',
-  '/api/privacy_policy',
-  '/api/v1/privacy',
-  '/api/v1/privacy-policy',
-  '/api/v1/privacy_policy',
-  '/api/v1/privacy.html',
-  '/api/v1/privacy_policy.html',
 ];
 privacyRoutes.forEach((route) => app.get(route, servePrivacyPolicy));
 
@@ -80,24 +63,7 @@ const serveRefundPolicy = (req, res) => {
 };
 
 const refundRoutes = [
-  '/refund',
   '/refund-policy',
-  '/refund_policy',
-  '/refund.html',
-  '/refund-policy.html',
-  '/refund_policy.html',
-  '/legal/refund',
-  '/legal/refund-policy',
-  '/legal/refund_policy',
-  '/legal/refund.html',
-  '/api/refund',
-  '/api/refund-policy',
-  '/api/refund_policy',
-  '/api/v1/refund',
-  '/api/v1/refund-policy',
-  '/api/v1/refund_policy',
-  '/api/v1/refund.html',
-  '/api/v1/refund_policy.html',
 ];
 refundRoutes.forEach((route) => app.get(route, serveRefundPolicy));
 
@@ -107,35 +73,16 @@ const serveTermsAndConditions = (req, res) => {
 };
 
 const termsRoutes = [
-  '/terms',
   '/terms-and-condition',
-  '/terms-and-conditions',
-  '/terms_and_condition',
-  '/terms_and_conditions',
-  '/terms.html',
-  '/terms-and-condition.html',
-  '/terms-and-conditions.html',
-  '/terms_and_condition.html',
-  '/terms_and_conditions.html',
-  '/legal/terms',
-  '/legal/terms-and-condition',
-  '/legal/terms-and-conditions',
-  '/legal/terms_and_condition',
-  '/legal/terms_and_conditions',
-  '/legal/terms.html',
-  '/api/terms',
-  '/api/terms-and-condition',
-  '/api/terms-and-conditions',
-  '/api/terms_and_condition',
-  '/api/v1/terms',
-  '/api/v1/terms-and-condition',
-  '/api/v1/terms-and-conditions',
-  '/api/v1/terms_and_condition',
-  '/api/v1/terms_and_conditions',
-  '/api/v1/terms.html',
-  '/api/v1/terms_and_condition.html',
 ];
 termsRoutes.forEach((route) => app.get(route, serveTermsAndConditions));
+
+// Serve Copyright Policy HTML Page
+const serveCopyrightPolicy = (req, res) => {
+  res.sendFile(resolveHtmlPath('copy_right_policy.html', 'copyright.html'));
+};
+
+app.get('/copy-right-policy', serveCopyrightPolicy);
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
