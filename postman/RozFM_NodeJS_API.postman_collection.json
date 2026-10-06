@@ -2646,6 +2646,78 @@
             },
             "description": "Alternative filter using individual boolean query parameters: is_locked, is_unlocked, is_scheduled, is_downloadable."
           }
+        },
+        {
+          "name": "List Episodes - Filter: publish_as=publish_now",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes?publish_as=publish_now&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
+              "query": [
+                {
+                  "key": "publish_as",
+                  "value": "publish_now"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "List only episodes with publish_as=publish_now (published now and not scheduled for future)."
+          }
+        },
+        {
+          "name": "List Episodes - Filter: publish_as=schedule_for_later",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes?publish_as=schedule_for_later&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes"
+              ],
+              "query": [
+                {
+                  "key": "publish_as",
+                  "value": "schedule_for_later"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "List only episodes with publish_as=schedule_for_later (scheduled for later release)."
+          }
         }
       ]
     },

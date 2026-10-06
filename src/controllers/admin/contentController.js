@@ -625,7 +625,7 @@ class ContentController {
    */
   static async listEpisodes(req, res) {
     try {
-      const { story_id, search, is_premium, filter, status, is_locked, is_unlocked, is_scheduled, is_downloadable, page = 1, limit = 20 } = req.query;
+      const { story_id, search, is_premium, filter, status, is_locked, is_unlocked, is_scheduled, is_downloadable, publish_as, page = 1, limit = 20 } = req.query;
       const offset = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
 
@@ -654,7 +654,7 @@ class ContentController {
         const filterItems = Array.isArray(rawFilter) ? rawFilter : String(rawFilter).split(',');
         filterItems.forEach((item) => {
           const trimmed = String(item).trim().toLowerCase();
-          if (['locked', 'unlocked', 'scheduled', 'downloadable'].includes(trimmed)) {
+          if (['locked', 'unlocked', 'scheduled', 'downloadable', 'publish_now', 'schedule_for_later'].includes(trimmed)) {
             activeFilters.add(trimmed);
           }
         });
@@ -672,7 +672,43 @@ class ContentController {
         whereClauses.push('e.is_premium = 0');
       }
 
-      if (activeFilters.has('scheduled')) {
+      // Publish_as filter resolution
+      let publishAsVal = publish_as;
+      if (!publishAsVal) {
+        if (activeFilters.has('publish_now') && activeFilters.has('schedule_for_later')) {
+          publishAsVal = 'publish_now,schedule_for_later';
+        } else if (activeFilters.has('publish_now')) {
+          publishAsVal = 'publish_now';
+        } else if (activeFilters.has('schedule_for_later')) {
+          publishAsVal = 'schedule_for_later';
+        }
+      }
+
+      if (publishAsVal !== undefined && publishAsVal !== null && String(publishAsVal).trim() !== '') {
+        const publishAsItems = (Array.isArray(publishAsVal) ? publishAsVal : String(publishAsVal).split(','))
+          .map((item) => String(item).trim().toLowerCase())
+          .filter((item) => item !== '' && item !== 'all');
+
+        if (publishAsItems.length > 0) {
+          const conditions = [];
+          publishAsItems.forEach((item) => {
+            if (item === 'publish_now' || item === 'published' || item === 'now') {
+              conditions.push("((e.publish_as = 'publish_now' OR e.publish_as IS NULL OR e.publish_as = '') AND (e.scheduled_at IS NULL OR e.scheduled_at <= NOW()))");
+            } else if (item === 'schedule_for_later' || item === 'scheduled') {
+              conditions.push("(e.publish_as = 'schedule_for_later' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at > NOW()))");
+            } else {
+              conditions.push('LOWER(e.publish_as) = ?');
+              queryParams.push(item);
+            }
+          });
+
+          if (conditions.length > 0) {
+            whereClauses.push(`(${conditions.join(' OR ')})`);
+          }
+        }
+      }
+
+      if (activeFilters.has('scheduled') && (!publishAsVal || !String(publishAsVal).toLowerCase().includes('schedule'))) {
         whereClauses.push("(e.publish_as = 'schedule_for_later' OR (e.scheduled_at IS NOT NULL AND e.scheduled_at > NOW()))");
       }
 
