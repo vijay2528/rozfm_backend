@@ -67,9 +67,9 @@ class WalletController {
         planId = parseInt(plan_id, 10) || null;
         const [plans] = await pool.query('SELECT * FROM purchase_plans WHERE id = ? LIMIT 1', [plan_id]);
         if (plans.length > 0) {
-          coinsToAdd = Number(plans[0].coins) + Number(plans[0].bonus_coins || 0);
-          if (!moneyAmount && (plans[0].price !== undefined || plans[0].amount !== undefined)) {
-            moneyAmount = parseFloat(plans[0].price ?? plans[0].amount) || 0.00;
+          coinsToAdd = Number(plans[0].coins || 0) + Number(plans[0].bonus_coins || 0) || Number(coins || 0);
+          if (!moneyAmount) {
+            moneyAmount = parseFloat(plans[0].monthly_amount ?? plans[0].yearly_amount ?? 0) || 0.00;
           }
           description = `Purchased Plan: ${plans[0].name}`;
         }

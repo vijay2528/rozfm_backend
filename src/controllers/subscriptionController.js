@@ -33,60 +33,49 @@ class SubscriptionController {
       }
 
       // Query active subscription
-      let rows = [];
-      try {
-        const [queryRows] = await pool.query(
-          `SELECT s.*, p.name as plan_name, p.monthly_amount, p.yearly_amount, p.amount, p.price
-           FROM subscriptions s
-           LEFT JOIN purchase_plans p ON s.plan_id = p.id
-           WHERE s.user_id = ? AND s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at > NOW())
-           ORDER BY s.expires_at DESC
-           LIMIT 1`,
-          [userId]
-        );
-        rows = queryRows;
-      } catch (err) {
-        const [queryRows] = await pool.query(
-          `SELECT s.*, p.name as plan_name
-           FROM subscriptions s
-           LEFT JOIN purchase_plans p ON s.plan_id = p.id
-           WHERE s.user_id = ? AND s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at > NOW())
-           ORDER BY s.expires_at DESC
-           LIMIT 1`,
-          [userId]
-        );
-        rows = queryRows;
-      }
+      const [rows] = await pool.query(
+        `SELECT s.*, 
+                p.name AS plan_name, 
+                p.slug AS plan_slug, 
+                p.description AS plan_description, 
+                p.monthly_amount, 
+                p.yearly_amount
+         FROM subscriptions s
+         LEFT JOIN purchase_plans p ON s.plan_id = p.id
+         WHERE s.user_id = ? AND s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at > NOW())
+         ORDER BY s.expires_at DESC
+         LIMIT 1`,
+        [userId]
+      );
 
       const activeSub = rows && rows.length > 0 ? rows[0] : null;
 
       const monthlyAmount = activeSub && activeSub.monthly_amount !== undefined && activeSub.monthly_amount !== null
         ? Number(activeSub.monthly_amount)
-        : (activeSub && activeSub.monthly_price !== undefined && activeSub.monthly_price !== null ? Number(activeSub.monthly_price) : null);
+        : null;
 
       const yearlyAmount = activeSub && activeSub.yearly_amount !== undefined && activeSub.yearly_amount !== null
         ? Number(activeSub.yearly_amount)
-        : (activeSub && activeSub.yearly_price !== undefined && activeSub.yearly_price !== null ? Number(activeSub.yearly_price) : null);
-
-      const fallbackAmount = activeSub
-        ? (activeSub.amount !== undefined && activeSub.amount !== null ? Number(activeSub.amount) : (activeSub.price !== undefined && activeSub.price !== null ? Number(activeSub.price) : null))
         : null;
 
-      const effectiveAmount = monthlyAmount ?? yearlyAmount ?? fallbackAmount;
+      const effectiveAmount = monthlyAmount ?? yearlyAmount ?? null;
 
       const activeSubscription = activeSub
         ? {
             id: Number(activeSub.id),
             plan_id: activeSub.plan_id ? Number(activeSub.plan_id) : null,
             plan_name: activeSub.plan_name || 'VIP Subscription',
+            plan_slug: activeSub.plan_slug || null,
+            plan_description: activeSub.plan_description || null,
             monthly_amount: monthlyAmount,
             yearly_amount: yearlyAmount,
             amount: effectiveAmount,
-            price: effectiveAmount,
             status: activeSub.status || 'active',
             is_active: activeSub.status === 'active',
             starts_at: activeSub.starts_at ? new Date(activeSub.starts_at).toISOString() : null,
             expires_at: activeSub.expires_at ? new Date(activeSub.expires_at).toISOString() : null,
+            created_at: activeSub.created_at ? new Date(activeSub.created_at).toISOString() : null,
+            updated_at: activeSub.updated_at ? new Date(activeSub.updated_at).toISOString() : null,
           }
         : null;
 
@@ -132,10 +121,9 @@ class SubscriptionController {
           if (planRows && planRows[0]) {
             const p = planRows[0];
             planName = p.name || planName;
-            monthlyAmount = p.monthly_amount !== undefined && p.monthly_amount !== null ? Number(p.monthly_amount) : (p.monthly_price ? Number(p.monthly_price) : null);
-            yearlyAmount = p.yearly_amount !== undefined && p.yearly_amount !== null ? Number(p.yearly_amount) : (p.yearly_price ? Number(p.yearly_price) : null);
-            const pVal = monthlyAmount ?? yearlyAmount ?? (p.amount !== undefined && p.amount !== null ? Number(p.amount) : (p.price !== undefined && p.price !== null ? Number(p.price) : null));
-            planAmount = pVal;
+            monthlyAmount = p.monthly_amount !== undefined && p.monthly_amount !== null ? Number(p.monthly_amount) : null;
+            yearlyAmount = p.yearly_amount !== undefined && p.yearly_amount !== null ? Number(p.yearly_amount) : null;
+            planAmount = durationDaysNum > 60 ? (yearlyAmount ?? monthlyAmount) : (monthlyAmount ?? yearlyAmount);
           }
         } catch (_) {}
       }
@@ -176,7 +164,6 @@ class SubscriptionController {
             monthly_amount: monthlyAmount,
             yearly_amount: yearlyAmount,
             amount: planAmount,
-            price: planAmount,
             status: 'active',
             is_active: true,
             starts_at: startsAt.toISOString(),
@@ -216,20 +203,16 @@ class SubscriptionController {
         );
       } catch (_) {}
 
-      // Query all subscriptions for user
+      // Query all subscriptions for user with actual purchase_plans columns
       const [subRows] = await pool.query(
         `SELECT s.*, 
                 p.name AS plan_name, 
                 p.slug AS plan_slug,
                 p.description AS plan_description,
-                p.price AS plan_price, 
-                p.amount AS plan_amount, 
                 p.monthly_amount, 
                 p.yearly_amount,
-                p.coins AS plan_coins, 
-                p.bonus_coins AS plan_bonus_coins, 
-                p.currency AS plan_currency, 
-                p.badge_text AS plan_badge
+                p.is_active AS plan_is_active,
+                p.sort_order AS plan_sort_order
          FROM subscriptions s
          LEFT JOIN purchase_plans p ON s.plan_id = p.id
          WHERE s.user_id = ?
@@ -242,12 +225,9 @@ class SubscriptionController {
         `SELECT ct.*, 
                 p.name AS plan_name, 
                 p.slug AS plan_slug,
-                p.price AS plan_price, 
-                p.amount AS plan_amount, 
-                p.coins AS plan_coins, 
-                p.bonus_coins AS plan_bonus_coins, 
-                p.currency AS plan_currency, 
-                p.badge_text AS plan_badge
+                p.description AS plan_description,
+                p.monthly_amount, 
+                p.yearly_amount
          FROM coin_transactions ct
          LEFT JOIN purchase_plans p ON ct.plan_id = p.id
          WHERE ct.user_id = ? AND (ct.type = 'plan_purchase' OR ct.plan_id IS NOT NULL)
@@ -270,10 +250,6 @@ class SubscriptionController {
 
         const monthlyAmount = s.monthly_amount !== undefined && s.monthly_amount !== null ? Number(s.monthly_amount) : null;
         const yearlyAmount = s.yearly_amount !== undefined && s.yearly_amount !== null ? Number(s.yearly_amount) : null;
-        const fallbackPrice = s.plan_price !== undefined && s.plan_price !== null 
-          ? Number(s.plan_price) 
-          : (s.plan_amount !== undefined && s.plan_amount !== null ? Number(s.plan_amount) : (matchingTxn ? Number(matchingTxn.amount || 0) : 0));
-        const effectiveAmount = monthlyAmount ?? yearlyAmount ?? fallbackPrice;
 
         const startsAtDate = s.starts_at ? new Date(s.starts_at) : (s.created_at ? new Date(s.created_at) : new Date());
         const expiresAtDate = s.expires_at ? new Date(s.expires_at) : null;
@@ -282,6 +258,10 @@ class SubscriptionController {
           ? Math.max(1, Math.round((expiresAtDate.getTime() - startsAtDate.getTime()) / (1000 * 60 * 60 * 24)))
           : 30;
 
+        const effectiveAmount = durationDays > 60
+          ? (yearlyAmount ?? monthlyAmount ?? (matchingTxn ? Number(matchingTxn.amount || 0) : 0))
+          : (monthlyAmount ?? yearlyAmount ?? (matchingTxn ? Number(matchingTxn.amount || 0) : 0));
+
         historyList.push({
           id: Number(s.id),
           subscription_id: Number(s.id),
@@ -289,12 +269,10 @@ class SubscriptionController {
           plan_id: s.plan_id ? Number(s.plan_id) : null,
           plan_name: s.plan_name || 'VIP Subscription',
           plan_slug: s.plan_slug || null,
-          badge_text: s.plan_badge || null,
+          plan_description: s.plan_description || null,
+          monthly_amount: monthlyAmount,
+          yearly_amount: yearlyAmount,
           amount: effectiveAmount,
-          price: effectiveAmount,
-          currency: s.plan_currency || 'INR',
-          coins: Number(s.plan_coins || (matchingTxn ? matchingTxn.coins : 0) || 0),
-          bonus_coins: Number(s.plan_bonus_coins || 0),
           status: isActive ? 'active' : (s.status || 'expired'),
           is_active: isActive,
           payment_status: matchingTxn ? (matchingTxn.payment_status || 'paid') : 'paid',
@@ -303,15 +281,18 @@ class SubscriptionController {
           expires_at: s.expires_at ? new Date(s.expires_at).toISOString() : null,
           duration_days: durationDays,
           created_at: s.created_at ? new Date(s.created_at).toISOString() : null,
+          updated_at: s.updated_at ? new Date(s.updated_at).toISOString() : null,
         });
       }
 
       // Include standalone plan transactions from coin_transactions that were not matched
       for (const t of txnRows) {
         if (!matchedTxnIds.has(t.id)) {
+          const monthlyAmount = t.monthly_amount !== undefined && t.monthly_amount !== null ? Number(t.monthly_amount) : null;
+          const yearlyAmount = t.yearly_amount !== undefined && t.yearly_amount !== null ? Number(t.yearly_amount) : null;
           const priceVal = t.amount !== undefined && t.amount !== null 
             ? Number(t.amount) 
-            : (t.plan_price !== undefined ? Number(t.plan_price) : 0);
+            : (monthlyAmount ?? yearlyAmount ?? 0);
 
           historyList.push({
             id: Number(t.id),
@@ -320,12 +301,10 @@ class SubscriptionController {
             plan_id: t.plan_id ? Number(t.plan_id) : null,
             plan_name: t.plan_name || 'VIP Plan',
             plan_slug: t.plan_slug || null,
-            badge_text: t.plan_badge || null,
+            plan_description: t.plan_description || null,
+            monthly_amount: monthlyAmount,
+            yearly_amount: yearlyAmount,
             amount: priceVal,
-            price: priceVal,
-            currency: t.plan_currency || 'INR',
-            coins: Number(t.coins || t.plan_coins || 0),
-            bonus_coins: Number(t.plan_bonus_coins || 0),
             status: String(t.payment_status).toLowerCase() === 'failed' ? 'failed' : 'completed',
             is_active: false,
             payment_status: t.payment_status || 'paid',
@@ -334,6 +313,7 @@ class SubscriptionController {
             expires_at: null,
             duration_days: 30,
             created_at: t.created_at ? new Date(t.created_at).toISOString() : null,
+            updated_at: null,
           });
         }
       }
