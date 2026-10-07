@@ -201,10 +201,16 @@ class AdminNotificationController {
       const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
       const offset = (page - 1) * limit;
 
+      const types = req.query.type
+        ? [String(req.query.type).trim()]
+        : ['admin_push', 'system'];
+
+      const typePlaceholders = types.map(() => '?').join(',');
+
       const groupSql = `
         FROM notifications n
         LEFT JOIN users u ON u.id = n.user_id
-        WHERE n.type = ?
+        WHERE n.type IN (${typePlaceholders})
         GROUP BY n.title, n.message, n.action_type, n.action_id, DATE_FORMAT(n.created_at, '%Y-%m-%d %H:%i')`;
 
       const [rows] = await pool.query(
@@ -216,12 +222,12 @@ class AdminNotificationController {
          ${groupSql}
          ORDER BY sent_at DESC
          LIMIT ? OFFSET ?`,
-        [ADMIN_PUSH_TYPE, limit, offset]
+        [...types, limit, offset]
       );
 
       const [[countRow]] = await pool.query(
         `SELECT COUNT(*) AS total FROM (SELECT 1 ${groupSql}) t`,
-        [ADMIN_PUSH_TYPE]
+        types
       );
       const [[activeRow]] = await pool.query('SELECT COUNT(*) AS total FROM users WHERE is_blocked = 0');
       const activeUsers = Number(activeRow.total || 0);
