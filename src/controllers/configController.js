@@ -15,12 +15,21 @@ class ConfigController {
       const baseUrl = `${protocol}://${host}`;
 
       return ApiResponse.success(res, {
-        app_name: settingsMap.app_name || 'ROZ FM',
+        platform_name: settingsMap.platform_name || settingsMap.app_name || 'Roz FM',
+        app_name: settingsMap.platform_name || settingsMap.app_name || 'Roz FM',
         app_version: settingsMap.app_version || '1.0.0',
-        maintenance_mode: settingsMap.maintenance_mode === 'true' || false,
+        platform_tagline: settingsMap.platform_tagline || 'Stories that stay with you.',
+        default_language: settingsMap.default_language || 'English',
+        support_email: settingsMap.support_email || 'support@rozfm.com',
+        maintenance_mode: settingsMap.maintenance_mode === 'true' || settingsMap.maintenance_mode === true,
+        allow_new_signups: settingsMap.allow_new_signups === undefined ? true : (settingsMap.allow_new_signups === 'true' || settingsMap.allow_new_signups === true),
+        guest_mode_access: settingsMap.guest_mode_access === undefined ? true : (settingsMap.guest_mode_access === 'true' || settingsMap.guest_mode_access === true),
+        social_links: {
+          instagram: settingsMap.social_instagram || 'instagram.com/rozfm',
+          twitter: settingsMap.social_twitter || settingsMap.social_x || 'x.com/rozfm',
+        },
         coin_conversion_rate: Number(settingsMap.coin_conversion_rate || 10),
         currency_symbol: settingsMap.currency_symbol || '₹',
-        support_email: settingsMap.support_email || 'support@rozfm.com',
         privacy_policy_url: settingsMap.privacy_policy_url || `${baseUrl}/privacy-policy`,
         refund_policy_url: settingsMap.refund_policy_url || `${baseUrl}/refund-policy`,
         terms_and_condition_url: settingsMap.terms_and_condition_url || `${baseUrl}/terms-and-condition`,

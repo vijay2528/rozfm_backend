@@ -5939,6 +5939,356 @@
           }
         }
       ]
+    },
+    {
+      "name": "System & General Settings",
+      "item": [
+        {
+          "name": "Get General Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/general",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "general"
+              ]
+            },
+            "description": "Fetch core platform configuration and branding settings (Platform Name, Support Email, Default Language, App Version, Platform Tagline, Social Links, Maintenance Mode, Allow New Signups, Guest Mode Access)."
+          }
+        },
+        {
+          "name": "Update General Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform_name\": \"Roz FM\",\n  \"support_email\": \"support@rozfm.com\",\n  \"default_language\": \"English\",\n  \"app_version\": \"1.0.0\",\n  \"platform_tagline\": \"Stories that stay with you.\",\n  \"social_links\": {\n    \"instagram\": \"instagram.com/rozfm\",\n    \"twitter\": \"x.com/rozfm\"\n  },\n  \"maintenance_mode\": false,\n  \"allow_new_signups\": true,\n  \"guest_mode_access\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings/general",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "general"
+              ]
+            },
+            "description": "Update core platform configuration and branding settings."
+          }
+        },
+        {
+          "name": "Get Storage Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/storage",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "storage"
+              ]
+            },
+            "description": "Fetch object storage configuration settings for Cloudflare R2, AWS S3, and Firebase Storage."
+          }
+        },
+        {
+          "name": "Update Storage Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cloudflare_r2\": {\n    \"bucket_name\": \"rozfm-audio-prod\",\n    \"region\": \"auto\",\n    \"enabled\": true\n  },\n  \"aws_s3\": {\n    \"s3_bucket\": \"rozfm-assets-backup\"\n  },\n  \"firebase\": {\n    \"project_id\": \"rozfm-prod\",\n    \"storage_enabled\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings/storage",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "storage"
+              ]
+            },
+            "description": "Update object storage configuration settings for Cloudflare R2, AWS S3, and Firebase Storage."
+          }
+        },
+        {
+          "name": "List Payment Keys",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/payment-keys?search=&mode=&gateway=",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "payment-keys"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "mode",
+                  "value": ""
+                },
+                {
+                  "key": "gateway",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Fetch list of payment gateway credentials for Razorpay, Google Play, and Apple StoreKit with masked key IDs, search, and mode filter."
+          }
+        },
+        {
+          "name": "Get Single Payment Key",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/payment-keys/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "payment-keys",
+                "1"
+              ]
+            },
+            "description": "Fetch credentials detail for a specific payment gateway by ID or key (e.g. 1 or razorpay)."
+          }
+        },
+        {
+          "name": "Edit / Update Payment Key",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gateway_name\": \"Razorpay\",\n  \"key_id\": \"rzp_live_987654321092ac\",\n  \"key_secret\": \"rzp_sec_secret12345\",\n  \"webhook_secret\": \"whsec_9876543210\",\n  \"mode\": \"Live\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings/payment-keys/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "payment-keys",
+                "1"
+              ]
+            },
+            "description": "Edit or update payment gateway key ID, secret key, webhook secret, mode (Live/Test), and status."
+          }
+        },
+        {
+          "name": "Export Payment Keys CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/payment-keys/export",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "payment-keys",
+                "export"
+              ]
+            },
+            "description": "Export masked payment gateway credentials list as CSV file."
+          }
+        },
+        {
+          "name": "Get Maintenance Mode Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/maintenance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "maintenance"
+              ]
+            },
+            "description": "Fetch maintenance mode window settings (Active toggle, Maintenance message, Scheduled start & end time)."
+          }
+        },
+        {
+          "name": "Update Maintenance Mode Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maintenance_mode_active\": true,\n  \"maintenance_message\": \"We're upgrading Roz FM for you. Back shortly!\",\n  \"scheduled_start\": \"02 Aug 2026, 2:00 AM IST\",\n  \"scheduled_end\": \"02 Aug 2026, 4:00 AM IST\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings/maintenance",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "maintenance"
+              ]
+            },
+            "description": "Update maintenance mode window settings."
+          }
+        },
+        {
+          "name": "Get Security Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/security",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "security"
+              ]
+            },
+            "description": "Fetch admin account security policy settings (Require 2FA for Admins, Session Timeout, Max Login Attempts, IP Allowlist Enforced)."
+          }
+        },
+        {
+          "name": "Update Security Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"require_2fa_for_admins\": false,\n  \"session_timeout\": \"15 minutes\",\n  \"max_login_attempts\": 3,\n  \"ip_allowlist_enforced\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings/security",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "settings",
+                "security"
+              ]
+            },
+            "description": "Update admin account security policy settings."
+          }
+        }
+      ]
     }
   ]
 }

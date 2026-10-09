@@ -885,25 +885,34 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Seed default streak & writer settings into settings table if not present
-    const defaultSettings = [
-      { key: 'streak_daily_goal_minutes', value: '15' },
-      { key: 'streak_daily_reward_coins', value: '5' },
-      { key: 'streak_encouragement_quote', value: "You're building serious energy!" },
-      { key: 'streak_milestone_1_days', value: '3' },
-      { key: 'streak_milestone_1_reward', value: '10' },
-      { key: 'streak_milestone_1_name', value: 'First Spark' },
-      { key: 'streak_milestone_2_days', value: '7' },
-      { key: 'streak_milestone_2_reward', value: '25' },
-      { key: 'streak_milestone_2_name', value: 'Power Listener' },
-      { key: 'streak_milestone_3_days', value: '15' },
-      { key: 'streak_milestone_3_reward', value: '50' },
-      { key: 'streak_milestone_3_name', value: 'Energy Master' },
-      { key: 'streak_milestone_4_days', value: '30' },
-      { key: 'streak_milestone_4_reward', value: '100' },
-      { key: 'streak_milestone_4_name', value: 'Legendary' },
-      { key: 'writer_revenue_share_percentage', value: '70' },
-      { key: 'coins_per_rupee', value: '10' },
+      // Payment Keys Settings (Razorpay, Google Play, Apple StoreKit)
+      { key: 'payment_key_razorpay_name', value: 'Razorpay' },
+      { key: 'payment_key_razorpay_key_id', value: 'rzp_live_987654321092ac' },
+      { key: 'payment_key_razorpay_key_secret', value: 'rzp_sec_9876543210' },
+      { key: 'payment_key_razorpay_mode', value: 'Live' },
+      { key: 'payment_key_razorpay_status', value: 'active' },
+
+      { key: 'payment_key_google_play_name', value: 'Google Play' },
+      { key: 'payment_key_google_play_key_id', value: 'gpa_332198765410df' },
+      { key: 'payment_key_google_play_key_secret', value: 'gpa_sec_3321987654' },
+      { key: 'payment_key_google_play_mode', value: 'Live' },
+      { key: 'payment_key_google_play_status', value: 'active' },
+
+      { key: 'payment_key_apple_storekit_name', value: 'Apple StoreKit' },
+      { key: 'payment_key_apple_storekit_key_id', value: 'app_112233445566e1' },
+      { key: 'payment_key_apple_storekit_key_secret', value: 'app_sec_1122334455' },
+      { key: 'payment_key_apple_storekit_mode', value: 'Live' },
+      { key: 'payment_key_apple_storekit_status', value: 'active' },
+      // Maintenance Mode Settings
+      { key: 'maintenance_mode_active', value: 'false' },
+      { key: 'maintenance_message', value: "We're upgrading Roz FM for you. Back shortly!" },
+      { key: 'scheduled_start', value: '02 Aug 2026, 2:00 AM IST' },
+      { key: 'scheduled_end', value: '02 Aug 2026, 4:00 AM IST' },
+      // Security Settings
+      { key: 'require_2fa_for_admins', value: 'false' },
+      { key: 'session_timeout', value: '15 minutes' },
+      { key: 'max_login_attempts', value: '3' },
+      { key: 'ip_allowlist_enforced', value: 'false' },
     ];
 
     for (const s of defaultSettings) {

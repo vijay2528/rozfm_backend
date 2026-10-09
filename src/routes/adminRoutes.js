@@ -139,6 +139,27 @@ router.get('/comments', AdminModerationController.listComments);
 router.delete('/comments/:id', AdminModerationController.deleteComment);
 
 // ── 8. Notifications & System Settings ───────────────────────────────────────
+router.get('/settings/general', AdminSettingsController.getGeneralSettings);
+router.put('/settings/general', AdminSettingsController.updateGeneralSettings);
+router.post('/settings/general', AdminSettingsController.updateGeneralSettings);
+router.get('/settings/storage', AdminSettingsController.getStorageSettings);
+router.put('/settings/storage', AdminSettingsController.updateStorageSettings);
+router.post('/settings/storage', AdminSettingsController.updateStorageSettings);
+// Payment Keys Settings
+router.get('/settings/payment-keys/export', AdminSettingsController.exportPaymentKeys);
+router.get('/settings/payment-keys', AdminSettingsController.getPaymentKeys);
+router.get('/settings/payment-keys/:id', AdminSettingsController.getPaymentKeyById);
+router.put('/settings/payment-keys/:id', AdminSettingsController.updatePaymentKey);
+router.post('/settings/payment-keys/:id', AdminSettingsController.updatePaymentKey);
+router.post('/settings/payment-keys', AdminSettingsController.updatePaymentKey);
+// Maintenance Mode Settings
+router.get('/settings/maintenance', AdminSettingsController.getMaintenanceSettings);
+router.put('/settings/maintenance', AdminSettingsController.updateMaintenanceSettings);
+router.post('/settings/maintenance', AdminSettingsController.updateMaintenanceSettings);
+// Security Policy Settings
+router.get('/settings/security', AdminSettingsController.getSecuritySettings);
+router.put('/settings/security', AdminSettingsController.updateSecuritySettings);
+router.post('/settings/security', AdminSettingsController.updateSecuritySettings);
 router.get('/settings', AdminSettingsController.getSettings);
 router.post('/settings', AdminSettingsController.updateSettings);
 router.get('/streak-settings', AdminStreakSettingsController.getSettings);
