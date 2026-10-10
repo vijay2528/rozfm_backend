@@ -64,7 +64,7 @@ class RazorpayController {
         if (plans.length > 0) {
           coinsToAdd = Number(plans[0].coins || 0) + Number(plans[0].bonus_coins || 0) || Number(coins || 0);
           if (!moneyAmount) {
-            moneyAmount = parseFloat(plans[0].monthly_amount ?? plans[0].yearly_amount ?? 0) || 0.00;
+            moneyAmount = parseFloat(plans[0].price ?? plans[0].amount ?? plans[0].monthly_amount ?? plans[0].yearly_amount ?? 0) || 0.00;
           }
           description = `Purchased Plan #${plan_id}: ${plans[0].name}`;
         }

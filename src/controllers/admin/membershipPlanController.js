@@ -28,6 +28,16 @@ function formatPlan(p) {
     ? Number(p.yearly_amount)
     : 0;
   const priceVal = p.price !== null && p.price !== undefined ? Number(p.price) : monthly;
+  const origPrice = p.original_price !== null && p.original_price !== undefined ? Number(p.original_price) : null;
+
+  let featuresList = [];
+  if (p.features) {
+    if (typeof p.features === 'string') {
+      try { featuresList = JSON.parse(p.features); } catch (_) { featuresList = [p.features]; }
+    } else if (Array.isArray(p.features)) {
+      featuresList = p.features;
+    }
+  }
 
   const isActive = p.is_active !== undefined && p.is_active !== null
     ? (p.is_active === 1 || p.is_active === true || p.is_active === '1')
@@ -37,16 +47,23 @@ function formatPlan(p) {
     id: Number(p.id),
     name: p.name || '',
     slug: p.slug || generateSlug(p.name),
-    description: p.description || null,
+    description: p.subtitle || p.description || null,
+    subtitle: p.subtitle || p.description || null,
     monthly_amount: monthly,
     yearly_amount: yearly,
     price: priceVal,
     amount: priceVal,
+    original_price: origPrice,
     coins: Number(p.coins || 0),
     bonus_coins: Number(p.bonus_coins || 0),
     currency: p.currency || 'INR',
     badge_text: p.badge_text || null,
     is_popular: Boolean(p.is_popular),
+    is_trial: Boolean(p.is_trial),
+    trial_days: Number(p.trial_days || 0),
+    duration_days: Number(p.duration_days || 30),
+    features: featuresList,
+    renew_plan_id: p.renew_plan_id ? Number(p.renew_plan_id) : null,
     sort_order: p.sort_order !== null && p.sort_order !== undefined ? Number(p.sort_order) : 0,
     is_active: isActive,
     status: isActive ? 1 : 0,

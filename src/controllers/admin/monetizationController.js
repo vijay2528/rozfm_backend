@@ -6,7 +6,7 @@ class MonetizationController {
 
   static async listPlans(req, res) {
     try {
-      const [plans] = await pool.query('SELECT * FROM purchase_plans ORDER BY price ASC');
+      const [plans] = await pool.query('SELECT * FROM purchase_plans ORDER BY id ASC');
       return ApiResponse.success(res, { plans });
     } catch (error) {
       console.error('Admin List Plans Error:', error);

@@ -32,6 +32,21 @@ class PlanController {
                     ? Number(p.monthly_amount)
                     : (p.yearly_amount !== undefined && p.yearly_amount !== null ? Number(p.yearly_amount) : 0)));
 
+          const origPrice = p.original_price !== undefined && p.original_price !== null ? Number(p.original_price) : null;
+
+          let featuresList = [];
+          if (p.features) {
+            if (typeof p.features === 'string') {
+              try {
+                featuresList = JSON.parse(p.features);
+              } catch (_) {
+                featuresList = [p.features];
+              }
+            } else if (Array.isArray(p.features)) {
+              featuresList = p.features;
+            }
+          }
+
           return {
             id: Number(p.id),
             name: p.name || 'Subscription Plan',
@@ -39,24 +54,24 @@ class PlanController {
             bonus_coins: Number(p.bonus_coins || 0),
             price: priceVal,
             amount: priceVal,
+            original_price: origPrice,
             monthly_amount: p.monthly_amount !== undefined && p.monthly_amount !== null ? Number(p.monthly_amount) : null,
             yearly_amount: p.yearly_amount !== undefined && p.yearly_amount !== null ? Number(p.yearly_amount) : null,
             currency: p.currency || 'INR',
             badge_text: p.badge_text || null,
             is_popular: Boolean(p.is_popular),
+            is_trial: Boolean(p.is_trial),
+            trial_days: Number(p.trial_days || 0),
+            duration_days: Number(p.duration_days || 30),
+            subtitle: p.subtitle || p.description || null,
+            features: featuresList,
+            renew_plan_id: p.renew_plan_id ? Number(p.renew_plan_id) : null,
             is_active: p.is_active !== undefined ? Boolean(p.is_active) : (p.status !== undefined ? (p.status == 1 || String(p.status).toLowerCase() === 'active') : true),
             status: p.status !== undefined ? (p.status == 1 || String(p.status).toLowerCase() === 'active' ? 1 : 0) : 1,
+            sort_order: p.sort_order !== undefined && p.sort_order !== null ? Number(p.sort_order) : 0,
           };
         })
-        .sort((a, b) => a.price - b.price);
-
-      if (plans.length === 0) {
-        plans = [
-          { id: 1, name: 'Starter Pack', coins: 100, bonus_coins: 10, price: 99.00, amount: 99.00, currency: 'INR', badge_text: null, is_popular: false, is_active: true, status: 1 },
-          { id: 2, name: 'Value Pack', coins: 500, bonus_coins: 75, price: 399.00, amount: 399.00, currency: 'INR', badge_text: 'POPULAR', is_popular: true, is_active: true, status: 1 },
-          { id: 3, name: 'Mega Pack', coins: 1200, bonus_coins: 300, price: 899.00, amount: 899.00, currency: 'INR', badge_text: 'BEST VALUE', is_popular: false, is_active: true, status: 1 },
-        ];
-      }
+        .sort((a, b) => (a.sort_order || a.price) - (b.sort_order || b.price));
 
       return ApiResponse.success(res, { plans });
     } catch (error) {

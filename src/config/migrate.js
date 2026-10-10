@@ -227,6 +227,16 @@ async function runMigrations() {
       "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `amount` DECIMAL(10, 2) DEFAULT 0.00 AFTER `coin_pack_id`",
       "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `transaction_type` ENUM('credit', 'debit') DEFAULT 'credit' AFTER `amount`",
       "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `payment_status` VARCHAR(50) DEFAULT 'paid' AFTER `transaction_type`",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `price` DECIMAL(10,2) DEFAULT 0.00",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `is_trial` TINYINT(1) DEFAULT 0",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `trial_days` INT DEFAULT 0",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `duration_days` INT DEFAULT 30",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `original_price` DECIMAL(10,2) NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `subtitle` VARCHAR(255) NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `features` JSON NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `renew_plan_id` INT NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `sort_order` INT DEFAULT 0",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `is_active` TINYINT(1) DEFAULT 1",
     ];
 
     for (const alterSql of alterQueries) {
@@ -343,14 +353,37 @@ async function runMigrations() {
         \`coins\` INT DEFAULT 0,
         \`bonus_coins\` INT DEFAULT 0,
         \`price\` DECIMAL(10, 2) NOT NULL,
+        \`original_price\` DECIMAL(10, 2) NULL,
         \`currency\` VARCHAR(10) DEFAULT 'INR',
         \`badge_text\` VARCHAR(100) NULL,
         \`is_popular\` TINYINT(1) DEFAULT 0,
+        \`is_trial\` TINYINT(1) DEFAULT 0,
+        \`trial_days\` INT DEFAULT 0,
+        \`duration_days\` INT DEFAULT 30,
+        \`subtitle\` VARCHAR(255) NULL,
+        \`features\` JSON NULL,
+        \`renew_plan_id\` INT NULL,
+        \`sort_order\` INT DEFAULT 0,
+        \`is_active\` TINYINT(1) DEFAULT 1,
         \`status\` TINYINT(1) DEFAULT 1,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
         \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Seed default purchase plans if empty
+    const [planCount] = await connection.query('SELECT COUNT(*) AS count FROM purchase_plans');
+    if (planCount[0].count === 0) {
+      await connection.query(`
+        INSERT INTO purchase_plans 
+        (id, name, price, original_price, currency, badge_text, is_popular, is_trial, trial_days, duration_days, subtitle, features, sort_order, status, is_active) 
+        VALUES
+        (1, 'Introductory Offer', 1.00, 799.00, 'INR', '🔥 Most Popular', 1, 1, 3, 3, 'Sirf ₹1 me Premium try karein', '["3 din tak full Premium access", "Uske baad automatically 3 Month Plan (₹799) renew hoga", "Kabhi bhi cancel kar sakte hain"]', 1, 1, 1),
+        (2, '3 Month Plan', 799.00, 1197.00, 'INR', 'Save 33%', 0, 0, 0, 90, '3 mahine tak bina rukavat premium kahaniyan', '["Full Premium access for 3 months", "Ad-free listening", "Offline downloads"]', 2, 1, 1),
+        (3, '1 Year Plan', 2499.00, 4788.00, 'INR', 'Save 48%', 0, 0, 0, 365, 'Pura saal unlimited entertainment', '["Full Premium access for 1 year", "Ad-free listening", "Offline downloads"]', 3, 1, 1)
+      `);
+      console.log('🌱 Default subscription / trial purchase plans seeded!');
+    }
 
     // 15. Coin Sales table
     await connection.query(`

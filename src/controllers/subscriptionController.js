@@ -104,8 +104,8 @@ class SubscriptionController {
         return ApiResponse.error(res, 'Unauthenticated.', 401);
       }
 
-      const { plan_id, duration_days = 30 } = req.body;
-      const durationDaysNum = parseInt(duration_days, 10) || 30;
+      const { plan_id, duration_days } = req.body;
+      let durationDaysNum = parseInt(duration_days, 10) || 30;
 
       let planName = 'VIP Subscription';
       let monthlyAmount = null;
@@ -123,7 +123,13 @@ class SubscriptionController {
             planName = p.name || planName;
             monthlyAmount = p.monthly_amount !== undefined && p.monthly_amount !== null ? Number(p.monthly_amount) : null;
             yearlyAmount = p.yearly_amount !== undefined && p.yearly_amount !== null ? Number(p.yearly_amount) : null;
-            planAmount = durationDaysNum > 60 ? (yearlyAmount ?? monthlyAmount) : (monthlyAmount ?? yearlyAmount);
+            planAmount = p.price !== undefined && p.price !== null ? Number(p.price) : (monthlyAmount ?? yearlyAmount);
+
+            if (p.is_trial && p.trial_days > 0) {
+              durationDaysNum = Number(p.trial_days);
+            } else if (p.duration_days > 0) {
+              durationDaysNum = Number(p.duration_days);
+            }
           }
         } catch (_) {}
       }
