@@ -285,10 +285,6 @@ class EpisodeController {
 
       const episode = rows[0];
 
-      // Increment play count
-      await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episodeId]);
-      await pool.query('UPDATE stories SET listeners_count = listeners_count + 1 WHERE id = ?', [episode.story_id]);
-
       let isUnlocked = true;
       if (episode.is_premium) {
         if (!userId) {

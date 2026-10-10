@@ -17,7 +17,7 @@ class BookmarkController {
       );
 
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image
          FROM bookmarks b
          JOIN stories s ON b.story_id = s.id
          LEFT JOIN categories c ON s.category_id = c.id

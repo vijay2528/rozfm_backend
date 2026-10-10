@@ -59,7 +59,7 @@ class ContentController {
       );
 
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name,
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image,
                 (SELECT COUNT(*) FROM episodes e WHERE e.story_id = s.id) as real_episodes_count,
                 (SELECT COALESCE(SUM(plays_count), 0) FROM episodes e WHERE e.story_id = s.id) as real_plays_count,
                 (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
@@ -98,7 +98,7 @@ class ContentController {
       const storyId = req.params.id;
 
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name,
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image,
                 (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id

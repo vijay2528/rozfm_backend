@@ -51,7 +51,7 @@ class UserController {
 
       // 4. Fetch target user's stories ("My Series")
       const [storyRows] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
@@ -421,7 +421,7 @@ class UserController {
       const [[{ count }]] = await pool.query('SELECT COUNT(*) as count FROM stories WHERE user_id = ?', [targetUserId]);
 
       const [storyRows] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id

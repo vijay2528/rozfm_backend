@@ -120,37 +120,50 @@ class WatchHistoryController {
       // Check existing watch history row
       const [existing] = await pool.query(
         episodeId
-          ? 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1'
-          : 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id IS NULL LIMIT 1',
+          ? 'SELECT id, total_seconds_listened, COALESCE(play_counted, 0) as play_counted FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1'
+          : 'SELECT id, total_seconds_listened, COALESCE(play_counted, 0) as play_counted FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id IS NULL LIMIT 1',
         episodeId ? [userId, storyId, episodeId] : [userId, storyId]
       );
 
       let recordId;
       let newTotalListened = secondsListened;
+      let playCounted = 0;
 
       if (existing.length > 0) {
         recordId = existing[0].id;
         newTotalListened = Number(existing[0].total_seconds_listened || 0) + secondsListened;
+        playCounted = Number(existing[0].play_counted || 0);
+      }
 
+      // Check 2 minutes (120 seconds) listening threshold
+      const maxListened = Math.max(newTotalListened, progressSeconds);
+      const is2MinListened = maxListened >= 120 || (totalDurationSeconds > 0 && totalDurationSeconds < 120 && isCompleted);
+
+      let shouldIncrementPlay = false;
+      if (episodeId && !playCounted && is2MinListened) {
+        shouldIncrementPlay = true;
+        playCounted = 1;
+      }
+
+      if (existing.length > 0) {
         await pool.query(
           `UPDATE watch_histories 
-           SET episode_id = ?, progress_seconds = ?, total_duration_seconds = ?, total_seconds_listened = ?, completion_percentage = ?, status = ?, completed = ?, last_watched_at = NOW()
+           SET episode_id = ?, progress_seconds = ?, total_duration_seconds = ?, total_seconds_listened = ?, completion_percentage = ?, status = ?, completed = ?, play_counted = ?, last_watched_at = NOW()
            WHERE id = ?`,
-          [episodeId || null, progressSeconds, totalDurationSeconds, newTotalListened, completionPercentage, finalStatus, isCompleted ? 1 : 0, recordId]
+          [episodeId || null, progressSeconds, totalDurationSeconds, newTotalListened, completionPercentage, finalStatus, isCompleted ? 1 : 0, playCounted, recordId]
         );
       } else {
         const [insertRes] = await pool.query(
           `INSERT INTO watch_histories 
-           (user_id, story_id, episode_id, progress_seconds, total_duration_seconds, total_seconds_listened, completion_percentage, status, completed, last_watched_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-          [userId, storyId, episodeId || null, progressSeconds, totalDurationSeconds, newTotalListened, completionPercentage, finalStatus, isCompleted ? 1 : 0]
+           (user_id, story_id, episode_id, progress_seconds, total_duration_seconds, total_seconds_listened, completion_percentage, status, completed, play_counted, last_watched_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          [userId, storyId, episodeId || null, progressSeconds, totalDurationSeconds, newTotalListened, completionPercentage, finalStatus, isCompleted ? 1 : 0, playCounted]
         );
         recordId = insertRes.insertId;
+      }
 
-        // Increment stats on first play
-        if (episodeId) {
-          await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episodeId]);
-        }
+      if (shouldIncrementPlay) {
+        await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episodeId]);
         await pool.query('UPDATE stories SET total_views = total_views + 1, listeners_count = listeners_count + 1 WHERE id = ?', [storyId]);
       }
 
@@ -209,24 +222,44 @@ class WatchHistoryController {
 
       const [existing] = await pool.query(
         episode_id
-          ? 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1'
-          : 'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id IS NULL LIMIT 1',
+          ? 'SELECT id, total_seconds_listened, COALESCE(play_counted, 0) as play_counted FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1'
+          : 'SELECT id, total_seconds_listened, COALESCE(play_counted, 0) as play_counted FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id IS NULL LIMIT 1',
         episode_id ? [userId, resolvedStoryId, episode_id] : [userId, resolvedStoryId]
       );
 
       let newTotal = secondsToAdd;
+      let playCounted = 0;
+
       if (existing.length > 0) {
         newTotal = Number(existing[0].total_seconds_listened || 0) + secondsToAdd;
+        playCounted = Number(existing[0].play_counted || 0);
+      }
+
+      const is2MinListened = newTotal >= 120;
+      let shouldIncrementPlay = false;
+      if (episode_id && !playCounted && is2MinListened) {
+        shouldIncrementPlay = true;
+        playCounted = 1;
+      }
+
+      if (existing.length > 0) {
         await pool.query(
-          'UPDATE watch_histories SET total_seconds_listened = ?, last_watched_at = NOW() WHERE id = ?',
-          [newTotal, existing[0].id]
+          'UPDATE watch_histories SET total_seconds_listened = ?, play_counted = ?, last_watched_at = NOW() WHERE id = ?',
+          [newTotal, playCounted, existing[0].id]
         );
       } else {
         await pool.query(
-          `INSERT INTO watch_histories (user_id, story_id, episode_id, total_seconds_listened, last_watched_at)
-           VALUES (?, ?, ?, ?, NOW())`,
-          [userId, resolvedStoryId, episode_id || null, secondsToAdd]
+          `INSERT INTO watch_histories (user_id, story_id, episode_id, total_seconds_listened, play_counted, last_watched_at)
+           VALUES (?, ?, ?, ?, ?, NOW())`,
+          [userId, resolvedStoryId, episode_id || null, secondsToAdd, playCounted]
         );
+      }
+
+      if (shouldIncrementPlay) {
+        await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episode_id]);
+        if (resolvedStoryId) {
+          await pool.query('UPDATE stories SET total_views = total_views + 1, listeners_count = listeners_count + 1 WHERE id = ?', [resolvedStoryId]);
+        }
       }
 
       // Record daily streak listening progress asynchronously
@@ -466,29 +499,46 @@ class WatchHistoryController {
 
       // Upsert into watch_histories
       const [existing] = await pool.query(
-        'SELECT id, total_seconds_listened FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1',
+        'SELECT id, total_seconds_listened, COALESCE(play_counted, 0) as play_counted FROM watch_histories WHERE user_id = ? AND story_id = ? AND episode_id = ? LIMIT 1',
         [userId, storyId, episodeId]
       );
 
       let recordId;
+      let playCounted = 0;
+      let totalListenedSecs = currentSeconds;
+
       if (existing.length > 0) {
         recordId = existing[0].id;
+        playCounted = Number(existing[0].play_counted || 0);
+        totalListenedSecs = Math.max(Number(existing[0].total_seconds_listened || 0), currentSeconds);
+      }
+
+      const is2MinListened = totalListenedSecs >= 120 || (totalDurationSeconds > 0 && totalDurationSeconds < 120 && isCompleted);
+
+      let shouldIncrementPlay = false;
+      if (!playCounted && is2MinListened) {
+        shouldIncrementPlay = true;
+        playCounted = 1;
+      }
+
+      if (existing.length > 0) {
         await pool.query(
           `UPDATE watch_histories 
-           SET episode_id = ?, progress_seconds = ?, total_duration_seconds = ?, completion_percentage = ?, status = ?, completed = ?, last_watched_at = NOW()
+           SET episode_id = ?, progress_seconds = ?, total_duration_seconds = ?, completion_percentage = ?, status = ?, completed = ?, play_counted = ?, last_watched_at = NOW()
            WHERE id = ?`,
-          [episodeId, currentSeconds, totalDurationSeconds, completionPercentage, status, isCompleted ? 1 : 0, recordId]
+          [episodeId, currentSeconds, totalDurationSeconds, completionPercentage, status, isCompleted ? 1 : 0, playCounted, recordId]
         );
       } else {
         const [insertRes] = await pool.query(
           `INSERT INTO watch_histories 
-           (user_id, story_id, episode_id, progress_seconds, total_duration_seconds, total_seconds_listened, completion_percentage, status, completed, last_watched_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-          [userId, storyId, episodeId, currentSeconds, totalDurationSeconds, currentSeconds, completionPercentage, status, isCompleted ? 1 : 0]
+           (user_id, story_id, episode_id, progress_seconds, total_duration_seconds, total_seconds_listened, completion_percentage, status, completed, play_counted, last_watched_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          [userId, storyId, episodeId, currentSeconds, totalDurationSeconds, currentSeconds, completionPercentage, status, isCompleted ? 1 : 0, playCounted]
         );
         recordId = insertRes.insertId;
+      }
 
-        // Increment episode play stats on initial track
+      if (shouldIncrementPlay) {
         await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episodeId]);
         await pool.query('UPDATE stories SET total_views = total_views + 1, listeners_count = listeners_count + 1 WHERE id = ?', [storyId]);
       }

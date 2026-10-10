@@ -205,6 +205,7 @@ function toStoryFieldsArray(story, options = {}) {
 
   const coverUrl = resolveUrl(story.cover_image_path);
   const bannerUrl = resolveUrl(story.banner_image_path);
+  const authorImageUrl = resolveUrl(story.author_image || story.author_avatar_path || story.author_avatar || story.avatar_path || story.user_avatar_path);
 
   const totalViews = Math.max(Number(story.total_views || 0), Number(story.real_plays_count || 0));
   const totalEpisodes = story.real_episodes_count !== undefined && story.real_episodes_count !== null
@@ -288,6 +289,8 @@ function toStoryFieldsArray(story, options = {}) {
     genre: story.category_name || story.genre || null,
     author: story.author_name || story.author || null,
     author_id: Number(story.user_id || 0),
+    author_image: authorImageUrl,
+    author_avatar: authorImageUrl,
     language: story.language || 'en',
     tags: story.tags || null,
     total_episodes: totalEpisodes,

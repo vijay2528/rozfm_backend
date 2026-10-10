@@ -220,6 +220,7 @@ async function runMigrations() {
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `total_seconds_listened` INT DEFAULT 0",
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `completion_percentage` DECIMAL(5, 2) DEFAULT 0.00",
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `status` VARCHAR(50) DEFAULT 'playing'",
+      "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `play_counted` TINYINT(1) DEFAULT 0",
       "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `bonus` INT DEFAULT 0 AFTER `coins`",
       "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `plan_id` INT NULL AFTER `coins`",
       "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `coin_pack_id` INT NULL AFTER `plan_id`",
@@ -324,6 +325,7 @@ async function runMigrations() {
         \`completion_percentage\` DECIMAL(5, 2) DEFAULT 0.00,
         \`status\` VARCHAR(50) DEFAULT 'playing',
         \`completed\` TINYINT(1) DEFAULT 0,
+        \`play_counted\` TINYINT(1) DEFAULT 0,
         \`last_watched_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
         \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -885,6 +887,7 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    const defaultSettings = [
       // Payment Keys Settings (Razorpay, Google Play, Apple StoreKit)
       { key: 'payment_key_razorpay_name', value: 'Razorpay' },
       { key: 'payment_key_razorpay_key_id', value: 'rzp_live_987654321092ac' },

@@ -6,7 +6,7 @@ class SectionController {
   static async trending(req, res) {
     try {
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
@@ -24,7 +24,7 @@ class SectionController {
   static async popular(req, res) {
     try {
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
@@ -42,7 +42,7 @@ class SectionController {
   static async topRated(req, res) {
     try {
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
@@ -60,7 +60,7 @@ class SectionController {
   static async topPicks(req, res) {
     try {
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id

@@ -73,7 +73,7 @@ class StoryController {
       );
 
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name,
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image,
                 (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
@@ -140,7 +140,7 @@ class StoryController {
       const userId = req.user ? req.user.id : null;
 
       const [storyRows] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name,
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image,
                 (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count,
                 (SELECT COUNT(*) FROM reviews rv WHERE rv.story_id = s.id) as total_reviews,
                 (SELECT COALESCE(AVG(rv2.rating), 0) FROM reviews rv2 WHERE rv2.story_id = s.id AND rv2.rating > 0) as average_rating
@@ -570,7 +570,7 @@ class StoryController {
 
       const storyId = result.insertId;
       const [storyRows] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name FROM stories s
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
          WHERE s.id = ? LIMIT 1`,
@@ -746,7 +746,7 @@ class StoryController {
       }
 
       const [updatedRows] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name FROM stories s
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
          WHERE s.id = ? LIMIT 1`,
@@ -864,7 +864,7 @@ class StoryController {
       );
 
       const [stories] = await pool.query(
-        `SELECT s.*, c.category_name, u.name as author_name,
+        `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image,
                 (SELECT COUNT(*) FROM story_likes sl2 WHERE sl2.story_id = s.id) as likes_count
          FROM story_likes sl
          JOIN stories s ON sl.story_id = s.id
