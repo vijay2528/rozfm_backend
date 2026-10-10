@@ -1,7 +1,7 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const StreakService = require('../services/streakService');
-const { resolveUrl } = require('../utils/storyPresenter');
+const { resolveUrl, toStoryFieldsArray } = require('../utils/storyPresenter');
 
 function formatTime(seconds) {
   const s = Math.max(0, parseInt(seconds, 10) || 0);
@@ -17,20 +17,90 @@ function formatTime(seconds) {
 class WatchHistoryController {
   /**
    * GET /api/v1/watch-history
-   * List watch history for authenticated user
+   * List watch history grouped by story (1 record per story with latest watched episode & unlocked info)
    */
   static async index(req, res) {
     try {
       const userId = req.user.id;
-      const [historyRows] = await pool.query(
-        `SELECT w.*, s.title as story_title, s.cover_image_path, e.title as episode_title, COALESCE(e.position, 1) as episode_position, COALESCE(e.duration_seconds, 0) as episode_duration
-         FROM watch_histories w
-         JOIN stories s ON w.story_id = s.id
-         LEFT JOIN episodes e ON w.episode_id = e.id
-         WHERE w.user_id = ?
-         ORDER BY w.last_watched_at DESC`,
+
+      // Check active VIP/Subscription status for unlocked calculations
+      const [subRows] = await pool.query(
+        "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1",
         [userId]
       );
+      const [userRows] = await pool.query(
+        "SELECT subscription_type, role FROM users WHERE id = ? LIMIT 1",
+        [userId]
+      );
+      const hasActiveMembership = subRows.length > 0 || (userRows.length > 0 && (userRows[0].subscription_type === 'vip' || userRows[0].role === 'vip'));
+
+      const [historyRows] = await pool.query(
+        `SELECT w.*, 
+                s.id as s_id, s.title as story_title, s.description as story_description, s.cover_image_path, s.banner_image_path, 
+                s.episodes_count, s.listeners_count, s.total_views, s.rating, s.is_premium as story_is_premium, s.status as story_status, s.category_id,
+                c.category_name,
+                u.id as author_id, u.name as author_name, u.avatar_path as author_avatar_path,
+                e.id as ep_id, e.title as episode_title, COALESCE(e.position, e.episode_number, 1) as episode_position, 
+                COALESCE(e.duration_seconds, 0) as episode_duration
+         FROM watch_histories w
+         INNER JOIN (
+           SELECT story_id, MAX(id) as max_history_id
+           FROM watch_histories
+           WHERE user_id = ?
+           GROUP BY story_id
+         ) latest ON w.id = latest.max_history_id
+         JOIN stories s ON w.story_id = s.id
+         LEFT JOIN episodes e ON w.episode_id = e.id
+         LEFT JOIN categories c ON s.category_id = c.id
+         LEFT JOIN users u ON s.user_id = u.id
+         WHERE w.user_id = ?
+         ORDER BY GREATEST(COALESCE(w.last_watched_at, '1970-01-01'), COALESCE(w.updated_at, '1970-01-01'), COALESCE(w.created_at, '1970-01-01')) DESC, w.id DESC`,
+        [userId, userId]
+      );
+
+      if (historyRows.length === 0) {
+        return ApiResponse.success(res, { history: [], stories: [] });
+      }
+
+      const storyIds = historyRows.map((h) => h.story_id);
+
+      // Batch query unlocked episodes count per story for this user
+      let unlockedMap = {};
+      if (storyIds.length > 0) {
+        const [freeCounts] = await pool.query(
+          `SELECT story_id, COUNT(*) as free_cnt FROM episodes WHERE story_id IN (?) AND is_premium = 0 GROUP BY story_id`,
+          [storyIds]
+        );
+        const [unlockedCounts] = await pool.query(
+          `SELECT ep.story_id, COUNT(DISTINCT ueu.episode_id) as unl_cnt 
+           FROM user_episode_unlocks ueu 
+           JOIN episodes ep ON ueu.episode_id = ep.id 
+           WHERE ueu.user_id = ? AND ep.story_id IN (?) 
+           GROUP BY ep.story_id`,
+          [userId, storyIds]
+        );
+
+        let freeMap = {};
+        freeCounts.forEach((r) => { freeMap[r.story_id] = Number(r.free_cnt || 0); });
+
+        let unlMap = {};
+        unlockedCounts.forEach((r) => { unlMap[r.story_id] = Number(r.unl_cnt || 0); });
+
+        storyIds.forEach((sid) => {
+          const epCount = Number(historyRows.find(h => h.story_id === sid)?.episodes_count || 0);
+          if (hasActiveMembership) {
+            unlockedMap[sid] = Math.max(epCount, 1);
+          } else {
+            const freeC = freeMap[sid] || 0;
+            const unlC = unlMap[sid] || 0;
+            let totalUnl = freeC + unlC;
+            if (epCount > 0) {
+              totalUnl = Math.min(totalUnl, epCount);
+            }
+            unlockedMap[sid] = totalUnl;
+          }
+        });
+      }
 
       const history = historyRows.map((h) => {
         const totalDuration = Number(h.total_duration_seconds || h.episode_duration || 0);
@@ -39,16 +109,61 @@ class WatchHistoryController {
           ? parseFloat(((progress / totalDuration) * 100).toFixed(2))
           : Number(h.completion_percentage || 0);
         const coverImageUrl = resolveUrl(h.cover_image_path);
+        const bannerImageUrl = resolveUrl(h.banner_image_path);
+        const authorImageUrl = resolveUrl(h.author_avatar_path);
+
+        const epNo = Number(h.episode_position || 1);
+        const unlockedCnt = unlockedMap[h.story_id] !== undefined ? unlockedMap[h.story_id] : 0;
+        const unlockedText = `${unlockedCnt} Episodes Unlocked`;
+
+        const storyObj = {
+          id: Number(h.story_id),
+          story_id: Number(h.story_id),
+          title: h.story_title,
+          description: h.story_description || null,
+          cover_image_path: h.cover_image_path,
+          banner_image_path: h.banner_image_path,
+          cover_image: coverImageUrl,
+          banner_image: bannerImageUrl,
+          author_name: h.author_name || null,
+          author_image: authorImageUrl,
+          category_name: h.category_name || null,
+          episodes_count: Number(h.episodes_count || 0),
+          listeners_count: Number(h.listeners_count || 0),
+          total_views: Number(h.total_views || 0),
+          rating: Number(h.rating || 0.0),
+          is_premium: Boolean(h.story_is_premium),
+          status: h.story_status || null,
+        };
 
         return {
           id: Number(h.id),
+          watch_history_id: Number(h.id),
           story_id: Number(h.story_id),
-          episode_id: h.episode_id ? Number(h.episode_id) : null,
+          title: h.story_title,
           story_title: h.story_title,
           story_cover_image: coverImageUrl,
+          cover_image: coverImageUrl,
+          banner_image: bannerImageUrl,
+          author_name: h.author_name || null,
+          author_image: authorImageUrl,
+          author_avatar: authorImageUrl,
+
+          // Episode info (last watched episode)
+          episode_id: h.episode_id ? Number(h.episode_id) : null,
           episode_title: h.episode_title || null,
-          episode_number: h.episode_position || 1,
-          episode_no: h.episode_position || 1,
+          episode_name: h.episode_title || null,
+          episode_number: epNo,
+          episode_no: epNo,
+          episode_text: `Episode ${epNo}`,
+
+          // Unlocked info
+          unlocked_episodes_count: unlockedCnt,
+          episodes_unlocked: unlockedCnt,
+          unlocked_episodes_text: unlockedText,
+          unlocked_text: unlockedText,
+
+          // Progress & duration
           progress_seconds: progress,
           progress_formatted: formatTime(progress),
           total_duration_seconds: totalDuration,
@@ -59,10 +174,13 @@ class WatchHistoryController {
           total_seconds_listened: Number(h.total_seconds_listened || 0),
           total_minutes_listened: parseFloat((Number(h.total_seconds_listened || 0) / 60).toFixed(1)),
           last_watched_at: h.last_watched_at ? new Date(h.last_watched_at).toISOString() : null,
+
+          // Embedded story object
+          story: toStoryFieldsArray(storyObj),
         };
       });
 
-      return ApiResponse.success(res, { history });
+      return ApiResponse.success(res, { history, stories: history.map((h) => h.story) });
     } catch (error) {
       console.error('List Watch History Error:', error);
       return ApiResponse.error(res, 'Failed to fetch watch history.', 500);
