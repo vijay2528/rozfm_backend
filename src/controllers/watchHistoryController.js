@@ -109,78 +109,31 @@ class WatchHistoryController {
           ? parseFloat(((progress / totalDuration) * 100).toFixed(2))
           : Number(h.completion_percentage || 0);
         const coverImageUrl = resolveUrl(h.cover_image_path);
-        const bannerImageUrl = resolveUrl(h.banner_image_path);
-        const authorImageUrl = resolveUrl(h.author_avatar_path);
-
         const epNo = Number(h.episode_position || 1);
         const unlockedCnt = unlockedMap[h.story_id] !== undefined ? unlockedMap[h.story_id] : 0;
         const unlockedText = `${unlockedCnt} Episodes Unlocked`;
 
-        const storyObj = {
-          id: Number(h.story_id),
-          story_id: Number(h.story_id),
-          title: h.story_title,
-          description: h.story_description || null,
-          cover_image_path: h.cover_image_path,
-          banner_image_path: h.banner_image_path,
-          cover_image: coverImageUrl,
-          banner_image: bannerImageUrl,
-          author_name: h.author_name || null,
-          author_image: authorImageUrl,
-          category_name: h.category_name || null,
-          episodes_count: Number(h.episodes_count || 0),
-          listeners_count: Number(h.listeners_count || 0),
-          total_views: Number(h.total_views || 0),
-          rating: Number(h.rating || 0.0),
-          is_premium: Boolean(h.story_is_premium),
-          status: h.story_status || null,
-        };
-
         return {
           id: Number(h.id),
-          watch_history_id: Number(h.id),
           story_id: Number(h.story_id),
-          title: h.story_title,
-          story_title: h.story_title,
-          story_cover_image: coverImageUrl,
-          cover_image: coverImageUrl,
-          banner_image: bannerImageUrl,
-          author_name: h.author_name || null,
-          author_image: authorImageUrl,
-          author_avatar: authorImageUrl,
-
-          // Episode info (last watched episode)
           episode_id: h.episode_id ? Number(h.episode_id) : null,
-          episode_title: h.episode_title || null,
-          episode_name: h.episode_title || null,
+          story_title: h.story_title,
+          cover_image: coverImageUrl,
+          episode_title: h.episode_title || `Episode ${epNo}`,
           episode_number: epNo,
-          episode_no: epNo,
           episode_text: `Episode ${epNo}`,
-
-          // Unlocked info
           unlocked_episodes_count: unlockedCnt,
-          episodes_unlocked: unlockedCnt,
           unlocked_episodes_text: unlockedText,
-          unlocked_text: unlockedText,
-
-          // Progress & duration
           progress_seconds: progress,
-          progress_formatted: formatTime(progress),
           total_duration_seconds: totalDuration,
-          total_duration_formatted: formatTime(totalDuration),
           completion_percentage: completionPct,
           status: h.status || (Boolean(h.completed) ? 'completed' : 'playing'),
           completed: Boolean(h.completed),
-          total_seconds_listened: Number(h.total_seconds_listened || 0),
-          total_minutes_listened: parseFloat((Number(h.total_seconds_listened || 0) / 60).toFixed(1)),
           last_watched_at: h.last_watched_at ? new Date(h.last_watched_at).toISOString() : null,
-
-          // Embedded story object
-          story: toStoryFieldsArray(storyObj),
         };
       });
 
-      return ApiResponse.success(res, { history, stories: history.map((h) => h.story) });
+      return ApiResponse.success(res, { history });
     } catch (error) {
       console.error('List Watch History Error:', error);
       return ApiResponse.error(res, 'Failed to fetch watch history.', 500);
