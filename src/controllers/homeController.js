@@ -450,7 +450,6 @@ class HomeController {
         'Because You Listened': becauseYouListened,
         'Popular': popular,
         'Free Stories': freeStories,
-        because_you_listened_title: baseStoryTitle,
       });
     } catch (error) {
       console.error('Home Feed Error:', error);
