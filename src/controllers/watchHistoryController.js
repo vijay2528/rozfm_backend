@@ -59,7 +59,7 @@ class WatchHistoryController {
       );
 
       if (historyRows.length === 0) {
-        return ApiResponse.success(res, { history: [], stories: [] });
+        return ApiResponse.success(res, []);
       }
 
       const storyIds = historyRows.map((h) => h.story_id);
@@ -133,7 +133,7 @@ class WatchHistoryController {
         };
       });
 
-      return ApiResponse.success(res, { history });
+      return ApiResponse.success(res, history);
     } catch (error) {
       console.error('List Watch History Error:', error);
       return ApiResponse.error(res, 'Failed to fetch watch history.', 500);

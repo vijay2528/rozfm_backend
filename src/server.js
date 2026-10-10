@@ -22,6 +22,11 @@ const startServer = async () => {
       console.log(`=================================`);
     });
 
+    // Configure 10-minute socket timeouts for large audio file uploads (e.g. 100MB+)
+    server.timeout = 10 * 60 * 1000;
+    server.headersTimeout = 10 * 60 * 1000 + 5000;
+    server.requestTimeout = 10 * 60 * 1000;
+
     // Handle Unhandled Rejections & Uncaught Exceptions
     process.on('unhandledRejection', (err) => {
       console.error(`[Unhandled Rejection] ${err.message}`);
