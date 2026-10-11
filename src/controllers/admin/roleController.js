@@ -201,16 +201,9 @@ class RoleController {
 
       const [roles] = await pool.query(
         `SELECT r.id, r.name, r.display_name, r.description, r.permissions, r.key_permissions,
-                r.is_system, r.status, r.created_at, r.updated_at,
-                COUNT(u.id) AS assigned_users_count
+                r.is_system, r.status, r.created_at, r.updated_at
          FROM roles r
-         LEFT JOIN users u ON (
-           u.role_id = r.id OR 
-           LOWER(u.role) = LOWER(r.name) OR 
-           LOWER(u.role) = LOWER(r.display_name)
-         )
          ${whereSql}
-         GROUP BY r.id
          ORDER BY r.is_system DESC, r.id ASC
          LIMIT ? OFFSET ?`,
         [...queryParams, limitNum, offset]
@@ -238,9 +231,6 @@ class RoleController {
           key_permissions: computedKey,
           is_system: Boolean(role.is_system),
           status: Boolean(role.status),
-          users: Number(role.assigned_users_count || 0),
-          admins: Number(role.assigned_users_count || 0),
-          assigned_users_count: Number(role.assigned_users_count || 0),
           created_at: role.created_at,
           updated_at: role.updated_at,
         };
@@ -292,16 +282,6 @@ class RoleController {
         permissionsArr = [];
       }
 
-      // Query assigned users / admins
-      const [assignedUsers] = await pool.query(
-        `SELECT id, name, email, phone, avatar_path, role, role_id, is_blocked, last_login_at, created_at
-         FROM users
-         WHERE role_id = ? OR LOWER(role) = LOWER(?) OR LOWER(role) = LOWER(?)
-         ORDER BY id ASC
-         LIMIT 100`,
-        [role.id, role.name, role.display_name]
-      );
-
       const computedKey = computeKeyPermissions(permissionsArr, role.key_permissions);
 
       return ApiResponse.success(res, {
@@ -314,8 +294,6 @@ class RoleController {
           key_permissions: computedKey,
           is_system: Boolean(role.is_system),
           status: Boolean(role.status),
-          assigned_users_count: assignedUsers.length,
-          assigned_users: assignedUsers,
           created_at: role.created_at,
           updated_at: role.updated_at,
         }
@@ -403,9 +381,6 @@ class RoleController {
           key_permissions: computedKey,
           is_system: false,
           status: Boolean(statusVal),
-          assigned_users_count: 0,
-          users: 0,
-          admins: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
@@ -535,16 +510,9 @@ class RoleController {
       // Fetch fresh record
       const [updatedRows] = await pool.query(
         `SELECT r.id, r.name, r.display_name, r.description, r.permissions, r.key_permissions,
-                r.is_system, r.status, r.created_at, r.updated_at,
-                COUNT(u.id) AS assigned_users_count
+                r.is_system, r.status, r.created_at, r.updated_at
          FROM roles r
-         LEFT JOIN users u ON (
-           u.role_id = r.id OR 
-           LOWER(u.role) = LOWER(r.name) OR 
-           LOWER(u.role) = LOWER(r.display_name)
-         )
-         WHERE r.id = ?
-         GROUP BY r.id`,
+         WHERE r.id = ?`,
         [id]
       );
 
@@ -567,9 +535,6 @@ class RoleController {
           key_permissions: computeKeyPermissions(perms, updated.key_permissions),
           is_system: Boolean(updated.is_system),
           status: Boolean(updated.status),
-          assigned_users_count: Number(updated.assigned_users_count || 0),
-          users: Number(updated.assigned_users_count || 0),
-          admins: Number(updated.assigned_users_count || 0),
           created_at: updated.created_at,
           updated_at: updated.updated_at,
         }
@@ -611,8 +576,8 @@ class RoleController {
       // Safeguard 2: Check assigned users
       const [[{ userCount }]] = await pool.query(
         `SELECT COUNT(*) AS userCount FROM users
-         WHERE role_id = ? OR LOWER(role) = LOWER(?) OR LOWER(role) = LOWER(?)`,
-        [role.id, role.name, role.display_name]
+         WHERE LOWER(role) = LOWER(?) OR LOWER(role) = LOWER(?)`,
+        [role.name, role.display_name]
       );
 
       if (userCount > 0) {
