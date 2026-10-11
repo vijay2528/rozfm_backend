@@ -6470,6 +6470,181 @@
           }
         }
       ]
+    },
+    {
+      "name": "Backup & Restore Management",
+      "item": [
+        {
+          "name": "List All Backups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/backups?search=&status=&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "backups"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Fetch list of automated and manual database backups and restore points with size and status."
+          }
+        },
+        {
+          "name": "Get Single Backup Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/backups/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "backups",
+                "1"
+              ]
+            },
+            "description": "Fetch specific backup restore point details by ID or code (e.g. 1 or BKP-9201)."
+          }
+        },
+        {
+          "name": "Create Backup Now",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Manual on-demand database backup point\",\n  \"backup_type\": \"manual\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/backups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "backups"
+              ]
+            },
+            "description": "Create a new on-demand database backup restore point."
+          }
+        },
+        {
+          "name": "Restore Database from Backup Point",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/backups/1/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "backups",
+                "1",
+                "restore"
+              ]
+            },
+            "description": "Restore database to selected point-in-time backup snapshot."
+          }
+        },
+        {
+          "name": "Download Backup File",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/backups/1/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "backups",
+                "1",
+                "download"
+              ]
+            },
+            "description": "Download the database backup SQL dump file."
+          }
+        },
+        {
+          "name": "Delete Backup Point",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/backups/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "backups",
+                "1"
+              ]
+            },
+            "description": "Delete a database backup restore point and its associated file."
+          }
+        }
+      ]
     }
   ]
 }

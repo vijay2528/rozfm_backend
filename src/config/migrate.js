@@ -568,6 +568,25 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 25.2 Database Backups table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`database_backups\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`backup_code\` VARCHAR(50) NOT NULL UNIQUE,
+        \`file_name\` VARCHAR(255) NULL,
+        \`file_path\` VARCHAR(512) NULL,
+        \`file_size_bytes\` BIGINT DEFAULT 0,
+        \`size_formatted\` VARCHAR(50) DEFAULT '0 MB',
+        \`status\` ENUM('pending', 'in_progress', 'success', 'failed') DEFAULT 'success',
+        \`backup_type\` VARCHAR(50) DEFAULT 'automated',
+        \`created_by\` INT NULL,
+        \`notes\` TEXT NULL,
+        \`restored_at\` DATETIME NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     const [coinFaqsCount] = await connection.query('SELECT COUNT(*) AS count FROM coin_faqs');
     if (coinFaqsCount[0].count === 0) {
       await connection.query(`

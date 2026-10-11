@@ -11,6 +11,7 @@ const AdminModerationController = require('../controllers/admin/moderationContro
 const AdminSettingsController = require('../controllers/admin/settingsController');
 const AdminLanguageController = require('../controllers/admin/languageController');
 const AdminRoleController = require('../controllers/admin/roleController');
+const AdminBackupController = require('../controllers/admin/backupController');
 const AdminAuthController = require('../controllers/admin/authController');
 const AdminLocationController = require('../controllers/admin/locationController');
 const AdminStreakSettingsController = require('../controllers/admin/streakSettingsController');
@@ -185,6 +186,14 @@ router.get('/roles/:id', AdminRoleController.show);
 router.post('/roles', AdminRoleController.store);
 router.put('/roles/:id', AdminRoleController.update);
 router.delete('/roles/:id', AdminRoleController.destroy);
+
+// ── 10.1 Backup & Restore Management ─────────────────────────────────────────
+router.get('/backups', AdminBackupController.index);
+router.get('/backups/:id', AdminBackupController.show);
+router.post('/backups', AdminBackupController.create);
+router.post('/backups/:id/restore', AdminBackupController.restore);
+router.get('/backups/:id/download', AdminBackupController.download);
+router.delete('/backups/:id', AdminBackupController.destroy);
 
 // ── 11. Location Management (Countries, States, Cities) ──────────────────────
 router.get('/countries', AdminLocationController.listCountries);
