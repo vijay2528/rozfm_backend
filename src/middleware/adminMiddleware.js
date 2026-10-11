@@ -9,7 +9,8 @@ module.exports = function adminMiddleware(req, res, next) {
   }
 
   const role = (req.user.role || req.user.subscription_type || '').toLowerCase();
-  const isAdmin = role === 'admin' || req.user.is_admin === 1 || req.user.is_admin === true;
+  const ADMIN_ROLES = ['admin', 'super_admin', 'super admin', 'moderator', 'content_moderator', 'content moderator', 'finance', 'support'];
+  const isAdmin = ADMIN_ROLES.includes(role) || req.user.is_admin === 1 || req.user.is_admin === true;
 
   if (!isAdmin) {
     return ApiResponse.error(res, 'Access denied. Administrator rights required.', 403);

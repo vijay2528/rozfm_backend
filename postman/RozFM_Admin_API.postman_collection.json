@@ -6289,6 +6289,187 @@
           }
         }
       ]
+    },
+    {
+      "name": "Roles & Permissions Management",
+      "item": [
+        {
+          "name": "List All Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/roles?search=&status=&page=1&limit=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "roles"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "List all admin roles with assigned admin user counts, permissions, and key permissions summary."
+          }
+        },
+        {
+          "name": "Get Available Permissions Catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/roles/permissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "roles",
+                "permissions"
+              ]
+            },
+            "description": "Retrieve system permission catalog grouped by modules (Dashboard, Content, Creators, Finance, Moderation, Users, Settings) and capability presets."
+          }
+        },
+        {
+          "name": "Get Single Role Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/roles/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "roles",
+                "1"
+              ]
+            },
+            "description": "Fetch detailed information of a role by ID along with list of assigned admin users."
+          }
+        },
+        {
+          "name": "Create New Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"display_name\": \"Finance Specialist\",\n  \"name\": \"finance_specialist\",\n  \"description\": \"Financial management, payment audits, and creator withdrawal processing.\",\n  \"permissions\": [\n    \"payments.view\",\n    \"withdrawals.manage\",\n    \"creators.revshare\",\n    \"reports.export\",\n    \"coin_packs.manage\",\n    \"memberships.manage\"\n  ],\n  \"key_permissions\": \"Payments, Withdrawals, Reports\",\n  \"status\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "roles"
+              ]
+            },
+            "description": "Create a new custom admin role with assigned granular permissions."
+          }
+        },
+        {
+          "name": "Edit / Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"display_name\": \"Senior Content Moderator\",\n  \"description\": \"Lead moderator with stories, episodes, user comments, and reviews moderation permissions.\",\n  \"permissions\": [\n    \"stories.view\",\n    \"stories.edit\",\n    \"episodes.manage\",\n    \"moderation.view\",\n    \"moderation.manage\",\n    \"reviews.manage\",\n    \"comments.manage\"\n  ],\n  \"key_permissions\": \"Stories, Moderation\",\n  \"status\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/roles/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "roles",
+                "2"
+              ]
+            },
+            "description": "Update role display name, description, assigned permissions, and active status."
+          }
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/roles/7",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "roles",
+                "7"
+              ]
+            },
+            "description": "Delete a custom admin role (safeguarded against deleting system roles or roles with assigned users)."
+          }
+        }
+      ]
     }
   ]
 }

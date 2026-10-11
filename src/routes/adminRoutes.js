@@ -179,7 +179,12 @@ router.delete('/faqs/:id', AdminSettingsController.deleteFaq);
 router.get('/languages', AdminLanguageController.index);
 
 // ── 10. User Roles & Permissions Management ──────────────────────────────────
+router.get('/roles/permissions', AdminRoleController.permissions);
 router.get('/roles', AdminRoleController.index);
+router.get('/roles/:id', AdminRoleController.show);
+router.post('/roles', AdminRoleController.store);
+router.put('/roles/:id', AdminRoleController.update);
+router.delete('/roles/:id', AdminRoleController.destroy);
 
 // ── 11. Location Management (Countries, States, Cities) ──────────────────────
 router.get('/countries', AdminLocationController.listCountries);

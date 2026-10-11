@@ -237,6 +237,7 @@ async function runMigrations() {
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `renew_plan_id` INT NULL",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `sort_order` INT DEFAULT 0",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `is_active` TINYINT(1) DEFAULT 1",
+      "ALTER TABLE `roles` ADD COLUMN IF NOT EXISTS `key_permissions` VARCHAR(255) NULL AFTER `permissions`",
     ];
 
     for (const alterSql of alterQueries) {
@@ -507,6 +508,7 @@ async function runMigrations() {
         \`display_name\` VARCHAR(100) NOT NULL,
         \`description\` TEXT NULL,
         \`permissions\` JSON NULL,
+        \`key_permissions\` VARCHAR(255) NULL,
         \`is_system\` TINYINT(1) DEFAULT 0,
         \`status\` TINYINT(1) DEFAULT 1,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -583,9 +585,10 @@ async function runMigrations() {
       const defaultRoles = [
         {
           name: 'admin',
-          display_name: 'Administrator',
+          display_name: 'Super Admin',
           description: 'Full administrative access to all backend resources and system settings.',
           permissions: JSON.stringify(['*']),
+          key_permissions: 'Full access',
           is_system: 1,
           status: 1
         },
@@ -593,7 +596,26 @@ async function runMigrations() {
           name: 'moderator',
           display_name: 'Content Moderator',
           description: 'Access to moderate user reviews, comments, and reported content.',
-          permissions: JSON.stringify(['content.read', 'moderation.read', 'moderation.manage', 'users.read']),
+          permissions: JSON.stringify(['stories.view', 'stories.edit', 'episodes.manage', 'moderation.view', 'moderation.manage', 'reviews.manage', 'comments.manage']),
+          key_permissions: 'Stories, Moderation',
+          is_system: 1,
+          status: 1
+        },
+        {
+          name: 'finance',
+          display_name: 'Finance',
+          description: 'Financial management: transactions, withdrawals, revenue share, and earnings reports.',
+          permissions: JSON.stringify(['payments.view', 'withdrawals.manage', 'creators.revshare', 'reports.export', 'coin_packs.manage', 'memberships.manage']),
+          key_permissions: 'Payments, Withdrawals, Reports',
+          is_system: 1,
+          status: 1
+        },
+        {
+          name: 'support',
+          display_name: 'Support',
+          description: 'Customer care operations with read-only access to users, tickets, and FAQ resources.',
+          permissions: JSON.stringify(['users.view', 'tickets.read', 'faqs.manage', 'reports.manage']),
+          key_permissions: 'Users, Tickets (read-only)',
           is_system: 1,
           status: 1
         },
@@ -601,7 +623,8 @@ async function runMigrations() {
           name: 'creator',
           display_name: 'Content Creator',
           description: 'Access to Episode Management and story creation.',
-          permissions: JSON.stringify(['content.read', 'content.manage']),
+          permissions: JSON.stringify(['stories.view', 'stories.create', 'episodes.manage']),
+          key_permissions: 'Stories, Episodes',
           is_system: 1,
           status: 1
         },
@@ -610,6 +633,7 @@ async function runMigrations() {
           display_name: 'Standard User',
           description: 'Regular app end-user role.',
           permissions: JSON.stringify([]),
+          key_permissions: 'Standard App Access',
           is_system: 1,
           status: 1
         }
@@ -617,8 +641,8 @@ async function runMigrations() {
 
       for (const r of defaultRoles) {
         await connection.query(
-          `INSERT INTO \`roles\` (\`name\`, \`display_name\`, \`description\`, \`permissions\`, \`is_system\`, \`status\`) VALUES (?, ?, ?, ?, ?, ?)`,
-          [r.name, r.display_name, r.description, r.permissions, r.is_system, r.status]
+          `INSERT INTO \`roles\` (\`name\`, \`display_name\`, \`description\`, \`permissions\`, \`key_permissions\`, \`is_system\`, \`status\`) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [r.name, r.display_name, r.description, r.permissions, r.key_permissions, r.is_system, r.status]
         );
       }
     }
