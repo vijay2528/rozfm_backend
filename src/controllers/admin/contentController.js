@@ -855,22 +855,34 @@ class ContentController {
       const durMins = durSecs ? parseFloat((durSecs / 60).toFixed(2)) : null;
 
       const rawDate = published_at || publish_date || published_date || publishedDate || scheduled_at || schedule_date_time || null;
-      let publishedAt = new Date();
+      let parsedDate = null;
       if (rawDate && String(rawDate).trim() !== '' && String(rawDate).toLowerCase() !== 'null') {
         const d = new Date(rawDate);
         if (!isNaN(d.getTime())) {
-          publishedAt = d;
+          parsedDate = d;
         }
       }
 
+      // Save As: draft | publish_now | schedule
       const isSchedFlag = is_scheduled === '1' || is_scheduled === 1 || is_scheduled === 'true' || is_scheduled === true;
-      const scheduledDateTime = scheduled_at || schedule_date_time || null;
-      let publishAsMode = publish_as;
-      if (!publishAsMode) {
-        publishAsMode = (isSchedFlag || scheduledDateTime) ? 'schedule_for_later' : 'publish_now';
+      const rawPublishAs = String(publish_as || '').trim().toLowerCase();
+      let publishAsMode;
+      if (rawPublishAs === 'draft') {
+        publishAsMode = 'draft';
+      } else if (rawPublishAs.includes('schedule') || (!rawPublishAs && isSchedFlag)) {
+        publishAsMode = 'schedule';
+      } else {
+        publishAsMode = 'publish_now';
       }
-      const isPublishAsSchedule = publishAsMode && publishAsMode.toLowerCase().includes('schedule');
-      const finalScheduledAt = scheduledDateTime || (isPublishAsSchedule && rawDate ? publishedAt : null);
+
+      if (publishAsMode === 'schedule' && !parsedDate) {
+        return ApiResponse.error(res, 'Published date & time is required when scheduling for later.', 422);
+      }
+
+      // Scheduled date & time is stored in scheduled_at only for "schedule"; otherwise NULL
+      const finalScheduledAt = publishAsMode === 'schedule' ? parsedDate : null;
+      // published_at keeps its original behaviour: scheduled time, or creation time
+      const publishedAt = finalScheduledAt || new Date();
 
       const createdById = req.user ? req.user.id : null;
       const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
