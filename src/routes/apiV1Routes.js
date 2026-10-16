@@ -12,6 +12,7 @@ const HomeController = require('../controllers/homeController');
 const SectionController = require('../controllers/sectionController');
 const ReviewController = require('../controllers/reviewController');
 const CommentController = require('../controllers/commentController');
+const EpisodeCommentController = require('../controllers/episodeCommentController');
 const BookmarkController = require('../controllers/bookmarkController');
 const WatchHistoryController = require('../controllers/watchHistoryController');
 const PlanController = require('../controllers/planController');
@@ -112,6 +113,11 @@ router.get('/episodes', authMiddleware.optional, EpisodeController.index);
 router.get('/stories/:id/reviews', ReviewController.index);
 router.get('/stories/:id/comments', CommentController.index);
 router.get('/comments/:id/replies', CommentController.replies);
+
+// Episode Comments (Public — list & replies)
+router.get('/episodes/:episodeId/comments', authMiddleware.optional, EpisodeCommentController.index);
+router.get('/episodes/:episodeId/comments/:commentId/replies', EpisodeCommentController.replies);
+
 router.get('/episodes/:id', authMiddleware.optional, EpisodeController.show);
 
 // User Profile Details (Public / Optional Auth)
@@ -227,6 +233,13 @@ router.post('/stories/:id/like', StoryController.toggleLike);
 router.post('/stories/:id/share', StoryController.share);
 router.post('/comments/:id/like', CommentController.toggleLike);
 router.post('/stories/:id/bookmark', BookmarkController.toggle);
+
+// Episode Comments (Authenticated — create, update, delete, like)
+router.post('/episodes/:episodeId/comments', EpisodeCommentController.store);
+router.put('/episodes/:episodeId/comments/:commentId', EpisodeCommentController.update);
+router.post('/episodes/:episodeId/comments/:commentId', EpisodeCommentController.update);
+router.delete('/episodes/:episodeId/comments/:commentId', EpisodeCommentController.destroy);
+router.post('/episode-comments/:id/like', EpisodeCommentController.toggleLike);
 router.get('/bookmarks', BookmarkController.index);
 
 // Watch History & Playback Progress Tracking
