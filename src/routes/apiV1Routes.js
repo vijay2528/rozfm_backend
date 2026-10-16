@@ -18,6 +18,7 @@ const WatchHistoryController = require('../controllers/watchHistoryController');
 const PlanController = require('../controllers/planController');
 const CoinPackController = require('../controllers/coinPackController');
 const WalletController = require('../controllers/walletController');
+const CoinHistoryController = require('../controllers/coinHistoryController');
 const RazorpayController = require('../controllers/razorpayController');
 const SubscriptionController = require('../controllers/subscriptionController');
 const LocationController = require('../controllers/locationController');
@@ -295,6 +296,15 @@ router.post('/wallet/purchase-coins', WalletController.purchase);
 router.get('/wallet/daily-claim', WalletController.dailyClaimStatus);
 router.post('/wallet/daily-claim', WalletController.dailyClaim);
 router.get('/wallet/transactions', WalletController.transactions);
+
+// Coin History (detailed, paginated, filterable)
+router.get('/coins/history', CoinHistoryController.index);
+router.get('/coin-history', CoinHistoryController.index);
+router.get('/wallet/coin-history', CoinHistoryController.index);
+
+// Coin Transaction Detail (by primary ID)
+router.get('/coins/history/:id', CoinHistoryController.show);
+router.get('/coin-history/:id', CoinHistoryController.show);
 
 // Bank Details
 router.get('/user/bank-details', BankController.show);

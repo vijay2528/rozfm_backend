@@ -6101,6 +6101,253 @@
           }
         }
       ]
+    },
+    {
+      "name": "Episode Comments",
+      "item": [
+        {
+          "name": "List Episode Comments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes/1/comments?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes", "1", "comments"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "GET /api/v1/episodes/:episodeId/comments\nList paginated top-level comments for a specific episode.\nAuth is optional (liked status requires auth)."
+          }
+        },
+        {
+          "name": "Post Episode Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Great episode!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/episodes/1/comments",
+              "host": ["{{base_url}}"],
+              "path": ["episodes", "1", "comments"]
+            },
+            "description": "POST /api/v1/episodes/:episodeId/comments\nPost a new top-level comment on an episode.\nRequires authentication."
+          }
+        },
+        {
+          "name": "Reply to Episode Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"I totally agree!\",\n  \"parent_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/episodes/1/comments",
+              "host": ["{{base_url}}"],
+              "path": ["episodes", "1", "comments"]
+            },
+            "description": "POST /api/v1/episodes/:episodeId/comments\nPost a reply to an existing comment by passing parent_id.\nRequires authentication."
+          }
+        },
+        {
+          "name": "Get Comment Replies",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes/1/comments/1/replies?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["episodes", "1", "comments", "1", "replies"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "GET /api/v1/episodes/:episodeId/comments/:commentId/replies\nList paginated replies for a specific comment. Public."
+          }
+        },
+        {
+          "name": "Update Episode Comment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Updated comment text\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/episodes/1/comments/1",
+              "host": ["{{base_url}}"],
+              "path": ["episodes", "1", "comments", "1"]
+            },
+            "description": "PUT /api/v1/episodes/:episodeId/comments/:commentId\nEdit an existing episode comment. Only the comment author can edit.\nRequires authentication."
+          }
+        },
+        {
+          "name": "Delete Episode Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episodes/1/comments/1",
+              "host": ["{{base_url}}"],
+              "path": ["episodes", "1", "comments", "1"]
+            },
+            "description": "DELETE /api/v1/episodes/:episodeId/comments/:commentId\nDelete an episode comment. Allowed for comment author or story owner.\nRequires authentication."
+          }
+        },
+        {
+          "name": "Like / Unlike Episode Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/episode-comments/1/like",
+              "host": ["{{base_url}}"],
+              "path": ["episode-comments", "1", "like"]
+            },
+            "description": "POST /api/v1/episode-comments/:id/like\nToggle like / unlike on an episode comment.\nRequires authentication."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Coin History",
+      "item": [
+        {
+          "name": "List Coin History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coins/history?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["coins", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "type", "value": "", "disabled": true, "description": "credit | debit | earn | spend | purchase | daily_reward | ad_reward ..." },
+                { "key": "from_date", "value": "", "disabled": true, "description": "YYYY-MM-DD" },
+                { "key": "to_date", "value": "", "disabled": true, "description": "YYYY-MM-DD" }
+              ]
+            },
+            "description": "GET /api/v1/coins/history\nPaginated coin transaction history for the authenticated user.\nIncludes wallet balance, aggregated totals (earned / purchased / spent), and enriched episode info for unlock transactions.\n\nOptional filters:\n- type: credit | debit | earn | spend | purchase | daily_reward | ad_reward | streak_reward ...\n- from_date / to_date: YYYY-MM-DD\n- page / limit"
+          }
+        },
+        {
+          "name": "Get Coin Transaction Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coins/history/1",
+              "host": ["{{base_url}}"],
+              "path": ["coins", "history", "1"]
+            },
+            "description": "GET /api/v1/coins/history/:id\nFetch full details of a single coin transaction by its primary ID (coin_transactions.id).\nReturns 403 if the transaction does not belong to the authenticated user.\nReturns 404 if transaction not found."
+          }
+        },
+        {
+          "name": "List Coin History (Filtered - Spent)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coins/history?type=spend&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["coins", "history"],
+              "query": [
+                { "key": "type", "value": "spend" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "GET /api/v1/coins/history?type=spend\nFilter coin history to show only debit / spent transactions."
+          }
+        },
+        {
+          "name": "List Coin History (Filtered - Earned)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coins/history?type=earn&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["coins", "history"],
+              "query": [
+                { "key": "type", "value": "earn" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "GET /api/v1/coins/history?type=earn\nFilter coin history to show only earned (credit, non-purchase) transactions."
+          }
+        },
+        {
+          "name": "List Coin History (Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/coins/history?from_date=2026-10-01&to_date=2026-10-31&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["coins", "history"],
+              "query": [
+                { "key": "from_date", "value": "2026-10-01" },
+                { "key": "to_date", "value": "2026-10-31" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "GET /api/v1/coins/history?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD\nFilter coin history within a specific date range."
+          }
+        }
+      ]
     }
   ]
 }
