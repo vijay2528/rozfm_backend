@@ -207,6 +207,13 @@ class AdRewardController {
       }
 
       rewardCoinsToAward = Math.round(rewardCoinsToAward);
+        // Ensure at least one coin is awarded when episode_id is missing or empty
+        if (!hasEpisode && rewardCoinsToAward < 1) {
+          rewardCoinsToAward = 1;
+        }
+        if (rewardCoinsToAward <= 0) {
+          return ApiResponse.error(res, 'No coins to award.', 422);
+        }
       if (rewardCoinsToAward <= 0) {
         return ApiResponse.error(res, 'No coins to award.', 422);
       }
