@@ -25,7 +25,7 @@ class UserController {
 
       // 1. Calculate total plays across all stories created by target user
       const [[{ totalPlays }]] = await pool.query(
-        'SELECT COALESCE(SUM(total_views), 0) + COALESCE(SUM(listeners_count), 0) AS totalPlays FROM stories WHERE user_id = ?',
+        'SELECT COALESCE(SUM(total_views), 0) AS totalPlays FROM stories WHERE user_id = ?',
         [targetUserId]
       );
 

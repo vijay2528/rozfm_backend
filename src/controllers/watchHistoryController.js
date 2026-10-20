@@ -234,8 +234,18 @@ class WatchHistoryController {
       }
 
       if (shouldIncrementPlay) {
+        // Increment episode play count
         await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episodeId]);
-        await pool.query('UPDATE stories SET total_views = total_views + 1, listeners_count = listeners_count + 1 WHERE id = ?', [storyId]);
+        // Increment total views for the story
+        await pool.query('UPDATE stories SET total_views = total_views + 1 WHERE id = ?', [storyId]);
+        // Increment listeners count only if this is the user's first counted play for this story
+        const [[{ cnt: listenerCnt }]] = await pool.query(
+          'SELECT COUNT(*) as cnt FROM watch_histories WHERE user_id = ? AND story_id = ? AND play_counted = 1',
+          [userId, storyId]
+        );
+        if (listenerCnt === 0) {
+          await pool.query('UPDATE stories SET listeners_count = listeners_count + 1 WHERE id = ?', [storyId]);
+        }
       }
 
       // Record daily streak listening progress asynchronously
@@ -327,9 +337,19 @@ class WatchHistoryController {
       }
 
       if (shouldIncrementPlay) {
+        // Increment episode play count
         await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episode_id]);
         if (resolvedStoryId) {
-          await pool.query('UPDATE stories SET total_views = total_views + 1, listeners_count = listeners_count + 1 WHERE id = ?', [resolvedStoryId]);
+          // Increment total views for the story
+          await pool.query('UPDATE stories SET total_views = total_views + 1 WHERE id = ?', [resolvedStoryId]);
+          // Increment listeners count only on first play for this user-story
+          const [[{ cnt: listenerCnt }]] = await pool.query(
+            'SELECT COUNT(*) as cnt FROM watch_histories WHERE user_id = ? AND story_id = ? AND play_counted = 1',
+            [userId, resolvedStoryId]
+          );
+          if (listenerCnt === 0) {
+            await pool.query('UPDATE stories SET listeners_count = listeners_count + 1 WHERE id = ?', [resolvedStoryId]);
+          }
         }
       }
 
@@ -610,8 +630,18 @@ class WatchHistoryController {
       }
 
       if (shouldIncrementPlay) {
+        // Increment episode play count
         await pool.query('UPDATE episodes SET plays_count = plays_count + 1 WHERE id = ?', [episodeId]);
-        await pool.query('UPDATE stories SET total_views = total_views + 1, listeners_count = listeners_count + 1 WHERE id = ?', [storyId]);
+        // Increment total views for the story
+        await pool.query('UPDATE stories SET total_views = total_views + 1 WHERE id = ?', [storyId]);
+        // Increment listeners count only on first counted play for this user-story
+        const [[{ cnt: listenerCnt }]] = await pool.query(
+          'SELECT COUNT(*) as cnt FROM watch_histories WHERE user_id = ? AND story_id = ? AND play_counted = 1',
+          [userId, storyId]
+        );
+        if (listenerCnt === 0) {
+          await pool.query('UPDATE stories SET listeners_count = listeners_count + 1 WHERE id = ?', [storyId]);
+        }
       }
 
       return ApiResponse.success(res, {
