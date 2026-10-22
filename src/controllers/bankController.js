@@ -1,6 +1,8 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 
+const RazorpayBankService = require('../services/razorpayBankService');
+
 function formatBankDetails(row) {
   if (!row) return null;
   return {
@@ -42,7 +44,7 @@ class BankController {
 
   /**
    * POST /api/v1/user/bank-details or PUT /api/v1/user/bank-details
-   * Save or update bank details for authenticated user
+   * Validate and save bank details using Razorpay for authenticated user
    */
   static async store(req, res) {
     try {
@@ -63,35 +65,64 @@ class BankController {
       if (!account_number || !account_number.trim()) {
         return ApiResponse.error(res, 'Account number is required.', 422);
       }
-      if (!bank_name || !bank_name.trim()) {
-        return ApiResponse.error(res, 'Bank name is required.', 422);
-      }
       if (!ifsc_code || !ifsc_code.trim()) {
         return ApiResponse.error(res, 'IFSC code is required.', 422);
       }
 
       const holderName = account_holder_name.trim();
       const accNum = account_number.trim();
-      const bName = bank_name.trim();
       const ifsc = ifsc_code.trim().toUpperCase();
-      const branch = branch_name ? branch_name.trim() : null;
       const upi = upi_id ? upi_id.trim() : null;
       const accType = (account_type && ['savings', 'current'].includes(account_type.toLowerCase())) ? account_type.toLowerCase() : 'savings';
 
+      // ── Step 1: Verify IFSC via Razorpay IFSC service ─────────────────────────
+      const ifscVerification = await RazorpayBankService.verifyIfsc(ifsc);
+      if (!ifscVerification.valid) {
+        return ApiResponse.error(res, ifscVerification.error, 422);
+      }
+
+      const bName = (bank_name && bank_name.trim()) || ifscVerification.bank || 'Bank';
+      const branch = (branch_name && branch_name.trim()) || ifscVerification.branch || null;
+
+      // ── Step 2: Live Bank Account Validation via Razorpay ─────────────────────
+      const userEmail = req.user.email || null;
+      const userPhone = req.user.phone || req.user.mobile || null;
+
+      const validation = await RazorpayBankService.validateBankAccount({
+        accountHolderName: holderName,
+        accountNumber: accNum,
+        ifscCode: ifsc,
+        userEmail,
+        userPhone,
+        userId,
+      });
+
+      if (!validation.success) {
+        return ApiResponse.error(
+          res,
+          validation.error || 'Bank account verification failed with Razorpay.',
+          422,
+          validation.details ? { razorpay: validation.details } : null
+        );
+      }
+
+      const isVerified = validation.is_verified ? 1 : 0;
+
+      // ── Step 3: Save verified bank details in database ────────────────────────
       const [existing] = await pool.query('SELECT id FROM user_bank_details WHERE user_id = ? LIMIT 1', [userId]);
 
       if (existing.length > 0) {
         await pool.query(
           `UPDATE user_bank_details 
-           SET account_holder_name = ?, account_number = ?, bank_name = ?, ifsc_code = ?, branch_name = ?, upi_id = ?, account_type = ?, updated_at = NOW()
+           SET account_holder_name = ?, account_number = ?, bank_name = ?, ifsc_code = ?, branch_name = ?, upi_id = ?, account_type = ?, is_verified = ?, updated_at = NOW()
            WHERE user_id = ?`,
-          [holderName, accNum, bName, ifsc, branch, upi, accType, userId]
+          [holderName, accNum, bName, ifsc, branch, upi, accType, isVerified, userId]
         );
       } else {
         await pool.query(
-          `INSERT INTO user_bank_details (user_id, account_holder_name, account_number, bank_name, ifsc_code, branch_name, upi_id, account_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [userId, holderName, accNum, bName, ifsc, branch, upi, accType]
+          `INSERT INTO user_bank_details (user_id, account_holder_name, account_number, bank_name, ifsc_code, branch_name, upi_id, account_type, is_verified)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [userId, holderName, accNum, bName, ifsc, branch, upi, accType, isVerified]
         );
       }
 
@@ -99,8 +130,18 @@ class BankController {
 
       return ApiResponse.success(
         res,
-        { bank_details: formatBankDetails(updatedRows[0]) },
-        'Bank details saved successfully.'
+        {
+          bank_details: formatBankDetails(updatedRows[0]),
+          verification: {
+            is_verified: Boolean(isVerified),
+            validation_id: validation.validation_id,
+            status: validation.status,
+            account_status: validation.account_status,
+            registered_name: validation.registered_name,
+            name_match_score: validation.name_match_score,
+          },
+        },
+        'Bank details verified and saved successfully.'
       );
     } catch (error) {
       console.error('Save Bank Details Error:', error);
