@@ -105,8 +105,11 @@ class RazorpayBankService {
   }
 
   /**
-   * Validate Bank Account using RazorpayX Account Validation API
-   * Endpoint: POST https://api.razorpay.com/v1/fund_accounts/validations
+   * Validate Bank Account using the official Razorpay 3-step flow:
+   * Step 1: POST /v1/contacts           → Create Contact  → get contact_id
+   * Step 2: POST /v1/fund_accounts      → Create Fund Account linked to contact → get fund_account_id
+   * Step 3: POST /v1/fund_accounts/validations → Validate the fund account
+   *
    * Reference: https://razorpay.com/docs/api/x/account-validation/
    */
   static async validateBankAccount({
@@ -119,6 +122,12 @@ class RazorpayBankService {
   }) {
     const creds = await this.getCredentials();
 
+    console.log('🔑 Razorpay credentials:', {
+      keyId: creds.keyId ? '[REDACTED]' : null,
+      keySecret: creds.keySecret ? '[REDACTED]' : null,
+      isConfigured: creds.isConfigured,
+    });
+
     if (!creds.isConfigured) {
       return {
         success: false,
@@ -130,85 +139,156 @@ class RazorpayBankService {
 
     const authHeader =
       'Basic ' + Buffer.from(`${creds.keyId}:${creds.keySecret}`).toString('base64');
-  console.log('🔑 Razorpay credentials:', { keyId: creds.keyId ? '[REDACTED]' : null, keySecret: creds.keySecret ? '[REDACTED]' : null, isConfigured: creds.isConfigured });
 
-    const cleanName = (accountHolderName || '').trim();
-    const cleanAccount = (accountNumber || '').trim().replace(/\D/g, '');
-    const cleanIfsc = (ifscCode || '').trim().toUpperCase();
+    const headers = {
+      Authorization: authHeader,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    };
 
-    const payload = {
-      // validation_type removed as not required
-      reference_id: `fav_${userId || 'usr'}_${Date.now()}`,
-      notes: {
-        user_id: String(userId || ''),
-        service: 'RozFM Bank Account Verification',
-      },
-      fund_account: {
+    const cleanName    = (accountHolderName || '').trim();
+    const cleanAccount = (accountNumber || '').trim();
+    const cleanIfsc    = (ifscCode || '').trim().toUpperCase();
+    const email        = userEmail || `user_${userId || Date.now()}@rozfm.com`;
+    const phone        = userPhone || '9999999999';
+
+    try {
+      // ── Step 1: Create Contact ─────────────────────────────────────────────
+      console.log('📞 Step 1: Creating Razorpay Contact...');
+      const contactPayload = {
+        name: cleanName,
+        email,
+        contact: phone,
+        type: 'customer',
+        reference_id: `rozfm_user_${userId || Date.now()}`,
+        notes: {
+          user_id: String(userId || ''),
+          service: 'RozFM Bank Account Verification',
+        },
+      };
+
+      const contactRes = await fetch('https://api.razorpay.com/v1/contacts', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(contactPayload),
+      });
+
+      const contactData = await contactRes.json().catch(() => null);
+      console.log('📞 Contact API response:', JSON.stringify(contactData));
+
+      if (!contactRes.ok) {
+        const err = contactData?.error || {};
+        console.error('❌ Razorpay Create Contact Error:', contactData);
+        return {
+          success: false,
+          is_verified: false,
+          statusCode: contactRes.status,
+          error: err.description || err.message || `Create Contact failed with HTTP ${contactRes.status}.`,
+          details: contactData,
+        };
+      }
+
+      const contactId = contactData?.id;
+      if (!contactId) {
+        return { success: false, is_verified: false, error: 'Razorpay did not return a contact_id.' };
+      }
+      console.log(`✅ Contact created: ${contactId}`);
+
+      // ── Step 2: Create Fund Account (Bank Account) ─────────────────────────
+      console.log('🏦 Step 2: Creating Razorpay Fund Account...');
+      const fundAccountPayload = {
+        contact_id: contactId,
         account_type: 'bank_account',
         bank_account: {
           name: cleanName,
           ifsc: cleanIfsc,
           account_number: cleanAccount,
         },
-        contact: {
-          name: cleanName,
-          email: userEmail || `user_${userId || Date.now()}@rozfm.com`,
-          contact: userPhone || '9999999999',
-          type: 'customer',
-        },
-      },
-    };
+      };
 
-    try {
-      const response = await fetch('https://api.razorpay.com/v1/fund_accounts/validations', {
+      const fundRes = await fetch('https://api.razorpay.com/v1/fund_accounts', {
         method: 'POST',
-        headers: {
-          Authorization: authHeader,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify(payload),
+        headers,
+        body: JSON.stringify(fundAccountPayload),
       });
 
-      const responseData = await response.json().catch(() => null);
+      const fundData = await fundRes.json().catch(() => null);
+      console.log('🏦 Fund Account API response:', JSON.stringify(fundData));
 
-      if (!response.ok) {
-        const rzpError = responseData?.error || {};
-        const description =
-          rzpError.description ||
-          rzpError.message ||
-          `Razorpay API returned HTTP ${response.status}.`;
-
-        console.error('Razorpay Fund Account Validation Error Response:', responseData);
-
+      if (!fundRes.ok) {
+        const err = fundData?.error || {};
+        console.error('❌ Razorpay Create Fund Account Error:', fundData);
         return {
           success: false,
           is_verified: false,
-          statusCode: response.status,
-          code: rzpError.code || 'RAZORPAY_VALIDATION_ERROR',
-          error: description,
-          details: responseData,
+          statusCode: fundRes.status,
+          error: err.description || err.message || `Create Fund Account failed with HTTP ${fundRes.status}.`,
+          details: fundData,
         };
       }
 
-      const results = responseData?.results || responseData?.validation_results || {};
+      const fundAccountId = fundData?.id;
+      if (!fundAccountId) {
+        return { success: false, is_verified: false, error: 'Razorpay did not return a fund_account_id.' };
+      }
+      console.log(`✅ Fund Account created: ${fundAccountId}`);
+
+      // ── Step 3: Validate Bank Account ──────────────────────────────────────
+      console.log('✔️ Step 3: Validating Bank Account...');
+      // Use env var in production; fallback to Razorpay's official test account number in test mode
+      const sourceAccountNumber = process.env.RAZORPAY_SOURCE_ACCOUNT_NUMBER || '7878780080316316';
+      console.log('✔️ Using source_account_number:', sourceAccountNumber);
+
+      const validationPayload = {
+        account_number: sourceAccountNumber, // Your RazorpayX business account number
+        fund_account: {
+          id: fundAccountId,
+        },
+        amount: 100,   // 1 INR in paise
+        currency: 'INR',
+        notes: {
+          user_id: String(userId || ''),
+          service: 'RozFM Bank Account Verification',
+        },
+      };
+
+      console.log('✔️ Validation payload:', JSON.stringify(validationPayload));
+
+      const validationRes = await fetch('https://api.razorpay.com/v1/fund_accounts/validations', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(validationPayload),
+      });
+
+      const validationData = await validationRes.json().catch(() => null);
+      console.log('✔️ Validation API response:', JSON.stringify(validationData));
+
+      if (!validationRes.ok) {
+        const err = validationData?.error || {};
+        console.error('❌ Razorpay Fund Account Validation Error:', validationData);
+        return {
+          success: false,
+          is_verified: false,
+          statusCode: validationRes.status,
+          code: err.code || 'RAZORPAY_VALIDATION_ERROR',
+          error: err.description || err.message || `Validation failed with HTTP ${validationRes.status}.`,
+          details: validationData,
+        };
+      }
+
+      const results       = validationData?.results || validationData?.validation_results || {};
       const accountStatus = (results.account_status || '').toLowerCase();
-      const status = (responseData?.status || '').toLowerCase();
+      const status        = (validationData?.status || '').toLowerCase();
 
       // If bank explicitly marked account as invalid
       if (accountStatus === 'invalid' || status === 'failed') {
-        const failureReason =
-          results.details ||
-          results.description ||
-          'The beneficiary bank reported this account as invalid or inactive.';
-
         return {
           success: false,
           is_verified: false,
           status,
           account_status: accountStatus || 'invalid',
-          error: failureReason,
-          details: responseData,
+          error: results.details || results.description || 'The beneficiary bank reported this account as invalid or inactive.',
+          details: validationData,
         };
       }
 
@@ -216,13 +296,14 @@ class RazorpayBankService {
       return {
         success: true,
         is_verified: true,
-        validation_id: responseData?.id || null,
-        status: status || 'completed',
-        account_status: accountStatus || 'active',
-        registered_name: results.registered_name || null,
-        name_match_score:
-          results.name_match_score !== undefined ? results.name_match_score : null,
-        details: responseData,
+        validation_id:    validationData?.id || null,
+        contact_id:       contactId,
+        fund_account_id:  fundAccountId,
+        status:           status || 'completed',
+        account_status:   accountStatus || 'active',
+        registered_name:  results.registered_name || null,
+        name_match_score: results.name_match_score !== undefined ? results.name_match_score : null,
+        details:          validationData,
       };
     } catch (error) {
       console.error('Razorpay Account Validation Network Error:', error);
