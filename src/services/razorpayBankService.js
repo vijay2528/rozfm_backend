@@ -132,7 +132,7 @@ class RazorpayBankService {
       'Basic ' + Buffer.from(`${creds.keyId}:${creds.keySecret}`).toString('base64');
 
     const cleanName = (accountHolderName || '').trim();
-    const cleanAccount = (accountNumber || '').trim();
+    const cleanAccount = (accountNumber || '').trim().replace(/\D/g, '');
     const cleanIfsc = (ifscCode || '').trim().toUpperCase();
 
     const payload = {
