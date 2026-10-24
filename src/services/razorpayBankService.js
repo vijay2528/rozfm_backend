@@ -136,7 +136,7 @@ class RazorpayBankService {
     const cleanIfsc = (ifscCode || '').trim().toUpperCase();
 
     const payload = {
-      validation_type: 'optimized',
+      // validation_type removed as not required
       reference_id: `fav_${userId || 'usr'}_${Date.now()}`,
       notes: {
         user_id: String(userId || ''),
