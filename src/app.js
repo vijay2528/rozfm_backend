@@ -18,6 +18,20 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 
+// ── Razorpay Webhook — must capture raw body BEFORE express.json() ────────────
+const RazorpayWebhookController = require('./controllers/razorpayWebhookController');
+app.post(
+  '/api/v1/webhook/razorpay',
+  express.raw({ type: 'application/json' }),
+  (req, res, next) => {
+    req.rawBody = req.body ? req.body.toString('utf8') : '';
+    try { req.body = JSON.parse(req.rawBody); } catch (_) { req.body = {}; }
+    next();
+  },
+  RazorpayWebhookController.handle
+);
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Request body parsers
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({

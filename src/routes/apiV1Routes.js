@@ -20,6 +20,8 @@ const CoinPackController = require('../controllers/coinPackController');
 const WalletController = require('../controllers/walletController');
 const CoinHistoryController = require('../controllers/coinHistoryController');
 const RazorpayController = require('../controllers/razorpayController');
+const RazorpaySubscriptionController = require('../controllers/razorpaySubscriptionController');
+const RazorpayWebhookController = require('../controllers/razorpayWebhookController');
 const SubscriptionController = require('../controllers/subscriptionController');
 const LocationController = require('../controllers/locationController');
 const UserController = require('../controllers/userController');
@@ -81,7 +83,7 @@ router.get('/cities/:id', LocationController.getCityById);
 router.get('/home', authMiddleware.optional, HomeController.index);
 router.get('/banners', BannerController.index);
 router.get('/categories', CategoryController.index);
-router.get('/plans', PlanController.index);
+router.get('/plans', authMiddleware.optional, PlanController.index);
 router.get('/coin-packs', CoinPackController.index);
 
 // Ad Reward Settings API (Public / Optional Auth for App Users)
@@ -319,6 +321,12 @@ router.delete('/bank-details', BankController.destroy);
 // Payments & Subscriptions
 router.post('/payments/razorpay/order', RazorpayController.createOrder);
 router.post('/payments/razorpay/verify', RazorpayController.verifyPayment);
+
+// Razorpay Auto-pay Subscriptions
+router.post('/plans/subscribe', RazorpaySubscriptionController.createSubscription);
+router.post('/payments/razorpay/subscription/verify', RazorpaySubscriptionController.verifySubscription);
+router.post('/user/subscription/cancel', RazorpaySubscriptionController.cancelSubscription);
+router.post('/subscription/cancel', RazorpaySubscriptionController.cancelSubscription);
 router.get('/subscriptions', authMiddleware.optional, SubscriptionController.index);
 router.get('/subscription', authMiddleware.optional, SubscriptionController.index);
 router.get('/user/subscription', authMiddleware.optional, SubscriptionController.index);

@@ -2,6 +2,36 @@ const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 
 class PlanController {
+  /**
+   * Has this user ever purchased a trial plan?
+   * Checks coin_transactions (permanent log, keeps trial plan_id even after
+   * the subscription is switched to the 3-month plan) and subscriptions.
+   */
+  static async hasUsedTrial(userId) {
+    if (!userId) return false;
+    try {
+      const [rows] = await pool.query(
+        `SELECT 1 FROM coin_transactions ct
+           JOIN purchase_plans p ON p.id = ct.plan_id
+          WHERE ct.user_id = ? AND p.is_trial = 1 AND ct.payment_status = 'paid'
+          LIMIT 1`,
+        [userId]
+      );
+      if (rows && rows.length) return true;
+    } catch (_) { /* ignore */ }
+    try {
+      const [rows] = await pool.query(
+        `SELECT 1 FROM subscriptions s
+           LEFT JOIN purchase_plans p ON p.id = s.plan_id
+          WHERE s.user_id = ? AND (p.is_trial = 1 OR s.billing_cycle = 'trial')
+          LIMIT 1`,
+        [userId]
+      );
+      if (rows && rows.length) return true;
+    } catch (_) { /* ignore */ }
+    return false;
+  }
+
   static async index(req, res) {
     try {
       let rows = [];
@@ -13,8 +43,12 @@ class PlanController {
         rows = [];
       }
 
+      const trialUsed = await PlanController.hasUsedTrial(req.user?.id);
+
       let plans = (rows || [])
         .filter((p) => {
+          // Trial is one-time per user
+          if (trialUsed && (p.is_trial == 1 || p.is_trial === true)) return false;
           if (p.is_active !== undefined && p.is_active !== null) {
             return p.is_active == 1 || p.is_active === true;
           }
