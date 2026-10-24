@@ -130,6 +130,7 @@ class RazorpayBankService {
 
     const authHeader =
       'Basic ' + Buffer.from(`${creds.keyId}:${creds.keySecret}`).toString('base64');
+  console.log('🔑 Razorpay credentials:', { keyId: creds.keyId ? '[REDACTED]' : null, keySecret: creds.keySecret ? '[REDACTED]' : null, isConfigured: creds.isConfigured });
 
     const cleanName = (accountHolderName || '').trim();
     const cleanAccount = (accountNumber || '').trim().replace(/\D/g, '');
