@@ -160,7 +160,7 @@ async function runMigrations() {
       await connection.query(`ALTER TABLE \`stories\` MODIFY COLUMN \`status\` VARCHAR(50) NULL DEFAULT NULL;`);
       await connection.query(`ALTER TABLE \`stories\` MODIFY COLUMN \`release_status\` VARCHAR(50) NULL DEFAULT NULL;`);
       await connection.query(`ALTER TABLE \`stories\` MODIFY COLUMN \`publish_date\` DATE NULL DEFAULT NULL;`);
-    } catch (e) {}
+    } catch (e) { }
 
     // 7. Episodes table
     await connection.query(`
@@ -250,7 +250,7 @@ async function runMigrations() {
 
     try {
       await connection.query("ALTER TABLE `coin_sales` ADD COLUMN `bonus` INT DEFAULT 0 AFTER `coins`");
-    } catch (_) {}
+    } catch (_) { }
 
     // 8. Reviews table
     await connection.query(`
@@ -1199,6 +1199,26 @@ async function runMigrations() {
       }
       console.log('🌱 Sample notifications seeded successfully!');
     }
+
+    // Episode Reports table (user-submitted reports on episodes)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`episode_reports\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NOT NULL,
+        \`episode_id\` INT NOT NULL,
+        \`story_id\` INT NULL DEFAULT NULL,
+        \`reason\` VARCHAR(100) NULL DEFAULT NULL,
+        \`message\` TEXT NULL,
+        \`status\` ENUM('pending', 'reviewed', 'resolved', 'rejected') NOT NULL DEFAULT 'pending',
+        \`admin_note\` TEXT NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX \`idx_episode_reports_user_id\` (\`user_id\`),
+        INDEX \`idx_episode_reports_episode_id\` (\`episode_id\`),
+        INDEX \`idx_episode_reports_story_id\` (\`story_id\`),
+        INDEX \`idx_episode_reports_status\` (\`status\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
 
     console.log('✅ Database migrations completed successfully!');
   } catch (error) {

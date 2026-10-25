@@ -38,6 +38,7 @@ const TrendingController = require('../controllers/trendingController');
 const EpisodeAnalyticsController = require('../controllers/episodeAnalyticsController');
 const AdRewardController = require('../controllers/adRewardController');
 const AdminAdRewardSettingsController = require('../controllers/admin/adRewardSettingsController');
+const EpisodeReportController = require('../controllers/episodeReportController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -252,6 +253,12 @@ router.post('/watch-history/track-progress', WatchHistoryController.trackProgres
 router.post('/watch-history/track-minutes', WatchHistoryController.trackMinutes);
 router.delete('/watch-history', WatchHistoryController.clear);
 router.delete('/watch-history/:id', WatchHistoryController.destroy);
+
+// Episode Reports (static routes before dynamic :id routes)
+router.post('/report-episode', EpisodeReportController.store);
+router.post('/episodes/report', EpisodeReportController.store);
+router.get('/user/episode-reports', EpisodeReportController.myReports);
+router.post('/episodes/:id/report', EpisodeReportController.store);
 
 // Static episode routes MUST come before dynamic :id routes
 router.post('/episodes/play-duration', WatchHistoryController.updatePlayDuration);

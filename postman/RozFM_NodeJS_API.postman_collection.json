@@ -6110,16 +6110,34 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episodes/1/comments?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes", "1", "comments"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "comments"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "GET /api/v1/episodes/:episodeId/comments\nList paginated top-level comments for a specific episode.\nAuth is optional (liked status requires auth)."
@@ -6130,9 +6148,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -6140,8 +6167,14 @@
             },
             "url": {
               "raw": "{{base_url}}/episodes/1/comments",
-              "host": ["{{base_url}}"],
-              "path": ["episodes", "1", "comments"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "comments"
+              ]
             },
             "description": "POST /api/v1/episodes/:episodeId/comments\nPost a new top-level comment on an episode.\nRequires authentication."
           }
@@ -6151,9 +6184,18 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -6161,8 +6203,14 @@
             },
             "url": {
               "raw": "{{base_url}}/episodes/1/comments",
-              "host": ["{{base_url}}"],
-              "path": ["episodes", "1", "comments"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "comments"
+              ]
             },
             "description": "POST /api/v1/episodes/:episodeId/comments\nPost a reply to an existing comment by passing parent_id.\nRequires authentication."
           }
@@ -6172,15 +6220,32 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episodes/1/comments/1/replies?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["episodes", "1", "comments", "1", "replies"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "comments",
+                "1",
+                "replies"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
             "description": "GET /api/v1/episodes/:episodeId/comments/:commentId/replies\nList paginated replies for a specific comment. Public."
@@ -6191,9 +6256,18 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -6201,8 +6275,15 @@
             },
             "url": {
               "raw": "{{base_url}}/episodes/1/comments/1",
-              "host": ["{{base_url}}"],
-              "path": ["episodes", "1", "comments", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "comments",
+                "1"
+              ]
             },
             "description": "PUT /api/v1/episodes/:episodeId/comments/:commentId\nEdit an existing episode comment. Only the comment author can edit.\nRequires authentication."
           }
@@ -6212,13 +6293,26 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episodes/1/comments/1",
-              "host": ["{{base_url}}"],
-              "path": ["episodes", "1", "comments", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "comments",
+                "1"
+              ]
             },
             "description": "DELETE /api/v1/episodes/:episodeId/comments/:commentId\nDelete an episode comment. Allowed for comment author or story owner.\nRequires authentication."
           }
@@ -6228,13 +6322,25 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/episode-comments/1/like",
-              "host": ["{{base_url}}"],
-              "path": ["episode-comments", "1", "like"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episode-comments",
+                "1",
+                "like"
+              ]
             },
             "description": "POST /api/v1/episode-comments/:id/like\nToggle like / unlike on an episode comment.\nRequires authentication."
           }
@@ -6249,19 +6355,51 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/coins/history?page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["coins", "history"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "history"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" },
-                { "key": "type", "value": "", "disabled": true, "description": "credit | debit | earn | spend | purchase | daily_reward | ad_reward ..." },
-                { "key": "from_date", "value": "", "disabled": true, "description": "YYYY-MM-DD" },
-                { "key": "to_date", "value": "", "disabled": true, "description": "YYYY-MM-DD" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "disabled": true,
+                  "description": "credit | debit | earn | spend | purchase | daily_reward | ad_reward ..."
+                },
+                {
+                  "key": "from_date",
+                  "value": "",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD"
+                },
+                {
+                  "key": "to_date",
+                  "value": "",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD"
+                }
               ]
             },
             "description": "GET /api/v1/coins/history\nPaginated coin transaction history for the authenticated user.\nIncludes wallet balance, aggregated totals (earned / purchased / spent), and enriched episode info for unlock transactions.\n\nOptional filters:\n- type: credit | debit | earn | spend | purchase | daily_reward | ad_reward | streak_reward ...\n- from_date / to_date: YYYY-MM-DD\n- page / limit"
@@ -6272,13 +6410,25 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/coins/history/1",
-              "host": ["{{base_url}}"],
-              "path": ["coins", "history", "1"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "history",
+                "1"
+              ]
             },
             "description": "GET /api/v1/coins/history/:id\nFetch full details of a single coin transaction by its primary ID (coin_transactions.id).\nReturns 403 if the transaction does not belong to the authenticated user.\nReturns 404 if transaction not found."
           }
@@ -6288,17 +6438,37 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/coins/history?type=spend&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["coins", "history"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "history"
+              ],
               "query": [
-                { "key": "type", "value": "spend" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "type",
+                  "value": "spend"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "GET /api/v1/coins/history?type=spend\nFilter coin history to show only debit / spent transactions."
@@ -6309,17 +6479,37 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/coins/history?type=earn&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["coins", "history"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "history"
+              ],
               "query": [
-                { "key": "type", "value": "earn" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "type",
+                  "value": "earn"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "GET /api/v1/coins/history?type=earn\nFilter coin history to show only earned (credit, non-purchase) transactions."
@@ -6330,21 +6520,192 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
             ],
             "url": {
               "raw": "{{base_url}}/coins/history?from_date=2026-10-01&to_date=2026-10-31&page=1&limit=20",
-              "host": ["{{base_url}}"],
-              "path": ["coins", "history"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "coins",
+                "history"
+              ],
               "query": [
-                { "key": "from_date", "value": "2026-10-01" },
-                { "key": "to_date", "value": "2026-10-31" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "from_date",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "GET /api/v1/coins/history?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD\nFilter coin history within a specific date range."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Episode Reports",
+      "description": "Report an episode. `user_id` is taken from the auth token. `story_id` is optional (auto-derived from episode). `message` is required unless `reason` is provided (max 2000 chars). Duplicate pending reports return 409.",
+      "item": [
+        {
+          "name": "Report Episode",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"episode_id\": 1,\n  \"story_id\": 1,\n  \"reason\": \"inappropriate\",\n  \"message\": \"This episode contains offensive content.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/report-episode",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "report-episode"
+              ]
+            },
+            "description": "Submit a report for an episode. Reasons e.g.: inappropriate, copyright, spam, audio_issue, other."
+          }
+        },
+        {
+          "name": "Report Episode (Alias /episodes/report)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"episode_id\": 1,\n  \"story_id\": 1,\n  \"reason\": \"audio_issue\",\n  \"message\": \"Audio is not playing properly.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/episodes/report",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "report"
+              ]
+            },
+            "description": "Alias of Report Episode."
+          }
+        },
+        {
+          "name": "Report Episode (By ID in URL)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"story_id\": 1,\n  \"reason\": \"copyright\",\n  \"message\": \"This content is copied from another creator.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/episodes/1/report",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "1",
+                "report"
+              ]
+            },
+            "description": "Same as Report Episode, but episode_id is taken from the URL."
+          }
+        },
+        {
+          "name": "My Episode Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/episode-reports?page=1&per_page=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "user",
+                "episode-reports"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List the authenticated user's submitted episode reports (paginated)."
           }
         }
       ]
