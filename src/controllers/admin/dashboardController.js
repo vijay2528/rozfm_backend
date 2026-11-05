@@ -1,12 +1,12 @@
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
-const { formatNumber, resolveUrl } = require('../../utils/storyPresenter');
 
 /**
  * Format currency in Indian Lakhs/Thousands/Crores or formatted integer
  */
 function formatCurrencyINR(amount) {
   const num = Number(amount) || 0;
+  if (num === 0) return '₹0';
   if (num >= 10000000) {
     return `₹${(num / 10000000).toFixed(2)}Cr`;
   }
@@ -28,10 +28,11 @@ function formatExactCurrencyINR(amount) {
 }
 
 /**
- * Format count numbers (e.g. 2.84M, 412K, 18,204)
+ * Format count numbers (e.g. 2.84M, 412K, 18,204, 3)
  */
 function formatCount(num) {
   const n = Number(num) || 0;
+  if (n === 0) return '0';
   if (n >= 1000000) {
     return `${(n / 1000000).toFixed(2)}M`;
   }
@@ -48,21 +49,25 @@ function formatCount(num) {
 }
 
 /**
- * Format listening hours (e.g. 9.6M hrs, 250K hrs, 45 hrs)
+ * Format listening hours (e.g. 9.6M hrs, 250K hrs, 45 hrs, 0 hrs)
  */
 function formatListeningHours(hours) {
   const h = Number(hours) || 0;
+  if (h === 0) return '0 hrs';
   if (h >= 1000000) {
     return `${(h / 1000000).toFixed(1)}M hrs`;
   }
   if (h >= 1000) {
     return `${Math.round(h / 1000)}K hrs`;
   }
+  if (h < 1 && h > 0) {
+    return `${h.toFixed(1)} hrs`;
+  }
   return `${Math.round(h)} hrs`;
 }
 
 /**
- * Format relative time ago (e.g. 8 min ago, 1 hr ago, 3 hr ago)
+ * Format relative time ago (e.g. 8 min ago, 1 hr ago, 3 days ago)
  */
 function timeAgo(date) {
   if (!date) return 'Recently';
@@ -114,24 +119,43 @@ const GENRE_COLORS = [
   '#EC4899', // Pink
   '#6366F1', // Indigo
   '#14B8A6', // Teal
+  '#06B6D4', // Cyan
+  '#84CC16', // Lime
 ];
+
+/**
+ * Generate date keys for the last 7 calendar days (from 6 days ago up to today)
+ */
+function getLast7DaysKeys() {
+  const keys = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    keys.push(d.toISOString().slice(0, 10));
+  }
+  return keys;
+}
 
 class DashboardController {
   /**
    * GET /api/v1/admin/overview
    * GET /api/v1/admin/dashboard/overview
-   * Comprehensive real-time snapshot of Roz FM's platform health:
-   * - 8 Key Performance Indicator Cards (Total Revenue, Active Users, Stories, Episodes, Creators, Listening Time, Premium Members, Daily Growth)
-   * - Coin Revenue card with this month's revenue & comparison
+   * 100% Dynamic platform health snapshot computed in real-time from the database:
+   * - 8 KPI Cards (Total Revenue, Active Users, Stories, Episodes, Creators, Listening Time, Premium Members, Daily Growth)
+   * - Dynamic 7-day sparkline arrays for every KPI
+   * - Coin Revenue with this month's revenue & real growth
    * - Quick Actions shortcuts
-   * - Revenue Trend Chart (Total & Coins line across 12 months)
-   * - Listening by Genre donut chart (considering Category table & watch history/engagement)
-   * - Real-time Recent Activity feed (verified creators, scheduled releases, payouts, reviews, new users, coin packs)
+   * - Revenue Trend Chart (12-month data series computed from database)
+   * - Listening by Genre donut chart (considering Category table, watch history, episode plays & story engagement)
+   * - Real-time Recent Activity feed from database events
    */
   static async getOverview(req, res) {
     try {
+      const last7Days = getLast7DaysKeys();
+
       // ─────────────────────────────────────────────────────────────────────────────
-      // 1. Total Revenue & Coin Revenue
+      // 1. Total Revenue & Coin Revenue (100% Dynamic from DB)
       // ─────────────────────────────────────────────────────────────────────────────
       let totalCoinSales = 0;
       let totalSubsRevenue = 0;
@@ -142,6 +166,8 @@ class DashboardController {
       let lastMonthCoinRevenue = 0;
       let thisMonthTotalRevenue = 0;
       let lastMonthTotalRevenue = 0;
+
+      const revenueDailyMap = new Map();
 
       try {
         const [salesRes] = await pool.query(
@@ -155,6 +181,18 @@ class DashboardController {
         totalCoinSales = Number(salesRes[0]?.total_sales || 0);
         thisMonthCoinRevenue = Number(salesRes[0]?.this_month_sales || 0);
         lastMonthCoinRevenue = Number(salesRes[0]?.last_month_sales || 0);
+
+        // Daily coin sales in last 7 days for sparkline
+        const [dailySales] = await pool.query(`
+          SELECT DATE(created_at) as d, SUM(amount) as sum_val
+          FROM coin_sales
+          WHERE (status = 1 OR status IN ('completed', 'success', 'paid')) AND created_at >= CURDATE() - INTERVAL 6 DAY
+          GROUP BY DATE(created_at)
+        `).catch(() => [[]]);
+        dailySales.forEach(r => {
+          const key = new Date(r.d).toISOString().slice(0, 10);
+          revenueDailyMap.set(key, (revenueDailyMap.get(key) || 0) + Number(r.sum_val || 0));
+        });
       } catch (_) {}
 
       try {
@@ -170,6 +208,19 @@ class DashboardController {
         totalSubsRevenue = Number(subRes[0]?.total_sub || 0);
         thisMonthTotalRevenue += Number(subRes[0]?.this_month_sub || 0);
         lastMonthTotalRevenue += Number(subRes[0]?.last_month_sub || 0);
+
+        // Daily subscriptions in last 7 days for sparkline
+        const [dailySubs] = await pool.query(`
+          SELECT DATE(s.created_at) as d, SUM(p.price) as sum_val
+          FROM subscriptions s
+          LEFT JOIN purchase_plans p ON s.plan_id = p.id
+          WHERE s.status IN ('active', 'completed', 'paid', '1') AND s.created_at >= CURDATE() - INTERVAL 6 DAY
+          GROUP BY DATE(s.created_at)
+        `).catch(() => [[]]);
+        dailySubs.forEach(r => {
+          const key = new Date(r.d).toISOString().slice(0, 10);
+          revenueDailyMap.set(key, (revenueDailyMap.get(key) || 0) + Number(r.sum_val || 0));
+        });
       } catch (_) {}
 
       try {
@@ -195,33 +246,29 @@ class DashboardController {
         totalUnlocksRevenue = Number(unlockRes[0]?.total_unlocks || 0) * 0.5;
       } catch (_) {}
 
-      let rawTotalRevenue = totalCoinSales + totalSubsRevenue + totalCoinTxns + totalUnlocksRevenue;
+      const totalRevenueNum = totalCoinSales + totalSubsRevenue + totalCoinTxns + totalUnlocksRevenue;
       thisMonthTotalRevenue += thisMonthCoinRevenue;
       lastMonthTotalRevenue += lastMonthCoinRevenue;
 
-      // Baseline defaults when database is newly seeded
-      const baselineTotalRevenue = 4820000; // 48.2 Lakhs as shown in UI
-      const displayTotalRevenue = rawTotalRevenue > 0 ? rawTotalRevenue : baselineTotalRevenue;
-      const formattedTotalRevenue = formatCurrencyINR(displayTotalRevenue);
-
-      const revenueGrowth = calculateGrowth(thisMonthTotalRevenue, lastMonthTotalRevenue, '+12.4%');
-      const revenueTrendSparkline = [38.2, 39.5, 41.0, 42.8, 44.1, 46.5, 48.2];
+      const formattedTotalRevenue = formatCurrencyINR(totalRevenueNum);
+      const revenueGrowth = calculateGrowth(thisMonthTotalRevenue, lastMonthTotalRevenue, '+0%');
+      const revenueTrendSparkline = last7Days.map(d => Number((revenueDailyMap.get(d) || 0).toFixed(2)));
 
       // Coin revenue this month
-      const baselineCoinRevenue = 1842900; // ₹18,42,900 as shown in UI
-      const displayCoinRevenue = thisMonthCoinRevenue > 0 ? thisMonthCoinRevenue : baselineCoinRevenue;
-      const formattedCoinRevenue = formatExactCurrencyINR(displayCoinRevenue);
-      const coinGrowth = calculateGrowth(thisMonthCoinRevenue, lastMonthCoinRevenue, '+16.8%');
-      const coinGrowthText = coinGrowth.text.includes('vs') ? coinGrowth.text : `${coinGrowth.text} vs last month`;
+      const formattedCoinRevenue = formatExactCurrencyINR(thisMonthCoinRevenue);
+      const coinGrowth = calculateGrowth(thisMonthCoinRevenue, lastMonthCoinRevenue, '+0%');
+      const coinGrowthText = `${coinGrowth.text} vs last month`;
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 2. Active Users & Daily Growth
+      // 2. Active Users & Daily Growth (100% Dynamic from DB)
       // ─────────────────────────────────────────────────────────────────────────────
       let totalUsersCount = 0;
       let activeUsersCount = 0;
       let dailyGrowthCount = 0;
       let yesterdayUsersCount = 0;
       let prev30dUsersCount = 0;
+
+      const userDailySparklineMap = new Map();
 
       try {
         const [[{ total_users }]] = await pool.query('SELECT COUNT(*) as total_users FROM users').catch(() => [[{ total_users: 0 }]]);
@@ -250,25 +297,35 @@ class DashboardController {
            WHERE created_at >= NOW() - INTERVAL 60 DAY AND created_at < NOW() - INTERVAL 30 DAY`
         ).catch(() => [[{ prev_30d: 0 }]]);
         prev30dUsersCount = Number(prev_30d || 0);
+
+        // Daily users sparkline for last 7 days
+        const [dailyUsers] = await pool.query(`
+          SELECT DATE(created_at) as d, COUNT(*) as cnt
+          FROM users
+          WHERE created_at >= CURDATE() - INTERVAL 6 DAY
+          GROUP BY DATE(created_at)
+        `).catch(() => [[]]);
+        dailyUsers.forEach(r => {
+          const key = new Date(r.d).toISOString().slice(0, 10);
+          userDailySparklineMap.set(key, Number(r.cnt || 0));
+        });
       } catch (_) {}
 
-      const baselineActiveUsers = 2840000; // 2.84M
-      const displayActiveUsers = activeUsersCount > 0 ? activeUsersCount : (totalUsersCount > 0 ? totalUsersCount : baselineActiveUsers);
+      const displayActiveUsers = activeUsersCount > 0 ? activeUsersCount : totalUsersCount;
       const formattedActiveUsers = formatCount(displayActiveUsers);
-      const activeUsersGrowth = calculateGrowth(activeUsersCount || totalUsersCount, prev30dUsersCount, '+8.1%');
-      const activeUsersSparkline = [2.45, 2.52, 2.60, 2.68, 2.74, 2.79, 2.84];
+      const activeUsersGrowth = calculateGrowth(activeUsersCount || totalUsersCount, prev30dUsersCount, '+0%');
+      const activeUsersSparkline = last7Days.map(d => userDailySparklineMap.get(d) || 0);
 
-      const baselineDailyGrowth = 9842; // +9,842
-      const displayDailyGrowth = dailyGrowthCount > 0 ? dailyGrowthCount : baselineDailyGrowth;
-      const formattedDailyGrowth = `+${displayDailyGrowth.toLocaleString('en-IN')}`;
-      const dailyGrowthTrend = calculateGrowth(dailyGrowthCount, yesterdayUsersCount, '+14.2%');
-      const dailyGrowthSparkline = [8200, 8550, 8890, 9120, 9400, 9620, 9842];
+      const formattedDailyGrowth = `+${dailyGrowthCount.toLocaleString('en-IN')}`;
+      const dailyGrowthTrend = calculateGrowth(dailyGrowthCount, yesterdayUsersCount, '+0%');
+      const dailyGrowthSparkline = last7Days.map(d => userDailySparklineMap.get(d) || 0);
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 3. Total Stories
+      // 3. Total Stories (100% Dynamic from DB)
       // ─────────────────────────────────────────────────────────────────────────────
       let totalStoriesCount = 0;
       let prevMonthStoriesCount = 0;
+      const storiesSparklineMap = new Map();
 
       try {
         const [[{ total_stories }]] = await pool.query('SELECT COUNT(*) as total_stories FROM stories').catch(() => [[{ total_stories: 0 }]]);
@@ -278,19 +335,29 @@ class DashboardController {
           'SELECT COUNT(*) as prev_stories FROM stories WHERE created_at < NOW() - INTERVAL 30 DAY'
         ).catch(() => [[{ prev_stories: 0 }]]);
         prevMonthStoriesCount = Number(prev_stories || 0);
+
+        const [dailyStories] = await pool.query(`
+          SELECT DATE(created_at) as d, COUNT(*) as cnt
+          FROM stories
+          WHERE created_at >= CURDATE() - INTERVAL 6 DAY
+          GROUP BY DATE(created_at)
+        `).catch(() => [[]]);
+        dailyStories.forEach(r => {
+          const key = new Date(r.d).toISOString().slice(0, 10);
+          storiesSparklineMap.set(key, Number(r.cnt || 0));
+        });
       } catch (_) {}
 
-      const baselineStories = 18204; // 18,204
-      const displayStories = totalStoriesCount > 0 ? totalStoriesCount : baselineStories;
-      const formattedStories = displayStories.toLocaleString('en-IN');
-      const storiesGrowth = calculateGrowth(totalStoriesCount, prevMonthStoriesCount, '+3.2%');
-      const storiesSparkline = [16800, 17150, 17400, 17650, 17900, 18050, 18204];
+      const formattedStories = totalStoriesCount.toLocaleString('en-IN');
+      const storiesGrowth = calculateGrowth(totalStoriesCount, prevMonthStoriesCount, '+0%');
+      const storiesSparkline = last7Days.map(d => storiesSparklineMap.get(d) || 0);
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 4. Total Episodes
+      // 4. Total Episodes (100% Dynamic from DB)
       // ─────────────────────────────────────────────────────────────────────────────
       let totalEpisodesCount = 0;
       let prevMonthEpisodesCount = 0;
+      const episodesSparklineMap = new Map();
 
       try {
         const [[{ total_episodes }]] = await pool.query('SELECT COUNT(*) as total_episodes FROM episodes').catch(() => [[{ total_episodes: 0 }]]);
@@ -300,19 +367,29 @@ class DashboardController {
           'SELECT COUNT(*) as prev_episodes FROM episodes WHERE created_at < NOW() - INTERVAL 30 DAY'
         ).catch(() => [[{ prev_episodes: 0 }]]);
         prevMonthEpisodesCount = Number(prev_episodes || 0);
+
+        const [dailyEpisodes] = await pool.query(`
+          SELECT DATE(created_at) as d, COUNT(*) as cnt
+          FROM episodes
+          WHERE created_at >= CURDATE() - INTERVAL 6 DAY
+          GROUP BY DATE(created_at)
+        `).catch(() => [[]]);
+        dailyEpisodes.forEach(r => {
+          const key = new Date(r.d).toISOString().slice(0, 10);
+          episodesSparklineMap.set(key, Number(r.cnt || 0));
+        });
       } catch (_) {}
 
-      const baselineEpisodes = 312880; // 312,880
-      const displayEpisodes = totalEpisodesCount > 0 ? totalEpisodesCount : baselineEpisodes;
-      const formattedEpisodes = displayEpisodes.toLocaleString('en-IN');
-      const episodesGrowth = calculateGrowth(totalEpisodesCount, prevMonthEpisodesCount, '+4.6%');
-      const episodesSparkline = [285000, 292000, 298000, 303000, 307000, 310000, 312880];
+      const formattedEpisodes = totalEpisodesCount.toLocaleString('en-IN');
+      const episodesGrowth = calculateGrowth(totalEpisodesCount, prevMonthEpisodesCount, '+0%');
+      const episodesSparkline = last7Days.map(d => episodesSparklineMap.get(d) || 0);
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 5. Active Creators
+      // 5. Active Creators (100% Dynamic from DB)
       // ─────────────────────────────────────────────────────────────────────────────
       let totalCreatorsCount = 0;
       let prevMonthCreatorsCount = 0;
+      const creatorsSparklineMap = new Map();
 
       try {
         const [[{ creators }]] = await pool.query(
@@ -326,19 +403,29 @@ class DashboardController {
            WHERE (role LIKE '%creator%' OR role LIKE '%writer%') AND created_at < NOW() - INTERVAL 30 DAY`
         ).catch(() => [[{ prev_creators: 0 }]]);
         prevMonthCreatorsCount = Number(prev_creators || 0);
+
+        const [dailyCreators] = await pool.query(`
+          SELECT DATE(created_at) as d, COUNT(*) as cnt
+          FROM users
+          WHERE (role LIKE '%creator%' OR role LIKE '%writer%') AND created_at >= CURDATE() - INTERVAL 6 DAY
+          GROUP BY DATE(created_at)
+        `).catch(() => [[]]);
+        dailyCreators.forEach(r => {
+          const key = new Date(r.d).toISOString().slice(0, 10);
+          creatorsSparklineMap.set(key, Number(r.cnt || 0));
+        });
       } catch (_) {}
 
-      const baselineCreators = 6412; // 6,412
-      const displayCreators = totalCreatorsCount > 0 ? totalCreatorsCount : baselineCreators;
-      const formattedCreators = displayCreators.toLocaleString('en-IN');
-      const creatorsGrowth = calculateGrowth(totalCreatorsCount, prevMonthCreatorsCount, '+1.8%');
-      const creatorsSparkline = [5900, 6020, 6110, 6200, 6280, 6350, 6412];
+      const formattedCreators = totalCreatorsCount.toLocaleString('en-IN');
+      const creatorsGrowth = calculateGrowth(totalCreatorsCount, prevMonthCreatorsCount, '+0%');
+      const creatorsSparkline = last7Days.map(d => creatorsSparklineMap.get(d) || 0);
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 6. Listening Time (Hours)
+      // 6. Listening Time (Hours - 100% Dynamic from DB)
       // ─────────────────────────────────────────────────────────────────────────────
       let totalListeningSeconds = 0;
       let prevMonthListeningSeconds = 0;
+      const listeningSparklineMap = new Map();
 
       try {
         const [[{ wh_seconds }]] = await pool.query(
@@ -356,20 +443,31 @@ class DashboardController {
            WHERE COALESCE(last_watched_at, updated_at, created_at) < NOW() - INTERVAL 30 DAY`
         ).catch(() => [[{ prev_wh_seconds: 0 }]]);
         prevMonthListeningSeconds = Number(prev_wh_seconds || 0);
+
+        const [dailyWh] = await pool.query(`
+          SELECT DATE(COALESCE(last_watched_at, updated_at, created_at)) as d, SUM(progress_seconds) as sum_sec
+          FROM watch_histories
+          WHERE COALESCE(last_watched_at, updated_at, created_at) >= CURDATE() - INTERVAL 6 DAY
+          GROUP BY DATE(COALESCE(last_watched_at, updated_at, created_at))
+        `).catch(() => [[]]);
+        dailyWh.forEach(r => {
+          const key = new Date(r.d).toISOString().slice(0, 10);
+          const hrs = Number((Number(r.sum_sec || 0) / 3600).toFixed(2));
+          listeningSparklineMap.set(key, hrs);
+        });
       } catch (_) {}
 
-      const baselineListeningHours = 9600000; // 9.6M hrs
       const calculatedHours = totalListeningSeconds > 0 ? (totalListeningSeconds / 3600) : 0;
-      const displayListeningHours = calculatedHours > 0 ? calculatedHours : baselineListeningHours;
-      const formattedListeningHours = formatListeningHours(displayListeningHours);
-      const listeningGrowth = calculateGrowth(totalListeningSeconds, prevMonthListeningSeconds, '+6.9%');
-      const listeningSparkline = [8.4, 8.7, 8.9, 9.1, 9.3, 9.5, 9.6];
+      const formattedListeningHours = formatListeningHours(calculatedHours);
+      const listeningGrowth = calculateGrowth(totalListeningSeconds, prevMonthListeningSeconds, '+0%');
+      const listeningSparkline = last7Days.map(d => listeningSparklineMap.get(d) || 0);
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 7. Premium Members
+      // 7. Premium Members (100% Dynamic from DB)
       // ─────────────────────────────────────────────────────────────────────────────
       let totalPremiumCount = 0;
       let prevMonthPremiumCount = 0;
+      const premiumSparklineMap = new Map();
 
       try {
         const [[{ subs }]] = await pool.query(
@@ -389,19 +487,22 @@ class DashboardController {
            WHERE created_at < NOW() - INTERVAL 30 DAY`
         ).catch(() => [[{ prev_subs: 0 }]]);
         prevMonthPremiumCount = Number(prev_subs || 0);
+
+        const [dailySubs] = await pool.query(`
+          SELECT DATE(created_at) as d, COUNT(*) as cnt
+          FROM subscriptions
+          WHERE created_at >= CURDATE() - INTERVAL 6 DAY
+          GROUP BY DATE(created_at)
+        `).catch(() => [[]]);
+        dailySubs.forEach(r => {
+          const key = new Date(r.d).toISOString().slice(0, 10);
+          premiumSparklineMap.set(key, Number(r.cnt || 0));
+        });
       } catch (_) {}
 
-      const baselinePremium = 412000; // 412K
-      const displayPremium = totalPremiumCount > 0 ? totalPremiumCount : baselinePremium;
-      const formattedPremium = formatCount(displayPremium);
-      const premiumGrowth = calculateGrowth(totalPremiumCount, prevMonthPremiumCount, '-2.1%');
-      // In the mockup, premium members change is -2.1% (red down arrow)
-      if (prevMonthPremiumCount === 0 && totalPremiumCount === 0) {
-        premiumGrowth.percentage = 2.1;
-        premiumGrowth.is_positive = false;
-        premiumGrowth.text = '-2.1%';
-      }
-      const premiumSparkline = [425, 422, 419, 417, 415, 413, 412];
+      const formattedPremium = formatCount(totalPremiumCount);
+      const premiumGrowth = calculateGrowth(totalPremiumCount, prevMonthPremiumCount, '+0%');
+      const premiumSparkline = last7Days.map(d => premiumSparklineMap.get(d) || 0);
 
       // ─────────────────────────────────────────────────────────────────────────────
       // 8. Quick Actions Shortcuts
@@ -438,11 +539,11 @@ class DashboardController {
       ];
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 9. Revenue Trend Chart (Jan - Dec 12-month series)
+      // 9. Revenue Trend Chart (100% Dynamic Jan - Dec from DB)
       // ─────────────────────────────────────────────────────────────────────────────
       const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const totalRevenueMonthly = [220000, 250000, 240000, 280000, 270000, 310000, 300000, 340000, 380000, 360000, 420000, 480000];
-      const coinRevenueMonthly = [110000, 130000, 125000, 150000, 145000, 170000, 160000, 185000, 205000, 195000, 230000, 260000];
+      const totalRevenueMonthly = new Array(12).fill(0);
+      const coinRevenueMonthly = new Array(12).fill(0);
 
       try {
         const [salesMonthly] = await pool.query(`
@@ -460,34 +561,35 @@ class DashboardController {
           GROUP BY MONTH(s.created_at)
         `).catch(() => [[]]);
 
-        if (salesMonthly.length > 0 || subMonthly.length > 0) {
-          const dynamicTotal = new Array(12).fill(0);
-          const dynamicCoins = new Array(12).fill(0);
+        const [unlocksMonthly] = await pool.query(`
+          SELECT MONTH(unlocked_at) AS month_num, SUM(coins_spent) AS sum_amount
+          FROM user_episode_unlocks
+          WHERE YEAR(unlocked_at) = YEAR(CURRENT_DATE)
+          GROUP BY MONTH(unlocked_at)
+        `).catch(() => [[]]);
 
-          salesMonthly.forEach((r) => {
-            const m = Number(r.month_num) - 1;
-            if (m >= 0 && m < 12) {
-              dynamicCoins[m] += Math.round(Number(r.sum_amount || 0));
-              dynamicTotal[m] += Math.round(Number(r.sum_amount || 0));
-            }
-          });
-
-          subMonthly.forEach((r) => {
-            const m = Number(r.month_num) - 1;
-            if (m >= 0 && m < 12) {
-              dynamicTotal[m] += Math.round(Number(r.sum_amount || 0));
-            }
-          });
-
-          // If current year has data points, merge with baseline so chart renders smoothly
-          const hasNonZero = dynamicTotal.some((v) => v > 0);
-          if (hasNonZero) {
-            for (let i = 0; i < 12; i++) {
-              if (dynamicTotal[i] > 0) totalRevenueMonthly[i] = dynamicTotal[i];
-              if (dynamicCoins[i] > 0) coinRevenueMonthly[i] = dynamicCoins[i];
-            }
+        salesMonthly.forEach((r) => {
+          const m = Number(r.month_num) - 1;
+          if (m >= 0 && m < 12) {
+            const amt = Math.round(Number(r.sum_amount || 0));
+            coinRevenueMonthly[m] += amt;
+            totalRevenueMonthly[m] += amt;
           }
-        }
+        });
+
+        subMonthly.forEach((r) => {
+          const m = Number(r.month_num) - 1;
+          if (m >= 0 && m < 12) {
+            totalRevenueMonthly[m] += Math.round(Number(r.sum_amount || 0));
+          }
+        });
+
+        unlocksMonthly.forEach((r) => {
+          const m = Number(r.month_num) - 1;
+          if (m >= 0 && m < 12) {
+            totalRevenueMonthly[m] += Math.round(Number(r.sum_amount || 0) * 0.5);
+          }
+        });
       } catch (_) {}
 
       const revenueTrend = {
@@ -504,7 +606,7 @@ class DashboardController {
       };
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 10. Listening by Genre (Considering Categories table)
+      // 10. Listening by Genre (100% Dynamic considering Category table & DB counts)
       // ─────────────────────────────────────────────────────────────────────────────
       let categoryListeningList = [];
 
@@ -515,12 +617,14 @@ class DashboardController {
             COALESCE(c.category_name, 'Uncategorized') AS category_name,
             COALESCE(wh_agg.total_seconds, 0) AS total_seconds,
             COALESCE(wh_agg.session_count, 0) AS session_count,
+            COALESCE(s_agg.stories_count, 0) AS stories_count,
             COALESCE(s_agg.total_listeners, 0) AS total_listeners,
             COALESCE(s_agg.total_views, 0) AS total_views,
             COALESCE(ep_agg.total_ep_plays, 0) AS total_ep_plays
           FROM categories c
           LEFT JOIN (
             SELECT s.category_id, 
+                   COUNT(s.id) AS stories_count,
                    SUM(COALESCE(s.listeners_count, 0)) AS total_listeners,
                    SUM(COALESCE(s.total_views, 0)) AS total_views
             FROM stories s
@@ -541,108 +645,71 @@ class DashboardController {
             JOIN stories s ON ep.story_id = s.id
             GROUP BY s.category_id
           ) ep_agg ON ep_agg.category_id = c.id
-          GROUP BY c.id, c.category_name
-          ORDER BY (
-            COALESCE(wh_agg.total_seconds, 0) + 
-            COALESCE(s_agg.total_listeners, 0) * 60 + 
-            COALESCE(s_agg.total_views, 0) * 30 + 
-            COALESCE(ep_agg.total_ep_plays, 0) * 60
-          ) DESC
-          LIMIT 8
+          ORDER BY total_seconds DESC, total_ep_plays DESC, total_views DESC, total_listeners DESC, stories_count DESC, c.category_name ASC
         `).catch(() => [[]]);
 
         if (catRows && catRows.length > 0) {
           const totalWeight = catRows.reduce((acc, row) => {
-            const weight = Number(row.total_seconds || 0) +
-              (Number(row.total_listeners || 0) * 60) +
-              (Number(row.total_views || 0) * 30) +
-              (Number(row.total_ep_plays || 0) * 60);
+            const sec = Number(row.total_seconds || 0);
+            const plays = Number(row.total_ep_plays || 0);
+            const views = Number(row.total_views || 0);
+            const listeners = Number(row.total_listeners || 0);
+            const stories = Number(row.stories_count || 0);
+
+            const weight = sec > 0
+              ? sec
+              : (plays * 60) + (views * 30) + (listeners * 60) + (stories * 10);
             return acc + weight;
           }, 0);
 
-          if (totalWeight > 0) {
-            let runningPct = 0;
-            categoryListeningList = catRows.map((cat, index) => {
-              const weight = Number(cat.total_seconds || 0) +
-                (Number(cat.total_listeners || 0) * 60) +
-                (Number(cat.total_views || 0) * 30) +
-                (Number(cat.total_ep_plays || 0) * 60);
-              
-              let pct = Math.round((weight / totalWeight) * 100);
-              if (index === catRows.length - 1 && runningPct + pct !== 100) {
+          let runningPct = 0;
+          categoryListeningList = catRows.map((cat, index) => {
+            const sec = Number(cat.total_seconds || 0);
+            const plays = Number(cat.total_ep_plays || 0);
+            const views = Number(cat.total_views || 0);
+            const listeners = Number(cat.total_listeners || 0);
+            const stories = Number(cat.stories_count || 0);
+
+            const weight = sec > 0
+              ? sec
+              : (plays * 60) + (views * 30) + (listeners * 60) + (stories * 10);
+
+            let pct = 0;
+            if (totalWeight > 0) {
+              pct = Math.round((weight / totalWeight) * 100);
+              // Ensure percentages sum to 100 for non-zero items
+              if (index === catRows.length - 1 && runningPct + pct !== 100 && runningPct > 0) {
                 pct = Math.max(0, 100 - runningPct);
               }
               runningPct += pct;
+            }
 
-              const hours = Math.round((weight / 3600) || 1);
-              return {
-                category_id: Number(cat.category_id),
-                genre: cat.category_name,
-                category_name: cat.category_name,
-                percentage: pct,
-                percentage_text: `${pct}%`,
-                listening_time: formatListeningHours(hours),
-                plays: Number(cat.session_count || cat.total_ep_plays || cat.total_views || 0),
-                color: GENRE_COLORS[index % GENRE_COLORS.length],
-              };
-            });
-          }
+            const calculatedHours = sec > 0 ? (sec / 3600) : (plays > 0 ? (plays * 0.25) : 0);
+            return {
+              category_id: Number(cat.category_id),
+              genre: cat.category_name,
+              category_name: cat.category_name,
+              percentage: pct,
+              percentage_text: `${pct}%`,
+              listening_time: formatListeningHours(calculatedHours),
+              plays: Number(cat.session_count || plays || views || 0),
+              stories_count: stories,
+              color: GENRE_COLORS[index % GENRE_COLORS.length],
+            };
+          });
         }
       } catch (_) {}
 
-      // Fallback matching exact design mockup (Thriller 34%, Romance 26%, Drama 20%, Fantasy 20%)
-      if (categoryListeningList.length === 0) {
-        categoryListeningList = [
-          {
-            category_id: 1,
-            genre: 'Thriller',
-            category_name: 'Thriller',
-            percentage: 34,
-            percentage_text: '34%',
-            listening_time: '3.26M hrs',
-            plays: 106380,
-            color: '#8B5CF6',
-          },
-          {
-            category_id: 2,
-            genre: 'Romance',
-            category_name: 'Romance',
-            percentage: 26,
-            percentage_text: '26%',
-            listening_time: '2.50M hrs',
-            plays: 81350,
-            color: '#3B82F6',
-          },
-          {
-            category_id: 3,
-            genre: 'Drama',
-            category_name: 'Drama',
-            percentage: 20,
-            percentage_text: '20%',
-            listening_time: '1.92M hrs',
-            plays: 62570,
-            color: '#F59E0B',
-          },
-          {
-            category_id: 4,
-            genre: 'Fantasy',
-            category_name: 'Fantasy',
-            percentage: 20,
-            percentage_text: '20%',
-            listening_time: '1.92M hrs',
-            plays: 62580,
-            color: '#EF4444',
-          },
-        ];
-      }
+      const activeGenres = categoryListeningList.filter(g => g.percentage > 0);
+      const displayGenres = activeGenres.length > 0 ? categoryListeningList : categoryListeningList.slice(0, 8);
 
       const listeningByGenre = {
         title: 'Listening by Genre',
-        total: 100,
-        center_text: '100',
+        total: displayGenres.reduce((acc, g) => acc + g.percentage, 0),
+        center_text: displayGenres.some(g => g.percentage > 0) ? '100' : '0',
         unit: '%',
-        genres: categoryListeningList,
-        segments: categoryListeningList.map((g) => ({
+        genres: displayGenres,
+        segments: displayGenres.map((g) => ({
           label: g.genre,
           value: g.percentage,
           color: g.color,
@@ -650,17 +717,17 @@ class DashboardController {
       };
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 11. Recent Activity Feed
+      // 11. Recent Activity Feed (100% Dynamic from DB events)
       // ─────────────────────────────────────────────────────────────────────────────
       const recentActivities = [];
 
       try {
-        // A. Recently verified creators
+        // A. Recently verified creators from DB
         const [creators] = await pool.query(
           `SELECT id, name, updated_at 
            FROM users 
            WHERE (role LIKE '%creator%' OR role LIKE '%writer%') AND is_verified = 1 
-           ORDER BY updated_at DESC LIMIT 2`
+           ORDER BY updated_at DESC LIMIT 5`
         ).catch(() => [[]]);
         creators.forEach((c) => {
           recentActivities.push({
@@ -674,32 +741,32 @@ class DashboardController {
           });
         });
 
-        // B. Scheduled / submitted stories
-        const [schedStories] = await pool.query(
-          `SELECT id, title, updated_at, status 
+        // B. Stories scheduled or published from DB
+        const [stories] = await pool.query(
+          `SELECT id, title, updated_at, created_at, status, release_status, is_approved 
            FROM stories 
-           WHERE LOWER(status) LIKE '%schedule%' OR LOWER(release_status) LIKE '%schedule%' OR is_approved = 'Pending'
-           ORDER BY updated_at DESC LIMIT 2`
+           ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 5`
         ).catch(() => [[]]);
-        schedStories.forEach((s) => {
+        stories.forEach((s) => {
+          const isSched = String(s.status || s.release_status || '').toLowerCase().includes('schedule');
           recentActivities.push({
             id: `story-${s.id}`,
-            type: 'story_scheduled',
-            title: `"${s.title}" scheduled for release`,
+            type: isSched ? 'story_scheduled' : 'story_published',
+            title: isSched ? `"${s.title}" scheduled for release` : `Story "${s.title}" published`,
             icon: 'book',
             color: '#8B5CF6',
-            timestamp: s.updated_at || new Date(),
-            time_ago: timeAgo(s.updated_at),
+            timestamp: s.updated_at || s.created_at || new Date(),
+            time_ago: timeAgo(s.updated_at || s.created_at),
           });
         });
 
-        // C. Processed payouts
+        // C. Processed creator payouts/withdrawals from DB
         const [payouts] = await pool.query(
           `SELECT w.id, w.amount, w.updated_at, u.name 
-           FROM withdrawals w 
+           FROM writer_withdrawals w 
            LEFT JOIN users u ON w.user_id = u.id 
            WHERE w.status IN ('paid', 'approved', 'completed') 
-           ORDER BY w.updated_at DESC LIMIT 2`
+           ORDER BY w.updated_at DESC LIMIT 5`
         ).catch(() => [[]]);
         payouts.forEach((p) => {
           recentActivities.push({
@@ -713,12 +780,12 @@ class DashboardController {
           });
         });
 
-        // D. Flagged stories/episodes
+        // D. Flagged reports from DB
         const [flagged] = await pool.query(
           `SELECT er.id, er.created_at, s.title 
            FROM episode_reports er 
            LEFT JOIN stories s ON er.story_id = s.id 
-           ORDER BY er.created_at DESC LIMIT 2`
+           ORDER BY er.created_at DESC LIMIT 5`
         ).catch(() => [[]]);
         flagged.forEach((f) => {
           recentActivities.push({
@@ -732,93 +799,43 @@ class DashboardController {
           });
         });
 
-        // E. Daily user growth activity
-        if (displayDailyGrowth > 0) {
+        // E. Today's user registrations from DB
+        if (dailyGrowthCount > 0) {
           recentActivities.push({
             id: 'users-growth-today',
             type: 'user_growth',
-            title: `${displayDailyGrowth.toLocaleString('en-IN')} new users joined today`,
+            title: `${dailyGrowthCount.toLocaleString('en-IN')} new users joined today`,
             icon: 'users',
             color: '#3B82F6',
-            timestamp: new Date(Date.now() - 3 * 3600 * 1000), // ~3 hours ago
-            time_ago: '3 hr ago',
+            timestamp: new Date(),
+            time_ago: 'Today',
           });
         }
 
-        // F. Coin pack purchase activity
-        recentActivities.push({
-          id: 'coin-pack-purchased',
-          type: 'coin_pack_purchased',
-          title: 'Coin pack "500 + 50 bonus" purchased 312 times',
-          icon: 'coins',
-          color: '#EAB308',
-          timestamp: new Date(Date.now() - 5 * 3600 * 1000), // ~5 hours ago
-          time_ago: '5 hr ago',
+        // F. Recent user signups from DB
+        const [recentUsers] = await pool.query(
+          `SELECT id, name, created_at 
+           FROM users 
+           ORDER BY created_at DESC LIMIT 5`
+        ).catch(() => [[]]);
+        recentUsers.forEach((u) => {
+          recentActivities.push({
+            id: `user-${u.id}`,
+            type: 'user_registered',
+            title: `New user "${u.name || 'User'}" joined`,
+            icon: 'users',
+            color: '#3B82F6',
+            timestamp: u.created_at || new Date(),
+            time_ago: timeAgo(u.created_at),
+          });
         });
+
+        // Sort all real database activities by timestamp descending
+        recentActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       } catch (_) {}
 
-      // Fallback if activities array is sparse
-      const mockActivitiesFallback = [
-        {
-          id: 'act-1',
-          type: 'creator_verified',
-          title: 'Creator "Sanya Bose" verified',
-          icon: 'star',
-          color: '#F59E0B',
-          timestamp: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
-          time_ago: '8 min ago',
-        },
-        {
-          id: 'act-2',
-          type: 'story_scheduled',
-          title: '"The Last Signal" scheduled for release',
-          icon: 'book',
-          color: '#8B5CF6',
-          timestamp: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
-          time_ago: '32 min ago',
-        },
-        {
-          id: 'act-3',
-          type: 'payout_processed',
-          title: 'Payout of ₹42,500 processed to Meera Iyer',
-          icon: 'credit-card',
-          color: '#22C55E',
-          timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-          time_ago: '1 hr ago',
-        },
-        {
-          id: 'act-4',
-          type: 'story_flagged',
-          title: 'Story "Ashes & Ember" flagged for review',
-          icon: 'alert-triangle',
-          color: '#EF4444',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          time_ago: '2 hr ago',
-        },
-        {
-          id: 'act-5',
-          type: 'user_growth',
-          title: '1,204 new users joined today',
-          icon: 'users',
-          color: '#3B82F6',
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-          time_ago: '3 hr ago',
-        },
-        {
-          id: 'act-6',
-          type: 'coin_pack_purchased',
-          title: 'Coin pack "500 + 50 bonus" purchased 312 times',
-          icon: 'coins',
-          color: '#EAB308',
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          time_ago: '5 hr ago',
-        },
-      ];
-
-      const finalActivities = recentActivities.length >= 4 ? recentActivities.slice(0, 8) : mockActivitiesFallback;
-
       // ─────────────────────────────────────────────────────────────────────────────
-      // Response Payload
+      // Response Payload (100% Dynamic)
       // ─────────────────────────────────────────────────────────────────────────────
       const responseData = {
         title: 'Overview',
@@ -827,7 +844,7 @@ class DashboardController {
           total_revenue: {
             label: 'Total Revenue',
             value: formattedTotalRevenue,
-            amount: displayTotalRevenue,
+            amount: totalRevenueNum,
             change: revenueGrowth.text,
             is_positive: revenueGrowth.is_positive,
             sparkline: revenueTrendSparkline,
@@ -843,7 +860,7 @@ class DashboardController {
           total_stories: {
             label: 'Total Stories',
             value: formattedStories,
-            count: displayStories,
+            count: totalStoriesCount,
             change: storiesGrowth.text,
             is_positive: storiesGrowth.is_positive,
             sparkline: storiesSparkline,
@@ -851,7 +868,7 @@ class DashboardController {
           total_episodes: {
             label: 'Total Episodes',
             value: formattedEpisodes,
-            count: displayEpisodes,
+            count: totalEpisodesCount,
             change: episodesGrowth.text,
             is_positive: episodesGrowth.is_positive,
             sparkline: episodesSparkline,
@@ -859,7 +876,7 @@ class DashboardController {
           active_creators: {
             label: 'Active Creators',
             value: formattedCreators,
-            count: displayCreators,
+            count: totalCreatorsCount,
             change: creatorsGrowth.text,
             is_positive: creatorsGrowth.is_positive,
             sparkline: creatorsSparkline,
@@ -867,7 +884,7 @@ class DashboardController {
           listening_time: {
             label: 'Listening Time',
             value: formattedListeningHours,
-            total_hours: displayListeningHours,
+            total_hours: Number(calculatedHours.toFixed(1)),
             change: listeningGrowth.text,
             is_positive: listeningGrowth.is_positive,
             sparkline: listeningSparkline,
@@ -875,7 +892,7 @@ class DashboardController {
           premium_members: {
             label: 'Premium Members',
             value: formattedPremium,
-            count: displayPremium,
+            count: totalPremiumCount,
             change: premiumGrowth.text,
             is_positive: premiumGrowth.is_positive,
             sparkline: premiumSparkline,
@@ -883,7 +900,7 @@ class DashboardController {
           daily_growth: {
             label: 'Daily Growth',
             value: formattedDailyGrowth,
-            count: displayDailyGrowth,
+            count: dailyGrowthCount,
             change: dailyGrowthTrend.text,
             is_positive: dailyGrowthTrend.is_positive,
             sparkline: dailyGrowthSparkline,
@@ -893,16 +910,15 @@ class DashboardController {
           title: 'Coin Revenue',
           period: 'This month',
           value: formattedCoinRevenue,
-          amount: displayCoinRevenue,
+          amount: thisMonthCoinRevenue,
           change: coinGrowthText,
           is_positive: coinGrowth.is_positive,
         },
         quick_actions: quickActions,
         revenue_trend: revenueTrend,
         listening_by_genre: listeningByGenre,
-        // Category alias for frontend consumers that check listening_by_category
         listening_by_category: listeningByGenre,
-        recent_activity: finalActivities,
+        recent_activity: recentActivities.slice(0, 8),
       };
 
       return ApiResponse.success(res, responseData, 'Admin overview statistics retrieved successfully');
@@ -968,7 +984,7 @@ class DashboardController {
         users: {
           total: Number(total_users || 0),
           new_this_month: Number(new_users_this_month || 0),
-          formatted_total: formatNumber(total_users || 0),
+          formatted_total: formatCount(total_users || 0),
         },
         stories: {
           total: Number(total_stories || 0),
@@ -979,9 +995,9 @@ class DashboardController {
         },
         engagement: {
           total_plays: Number(total_plays || 0),
-          total_plays_formatted: formatNumber(total_plays || 0),
+          total_plays_formatted: formatCount(total_plays || 0),
           total_listeners: Number(total_listeners || 0),
-          total_listeners_formatted: formatNumber(total_listeners || 0),
+          total_listeners_formatted: formatCount(total_listeners || 0),
         },
         financials: {
           total_coins_distributed: Number(total_coin_sales_amount || 0),
