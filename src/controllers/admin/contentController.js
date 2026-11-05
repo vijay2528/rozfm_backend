@@ -393,6 +393,7 @@ class ContentController {
         status,
         story_status,
         release,
+        release_status,
         user_id,
         creator_id,
         creator,

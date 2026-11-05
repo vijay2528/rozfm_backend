@@ -895,6 +895,18 @@
                   "value": "2026-09-15",
                   "type": "text",
                   "description": "Publish date formatted as YYYY-MM-DD or null"
+                },
+                {
+                  "key": "free_episodes_count",
+                  "value": "3",
+                  "type": "text",
+                  "description": "Update the number of free initial episodes"
+                },
+                {
+                  "key": "coin_price_per_episode",
+                  "value": "30",
+                  "type": "text",
+                  "description": "Update the coin price per episode for subsequent paid episodes"
                 }
               ]
             },
