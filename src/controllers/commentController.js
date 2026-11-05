@@ -114,12 +114,15 @@ class CommentController {
           if (!rows.length) return;
           const { author_id, title: storyTitle, commenter_name } = rows[0];
           if (Number(author_id) === Number(userId)) return; // skip self-comment
-          PushNotificationService.sendToUser(
-            Number(author_id),
-            '💬 New Comment',
-            `${commenter_name} commented on "${storyTitle}"`,
-            { action_type: 'story', action_id: String(storyId) }
-          ).catch(() => {});
+          PushNotificationService.sendCommentNotification({
+            recipientUserId: Number(author_id),
+            commentId: result.insertId,
+            storyId: storyId,
+            commenterName: commenter_name,
+            commentText: comment.trim(),
+            title: 'New Comment on your Story 💬',
+            body: `${commenter_name} commented: '${comment.trim().length > 50 ? comment.trim().substring(0, 47) + '...' : comment.trim()}'`,
+          }).catch(() => {});
         }).catch(() => {});
       }).catch(() => {});
 
