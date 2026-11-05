@@ -135,6 +135,17 @@ class ContentController {
         language,
         tags,
         is_premium,
+        is_monetized,
+        monetization,
+        free_episodes,
+        free_episodes_count,
+        free_episode_count,
+        free_limit,
+        coin_price_per_episode,
+        coins_per_episode,
+        coin_price,
+        episode_coin_price,
+        coins,
         status,
         story_status,
         release,
@@ -266,7 +277,18 @@ class ContentController {
         }
       }
 
-      const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
+      const parsedFreeEpisodes = parseInt(free_episodes_count !== undefined ? free_episodes_count : (free_episodes !== undefined ? free_episodes : (free_episode_count !== undefined ? free_episode_count : free_limit)), 10);
+      const finalFreeEpisodes = !isNaN(parsedFreeEpisodes) ? Math.max(0, parsedFreeEpisodes) : 0;
+
+      const parsedCoinPrice = parseInt(coin_price_per_episode !== undefined ? coin_price_per_episode : (coins_per_episode !== undefined ? coins_per_episode : (coin_price !== undefined ? coin_price : (episode_coin_price !== undefined ? episode_coin_price : coins))), 10);
+      const finalCoinPrice = !isNaN(parsedCoinPrice) ? Math.max(0, parsedCoinPrice) : 25;
+
+      const isMonetizedBool = Boolean(
+        is_monetized === true || is_monetized === 'true' || is_monetized === 1 || is_monetized === '1' ||
+        monetization === true || monetization === 'true' || monetization === 1 || monetization === '1' ||
+        is_premium === true || is_premium === 'true' || is_premium === 1 || is_premium === '1' ||
+        finalFreeEpisodes > 0 || (coin_price_per_episode !== undefined && coin_price_per_episode !== null)
+      );
 
       const rawPublishDate = req.body.publish_date !== undefined ? req.body.publish_date : (req.body.publishDate !== undefined ? req.body.publishDate : (req.body.release_date !== undefined ? req.body.release_date : req.body.releaseDate));
       let finalPublishDate = null;
@@ -287,10 +309,10 @@ class ContentController {
         }
       }
 
-      // 5. Insert Story
+      // 5. Insert Story with Monetization settings
       const [result] = await pool.query(
-        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, status, release_status, publish_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, free_episodes_count, coin_price_per_episode, is_monetized, status, release_status, publish_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           finalUserId,
           title.trim(),
@@ -300,7 +322,10 @@ class ContentController {
           bannerImagePath,
           storyLanguage,
           tags || null,
-          isPremiumBool ? 1 : 0,
+          isMonetizedBool ? 1 : 0,
+          finalFreeEpisodes,
+          finalCoinPrice,
+          isMonetizedBool ? 1 : 0,
           finalStatus,
           finalReleaseStatus,
           finalPublishDate,
@@ -354,6 +379,17 @@ class ContentController {
         language,
         tags,
         is_premium,
+        is_monetized,
+        monetization,
+        free_episodes,
+        free_episodes_count,
+        free_episode_count,
+        free_limit,
+        coin_price_per_episode,
+        coins_per_episode,
+        coin_price,
+        episode_coin_price,
+        coins,
         status,
         story_status,
         release,
@@ -422,10 +458,32 @@ class ContentController {
         }
       }
 
-      if (is_premium !== undefined) {
-        updateFields.push('`is_premium` = ?');
-        const isPremiumBool = is_premium === true || is_premium === 'true' || is_premium === '1' || is_premium === 1;
-        queryParams.push(isPremiumBool ? 1 : 0);
+      if (is_monetized !== undefined || monetization !== undefined || is_premium !== undefined) {
+        const isMon = Boolean(
+          is_monetized === true || is_monetized === 'true' || is_monetized === 1 || is_monetized === '1' ||
+          monetization === true || monetization === 'true' || monetization === 1 || monetization === '1' ||
+          is_premium === true || is_premium === 'true' || is_premium === 1 || is_premium === '1'
+        );
+        updateFields.push('`is_monetized` = ?', '`is_premium` = ?');
+        queryParams.push(isMon ? 1 : 0, isMon ? 1 : 0);
+      }
+
+      const rawFree = free_episodes_count !== undefined ? free_episodes_count : (free_episodes !== undefined ? free_episodes : (free_episode_count !== undefined ? free_episode_count : free_limit));
+      if (rawFree !== undefined && rawFree !== null && rawFree !== '') {
+        const val = parseInt(rawFree, 10);
+        if (!isNaN(val)) {
+          updateFields.push('`free_episodes_count` = ?');
+          queryParams.push(Math.max(0, val));
+        }
+      }
+
+      const rawCoinPrice = coin_price_per_episode !== undefined ? coin_price_per_episode : (coins_per_episode !== undefined ? coins_per_episode : (coin_price !== undefined ? coin_price : (episode_coin_price !== undefined ? episode_coin_price : coins)));
+      if (rawCoinPrice !== undefined && rawCoinPrice !== null && rawCoinPrice !== '') {
+        const val = parseInt(rawCoinPrice, 10);
+        if (!isNaN(val)) {
+          updateFields.push('`coin_price_per_episode` = ?');
+          queryParams.push(Math.max(0, val));
+        }
       }
 
       const rawRelease = release || release_status;
@@ -885,14 +943,41 @@ class ContentController {
       const publishedAt = finalScheduledAt || new Date();
 
       const createdById = req.user ? req.user.id : null;
-      const isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
+      let isPremiumVal = (is_premium === '1' || is_premium === 1 || is_premium === 'true' || is_premium === true) ? 1 : 0;
       const isDownloadableVal = (is_downloadable === undefined || is_downloadable === null || is_downloadable === '1' || is_downloadable === 1 || is_downloadable === 'true' || is_downloadable === true) ? 1 : 0;
-      const coinCost = coins !== undefined && coins !== null && coins !== '' ? parseInt(coins, 10) : 25;
+      let coinCost = coins !== undefined && coins !== null && coins !== '' ? parseInt(coins, 10) : 25;
       const finalAudioTitle = audio_title && String(audio_title).trim() !== '' ? String(audio_title).trim() : String(title).trim();
 
       // Episode number calculation: 0 episodes -> 1, 2 episodes -> 3
       const [[{ ep_count }]] = await pool.query('SELECT COUNT(*) as ep_count FROM episodes WHERE story_id = ?', [targetStoryId]);
       const nextEpisodeNumber = (ep_count || 0) + 1;
+
+      // Automatically apply story monetization rules:
+      // Episodes <= free_episodes_count are free with 0 coins.
+      // Episodes > free_episodes_count use configured coin_price_per_episode.
+      const [[storyMonetization]] = await pool.query(
+        'SELECT id, is_premium, is_monetized, free_episodes_count, coin_price_per_episode FROM stories WHERE id = ? LIMIT 1',
+        [targetStoryId]
+      );
+      if (storyMonetization) {
+        const isStoryMonetized = Boolean(
+          storyMonetization.is_monetized === 1 ||
+          storyMonetization.is_premium === 1 ||
+          (storyMonetization.free_episodes_count !== null && Number(storyMonetization.free_episodes_count) > 0)
+        );
+        const freeLimit = Number(storyMonetization.free_episodes_count || 0);
+        const configuredCoinPrice = Number(storyMonetization.coin_price_per_episode !== null && storyMonetization.coin_price_per_episode !== undefined ? storyMonetization.coin_price_per_episode : 25);
+
+        if (isStoryMonetized) {
+          if (nextEpisodeNumber <= freeLimit) {
+            isPremiumVal = 0;
+            coinCost = 0;
+          } else {
+            isPremiumVal = 1;
+            coinCost = configuredCoinPrice || coinCost || 25;
+          }
+        }
+      }
 
       const [result] = await pool.query(
         `INSERT INTO episodes (
@@ -1105,6 +1190,294 @@ class ContentController {
       return ApiResponse.error(res, 'Failed to delete episode.', 500);
     }
   }
+
+  /**
+   * POST /api/v1/admin/stories/:id/episodes
+   * POST /api/v1/admin/stories/:id/episodes/bulk
+   * POST /api/v1/admin/episodes/bulk
+   * Bulk upload / create multiple episodes for a story from Story Details section.
+   * Automatically enforces Story Monetization logic:
+   *   - Episodes within free_episodes_count remain FREE (is_premium = 0, coins = 0)
+   *   - Subsequent episodes beyond free_episodes_count use configured coin_price_per_episode (is_premium = 1)
+   */
+  static async storeMultipleEpisodes(req, res) {
+    try {
+      const targetStoryId = req.params.id || req.body.story_id || req.body.storyId || req.body.story;
+      if (!targetStoryId) {
+        return ApiResponse.error(res, 'Story ID is required.', 422);
+      }
+
+      const [storyRows] = await pool.query(
+        'SELECT id, title, is_premium, is_monetized, free_episodes_count, coin_price_per_episode FROM stories WHERE id = ? LIMIT 1',
+        [targetStoryId]
+      );
+      if (storyRows.length === 0) {
+        return ApiResponse.error(res, 'Selected story not found.', 444);
+      }
+      const story = storyRows[0];
+
+      // Optional monetization configuration update passed during upload
+      const {
+        free_episodes,
+        free_episodes_count,
+        coin_price_per_episode,
+        coins_per_episode,
+        coin_price,
+        is_monetized,
+      } = req.body || {};
+
+      let freeLimit = story.free_episodes_count !== null && story.free_episodes_count !== undefined
+        ? Number(story.free_episodes_count)
+        : 0;
+      let coinPrice = story.coin_price_per_episode !== null && story.coin_price_per_episode !== undefined
+        ? Number(story.coin_price_per_episode)
+        : 25;
+      let isMonetized = Boolean(story.is_monetized === 1 || story.is_premium === 1 || freeLimit > 0);
+
+      const newFreeEpisodes = free_episodes_count !== undefined ? free_episodes_count : free_episodes;
+      const newCoinPrice = coin_price_per_episode !== undefined ? coin_price_per_episode : (coins_per_episode !== undefined ? coins_per_episode : coin_price);
+
+      let storyUpdateNeeded = false;
+      const storyUpdateSql = [];
+      const storyUpdateParams = [];
+
+      if (newFreeEpisodes !== undefined && newFreeEpisodes !== null && newFreeEpisodes !== '') {
+        const val = parseInt(newFreeEpisodes, 10);
+        if (!isNaN(val)) {
+          freeLimit = Math.max(0, val);
+          storyUpdateSql.push('free_episodes_count = ?');
+          storyUpdateParams.push(freeLimit);
+          storyUpdateNeeded = true;
+        }
+      }
+
+      if (newCoinPrice !== undefined && newCoinPrice !== null && newCoinPrice !== '') {
+        const val = parseInt(newCoinPrice, 10);
+        if (!isNaN(val)) {
+          coinPrice = Math.max(0, val);
+          storyUpdateSql.push('coin_price_per_episode = ?');
+          storyUpdateParams.push(coinPrice);
+          storyUpdateNeeded = true;
+        }
+      }
+
+      if (is_monetized !== undefined) {
+        isMonetized = Boolean(is_monetized === true || is_monetized === 'true' || is_monetized === 1 || is_monetized === '1');
+        storyUpdateSql.push('is_monetized = ?', 'is_premium = ?');
+        storyUpdateParams.push(isMonetized ? 1 : 0, isMonetized ? 1 : 0);
+        storyUpdateNeeded = true;
+      }
+
+      if (storyUpdateNeeded) {
+        storyUpdateParams.push(targetStoryId);
+        await pool.query(`UPDATE stories SET ${storyUpdateSql.join(', ')} WHERE id = ?`, storyUpdateParams);
+      }
+
+      // Collect uploaded audio files
+      let uploadedFiles = [];
+      if (req.files) {
+        if (Array.isArray(req.files)) {
+          uploadedFiles = req.files;
+        } else if (typeof req.files === 'object') {
+          Object.values(req.files).forEach((val) => {
+            if (Array.isArray(val)) uploadedFiles.push(...val);
+            else if (val) uploadedFiles.push(val);
+          });
+        }
+      } else if (req.file) {
+        uploadedFiles = [req.file];
+      }
+
+      // Parse episode metadata from body
+      let episodeItems = [];
+      if (req.body.episodes) {
+        if (typeof req.body.episodes === 'string') {
+          try {
+            episodeItems = JSON.parse(req.body.episodes);
+          } catch (_) {
+            episodeItems = [];
+          }
+        } else if (Array.isArray(req.body.episodes)) {
+          episodeItems = req.body.episodes;
+        }
+      }
+
+      // If no episodes array in body but audio files were uploaded, build items from files
+      if (episodeItems.length === 0 && uploadedFiles.length > 0) {
+        episodeItems = uploadedFiles.map((file, idx) => {
+          const rawName = path.parse(file.originalname).name;
+          const cleanTitle = rawName.replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+          return {
+            title: cleanTitle || `Episode ${idx + 1}`,
+            audio_file_index: idx,
+          };
+        });
+      }
+
+      // Or if titles array was provided
+      if (episodeItems.length === 0 && req.body.titles) {
+        let titlesArr = [];
+        if (typeof req.body.titles === 'string') {
+          try { titlesArr = JSON.parse(req.body.titles); } catch (_) { titlesArr = req.body.titles.split(','); }
+        } else if (Array.isArray(req.body.titles)) {
+          titlesArr = req.body.titles;
+        }
+        episodeItems = titlesArr.map((t, idx) => ({ title: String(t).trim(), audio_file_index: idx }));
+      }
+
+      if (episodeItems.length === 0) {
+        return ApiResponse.error(res, 'No episodes provided. Please supply audio files or an episodes array.', 422);
+      }
+
+      // Get current highest episode position and count
+      const [[{ current_count }]] = await pool.query(
+        'SELECT COUNT(*) as current_count FROM episodes WHERE story_id = ?',
+        [targetStoryId]
+      );
+      let nextPos = (current_count || 0) + 1;
+
+      const createdById = req.user ? req.user.id : null;
+      const { uploadToR2 } = require('../../services/r2StorageService');
+
+      const createdEpisodes = [];
+
+      for (let i = 0; i < episodeItems.length; i++) {
+        const item = episodeItems[i] || {};
+        const pos = nextPos++;
+
+        const epTitle = item.title && String(item.title).trim()
+          ? String(item.title).trim()
+          : `Episode ${pos}`;
+
+        // Determine audio path
+        let audioFilePath = item.audio_path || item.audio_file || null;
+        let fileToUpload = null;
+
+        if (item.audio_file_index !== undefined && uploadedFiles[item.audio_file_index]) {
+          fileToUpload = uploadedFiles[item.audio_file_index];
+        } else if (uploadedFiles[i]) {
+          fileToUpload = uploadedFiles[i];
+        }
+
+        if (fileToUpload) {
+          try {
+            audioFilePath = await uploadToR2(fileToUpload, 'episodes');
+          } catch (uploadErr) {
+            console.error(`Failed to upload audio for episode ${pos}:`, uploadErr.message);
+          }
+        }
+
+        let durSecs = 0;
+        if (item.duration_seconds !== undefined && item.duration_seconds !== null) {
+          durSecs = parseInt(item.duration_seconds, 10) || 0;
+        } else if (item.duration !== undefined && item.duration !== null) {
+          durSecs = parseInt(item.duration, 10) || 0;
+        } else if (item.duration_minutes !== undefined && item.duration_minutes !== null) {
+          durSecs = Math.round(parseFloat(item.duration_minutes) * 60) || 0;
+        }
+        const durMins = durSecs ? parseFloat((durSecs / 60).toFixed(2)) : null;
+
+        // Apply monetization rules:
+        // Rule 4: Configured coin price automatically applies to subsequent episodes
+        // Rule 5: Episodes within free limit remain free (is_premium = 0, coins = 0)
+        let isPremiumVal = 0;
+        let coinsVal = 0;
+
+        if (isMonetized) {
+          if (pos <= freeLimit) {
+            isPremiumVal = 0;
+            coinsVal = 0;
+          } else {
+            isPremiumVal = 1;
+            coinsVal = coinPrice || 25;
+          }
+        } else {
+          isPremiumVal = (item.is_premium === true || item.is_premium === 1 || item.is_premium === '1') ? 1 : 0;
+          coinsVal = isPremiumVal ? (parseInt(item.coins, 10) || 25) : 0;
+        }
+
+        const isDownloadableVal = (item.is_downloadable === undefined || item.is_downloadable === null || item.is_downloadable === '1' || item.is_downloadable === 1 || item.is_downloadable === true || item.is_downloadable === 'true') ? 1 : 0;
+        const publishAsMode = item.publish_as && String(item.publish_as).toLowerCase().includes('schedule') ? 'schedule' : 'publish_now';
+        const finalScheduledAt = item.scheduled_at ? new Date(item.scheduled_at) : null;
+        const publishedAt = finalScheduledAt || new Date();
+        const finalAudioTitle = item.audio_title || epTitle;
+
+        const [insertRes] = await pool.query(
+          `INSERT INTO episodes (
+            story_id, created_by, title, episode_number, position, description, publish_as, scheduled_at,
+            audio_title, duration_seconds, duration_minutes, is_premium, is_downloadable,
+            coins, audio_path, published_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            targetStoryId,
+            createdById,
+            epTitle,
+            pos,
+            pos,
+            item.description || null,
+            publishAsMode,
+            finalScheduledAt,
+            finalAudioTitle,
+            durSecs,
+            durMins,
+            isPremiumVal,
+            isDownloadableVal,
+            coinsVal,
+            audioFilePath,
+            publishedAt,
+          ]
+        );
+
+        createdEpisodes.push({
+          id: insertRes.insertId,
+          story_id: Number(targetStoryId),
+          title: epTitle,
+          episode_number: pos,
+          position: pos,
+          description: item.description || null,
+          duration_seconds: durSecs,
+          duration_minutes: durMins,
+          type: isPremiumVal ? 'premium' : 'free',
+          is_premium: Boolean(isPremiumVal),
+          coins: coinsVal,
+          audio_file: audioFilePath,
+          is_downloadable: Boolean(isDownloadableVal),
+          published_at: publishedAt,
+        });
+      }
+
+      // Update total episodes_count on story
+      await pool.query(
+        `UPDATE stories 
+         SET episodes_count = (SELECT COUNT(*) FROM episodes WHERE story_id = ?),
+             updated_at = NOW()
+         WHERE id = ?`,
+        [targetStoryId, targetStoryId]
+      );
+
+      return ApiResponse.success(
+        res,
+        {
+          story_id: Number(targetStoryId),
+          story_title: story.title,
+          total_episodes_count: (current_count || 0) + createdEpisodes.length,
+          monetization: {
+            is_monetized: isMonetized,
+            is_premium: isMonetized,
+            free_episodes_count: freeLimit,
+            coin_price_per_episode: coinPrice,
+          },
+          created_episodes: createdEpisodes,
+        },
+        `Successfully uploaded ${createdEpisodes.length} episode${createdEpisodes.length > 1 ? 's' : ''} for "${story.title}".`,
+        201
+      );
+    } catch (error) {
+      console.error('Admin Store Multiple Episodes Error:', error);
+      return ApiResponse.error(res, error.message || 'Failed to upload multiple episodes.', 500);
+    }
+  }
+
 }
 
 module.exports = ContentController;

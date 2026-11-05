@@ -793,6 +793,24 @@
                   "value": "2026-09-15",
                   "type": "text",
                   "description": "Publish date formatted as YYYY-MM-DD or null"
+                },
+                {
+                  "key": "is_monetized",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Enable monetization for this story (1 for yes, 0 for no)"
+                },
+                {
+                  "key": "free_episodes_count",
+                  "value": "2",
+                  "type": "text",
+                  "description": "Number of initial episodes available for free before coin pricing starts"
+                },
+                {
+                  "key": "coin_price_per_episode",
+                  "value": "25",
+                  "type": "text",
+                  "description": "Coin price automatically applied to every subsequent episode beyond the free limit"
                 }
               ]
             },
@@ -1092,6 +1110,92 @@
               ]
             },
             "description": "Create a new episode for a story with title, story_id, audio_file, duration, is_premium, and published_at date/time."
+          }
+        },
+        {
+          "name": "Upload Multiple Episodes for Story (Bulk)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "episodes",
+                  "value": "[\n  {\"title\": \"Episode 1: The Beginning\", \"duration_seconds\": 180},\n  {\"title\": \"Episode 2: The Rising\", \"duration_seconds\": 240},\n  {\"title\": \"Episode 3: The Turning Point\", \"duration_seconds\": 300},\n  {\"title\": \"Episode 4: The Climax\", \"duration_seconds\": 360}\n]",
+                  "type": "text",
+                  "description": "JSON array of episode details. Positions will be assigned sequentially."
+                },
+                {
+                  "key": "audio_files",
+                  "type": "file",
+                  "description": "Select multiple audio files (MP3, WAV, AAC, M4A). Files will map to episodes in order."
+                },
+                {
+                  "key": "free_episodes_count",
+                  "value": "2",
+                  "type": "text",
+                  "description": "Optional: override free episodes count for this story"
+                },
+                {
+                  "key": "coin_price_per_episode",
+                  "value": "30",
+                  "type": "text",
+                  "description": "Optional: override coin price per episode for this story"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/stories/1/episodes/bulk",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories",
+                "1",
+                "episodes",
+                "bulk"
+              ]
+            },
+            "description": "Upload multiple episodes for a story within the Story Details section.\n\n**Monetization Rules automatically enforced:**\n- Episodes within `free_episodes_count` remain FREE (`is_premium = false`, `coins = 0`).\n- Every subsequent episode beyond the free limit automatically receives the configured `coin_price_per_episode` (`is_premium = true`).\n- Sequential episode positions are automatically computed based on the story's existing episodes count.\n- Story's `episodes_count` is automatically updated."
+          }
+        },
+        {
+          "name": "Upload Multiple Episodes (JSON Batch)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"story_id\": 1,\n  \"episodes\": [\n    {\n      \"title\": \"Episode 1: Origin\",\n      \"audio_path\": \"https://files.rozfm.com/episodes/sample1.mp3\",\n      \"duration_seconds\": 180\n    },\n    {\n      \"title\": \"Episode 2: The Journey\",\n      \"audio_path\": \"https://files.rozfm.com/episodes/sample2.mp3\",\n      \"duration_seconds\": 240\n    },\n    {\n      \"title\": \"Episode 3: The Revelation\",\n      \"audio_path\": \"https://files.rozfm.com/episodes/sample3.mp3\",\n      \"duration_seconds\": 300\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/episodes/bulk",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "episodes",
+                "bulk"
+              ]
+            },
+            "description": "Batch create multiple episodes using JSON payload. Enforces story monetization rules: episodes up to `free_episodes_count` are free (0 coins), while episodes beyond are set to configured `coin_price_per_episode`."
           }
         },
         {

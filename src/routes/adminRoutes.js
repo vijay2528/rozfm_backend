@@ -98,6 +98,13 @@ router.put('/stories/:id/approval-status', AdminPublishedStoriesController.updat
 router.get('/episodes', AdminContentController.listEpisodes);
 router.get('/episodes/:id', AdminContentController.showEpisode);
 router.post('/episodes', upload.episodeMedia, AdminContentController.storeEpisode);
+
+// Multiple Episodes upload for a Story (Story Details Section)
+router.post('/stories/:id/episodes', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
+router.post('/stories/:id/episodes/bulk', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
+router.post('/stories/:id/episodes/batch', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
+router.post('/episodes/bulk', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
+router.post('/episodes/batch', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
 router.put('/episodes/:id', upload.episodeMedia, AdminContentController.updateEpisode);
 router.post('/episodes/:id', upload.episodeMedia, AdminContentController.updateEpisode);
 router.delete('/episodes/:id', AdminContentController.deleteEpisode);
