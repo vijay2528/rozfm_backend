@@ -135,8 +135,6 @@ class ContentController {
         language,
         tags,
         is_premium,
-        is_monetized,
-        monetization,
         free_episodes,
         free_episodes_count,
         free_episode_count,
@@ -283,9 +281,7 @@ class ContentController {
       const parsedCoinPrice = parseInt(coin_price_per_episode !== undefined ? coin_price_per_episode : (coins_per_episode !== undefined ? coins_per_episode : (coin_price !== undefined ? coin_price : (episode_coin_price !== undefined ? episode_coin_price : coins))), 10);
       const finalCoinPrice = !isNaN(parsedCoinPrice) ? Math.max(0, parsedCoinPrice) : 25;
 
-      const isMonetizedBool = Boolean(
-        is_monetized === true || is_monetized === 'true' || is_monetized === 1 || is_monetized === '1' ||
-        monetization === true || monetization === 'true' || monetization === 1 || monetization === '1' ||
+      const isPremiumBool = Boolean(
         is_premium === true || is_premium === 'true' || is_premium === 1 || is_premium === '1' ||
         finalFreeEpisodes > 0 || (coin_price_per_episode !== undefined && coin_price_per_episode !== null)
       );
@@ -322,7 +318,7 @@ class ContentController {
           bannerImagePath,
           storyLanguage,
           tags || null,
-          isMonetizedBool ? 1 : 0,
+          isPremiumBool ? 1 : 0,
           finalFreeEpisodes,
           finalCoinPrice,
           finalStatus,
@@ -378,8 +374,6 @@ class ContentController {
         language,
         tags,
         is_premium,
-        is_monetized,
-        monetization,
         free_episodes,
         free_episodes_count,
         free_episode_count,
@@ -458,11 +452,9 @@ class ContentController {
         }
       }
 
-      if (is_premium !== undefined || is_monetized !== undefined || monetization !== undefined) {
+      if (is_premium !== undefined) {
         const isPrem = Boolean(
-          is_premium === true || is_premium === 'true' || is_premium === 1 || is_premium === '1' ||
-          is_monetized === true || is_monetized === 'true' || is_monetized === 1 || is_monetized === '1' ||
-          monetization === true || monetization === 'true' || monetization === 1 || monetization === '1'
+          is_premium === true || is_premium === 'true' || is_premium === 1 || is_premium === '1'
         );
         updateFields.push('`is_premium` = ?');
         queryParams.push(isPrem ? 1 : 0);
@@ -1223,7 +1215,6 @@ class ContentController {
         coins_per_episode,
         coin_price,
         is_premium,
-        is_monetized,
       } = req.body || {};
 
       let freeLimit = story.free_episodes_count !== null && story.free_episodes_count !== undefined
@@ -1261,9 +1252,8 @@ class ContentController {
         }
       }
 
-      if (is_premium !== undefined || is_monetized !== undefined) {
-        const rawPrem = is_premium !== undefined ? is_premium : is_monetized;
-        isMonetized = Boolean(rawPrem === true || rawPrem === 'true' || rawPrem === 1 || rawPrem === '1');
+      if (is_premium !== undefined) {
+        isMonetized = Boolean(is_premium === true || is_premium === 'true' || is_premium === 1 || is_premium === '1');
         storyUpdateSql.push('is_premium = ?');
         storyUpdateParams.push(isMonetized ? 1 : 0);
         storyUpdateNeeded = true;
@@ -1463,7 +1453,6 @@ class ContentController {
           story_title: story.title,
           total_episodes_count: (current_count || 0) + createdEpisodes.length,
           monetization: {
-            is_monetized: isMonetized,
             is_premium: isMonetized,
             free_episodes_count: freeLimit,
             coin_price_per_episode: coinPrice,
