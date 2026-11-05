@@ -929,6 +929,236 @@ class DashboardController {
   }
 
   /**
+   * GET /api/v1/admin/real-time-analytics
+   * GET /api/v1/admin/realtime-analytics
+   * 100% Dynamic real-time listener activity across the platform, refreshed every 10 seconds:
+   * - 4 Live KPI Cards (Listeners Online, Episodes Playing, New Signups (1h), Coin Purchases (1h))
+   * - Dynamic 12-interval sparklines across the last 60 minutes
+   * - Area chart: Concurrent Listeners — last 60 min (12 x 5-minute time intervals)
+   */
+  static async getRealtimeAnalytics(req, res) {
+    try {
+      const now = new Date();
+      const windowMinutes = Math.min(180, Math.max(15, parseInt(req.query.window, 10) || 60));
+      const intervalMinutes = Math.min(30, Math.max(1, parseInt(req.query.interval, 10) || 5));
+      const bucketCount = Math.floor(windowMinutes / intervalMinutes); // default 12 buckets
+
+      // Build time buckets from oldest to newest (last 60 minutes)
+      const buckets = [];
+      for (let i = bucketCount - 1; i >= 0; i--) {
+        const start = new Date(now.getTime() - (i + 1) * intervalMinutes * 60 * 1000);
+        const end = new Date(now.getTime() - i * intervalMinutes * 60 * 1000);
+        const label = end.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        buckets.push({
+          start,
+          end,
+          label,
+          timestamp: end.toISOString(),
+          listenersSet: new Set(),
+          episodesSet: new Set(),
+          signupsCount: 0,
+          purchasesCount: 0,
+        });
+      }
+
+      // 1. Fetch real-time watch histories in window
+      try {
+        const [whRows] = await pool.query(
+          `SELECT 
+             user_id,
+             episode_id,
+             COALESCE(last_watched_at, updated_at, created_at) AS event_time
+           FROM watch_histories
+           WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL ? MINUTE`,
+          [windowMinutes]
+        ).catch(() => [[]]);
+
+        whRows.forEach((r) => {
+          const t = new Date(r.event_time).getTime();
+          buckets.forEach((b) => {
+            if (t >= b.start.getTime() && t < b.end.getTime()) {
+              if (r.user_id) b.listenersSet.add(r.user_id);
+              if (r.episode_id) b.episodesSet.add(r.episode_id);
+            }
+          });
+        });
+      } catch (_) {}
+
+      // 2. Fetch new signups in window
+      try {
+        const [userRows] = await pool.query(
+          `SELECT id, created_at
+           FROM users
+           WHERE created_at >= NOW() - INTERVAL ? MINUTE`,
+          [windowMinutes]
+        ).catch(() => [[]]);
+
+        userRows.forEach((u) => {
+          const t = new Date(u.created_at).getTime();
+          buckets.forEach((b) => {
+            if (t >= b.start.getTime() && t < b.end.getTime()) {
+              b.signupsCount += 1;
+            }
+          });
+        });
+      } catch (_) {}
+
+      // 3. Fetch coin purchases in window
+      try {
+        const [salesRows] = await pool.query(
+          `SELECT id, created_at
+           FROM coin_sales
+           WHERE (status = 1 OR status IN ('completed', 'success', 'paid')) AND created_at >= NOW() - INTERVAL ? MINUTE`,
+          [windowMinutes]
+        ).catch(() => [[]]);
+
+        const [txnsRows] = await pool.query(
+          `SELECT id, created_at
+           FROM coin_transactions
+           WHERE (type LIKE '%purchase%' OR type = 'credit') AND created_at >= NOW() - INTERVAL ? MINUTE`,
+          [windowMinutes]
+        ).catch(() => [[]]);
+
+        salesRows.forEach((s) => {
+          const t = new Date(s.created_at).getTime();
+          buckets.forEach((b) => {
+            if (t >= b.start.getTime() && t < b.end.getTime()) {
+              b.purchasesCount += 1;
+            }
+          });
+        });
+
+        txnsRows.forEach((tx) => {
+          const t = new Date(tx.created_at).getTime();
+          buckets.forEach((b) => {
+            if (t >= b.start.getTime() && t < b.end.getTime()) {
+              b.purchasesCount += 1;
+            }
+          });
+        });
+      } catch (_) {}
+
+      // 4. Current online listeners right now (within recent 15 minutes)
+      let currentListenersOnline = 0;
+      let currentEpisodesPlaying = 0;
+
+      try {
+        const [[{ online_listeners }]] = await pool.query(
+          `SELECT COUNT(DISTINCT user_id) as online_listeners
+           FROM watch_histories
+           WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 15 MINUTE`
+        ).catch(() => [[{ online_listeners: 0 }]]);
+
+        const [[{ online_logins }]] = await pool.query(
+          `SELECT COUNT(DISTINCT id) as online_logins
+           FROM users
+           WHERE last_login_at >= NOW() - INTERVAL 15 MINUTE`
+        ).catch(() => [[{ online_logins: 0 }]]);
+
+        currentListenersOnline = Math.max(Number(online_listeners || 0), Number(online_logins || 0));
+
+        const [[{ playing_episodes }]] = await pool.query(
+          `SELECT COUNT(DISTINCT episode_id) as playing_episodes
+           FROM watch_histories
+           WHERE COALESCE(last_watched_at, updated_at, created_at) >= NOW() - INTERVAL 15 MINUTE`
+        ).catch(() => [[{ playing_episodes: 0 }]]);
+
+        currentEpisodesPlaying = Number(playing_episodes || 0);
+      } catch (_) {}
+
+      // Fallback: if last bucket had listeners, ensure current count is at least that
+      const lastBucket = buckets[buckets.length - 1];
+      if (lastBucket) {
+        currentListenersOnline = Math.max(currentListenersOnline, lastBucket.listenersSet.size);
+        currentEpisodesPlaying = Math.max(currentEpisodesPlaying, lastBucket.episodesSet.size);
+      }
+
+      // 5. Total 1h counts
+      const totalSignups1h = buckets.reduce((acc, b) => acc + b.signupsCount, 0);
+      const totalPurchases1h = buckets.reduce((acc, b) => acc + b.purchasesCount, 0);
+
+      // Data series for chart & sparklines
+      const chartLabels = buckets.map((b) => b.label);
+      const chartTimestamps = buckets.map((b) => b.timestamp);
+      const concurrentListenersData = buckets.map((b) => b.listenersSet.size);
+      const episodesPlayingSparkline = buckets.map((b) => b.episodesSet.size);
+      const signupsSparkline = buckets.map((b) => b.signupsCount);
+      const purchasesSparkline = buckets.map((b) => b.purchasesCount);
+
+      const peakListeners = Math.max(...concurrentListenersData, currentListenersOnline, 0);
+      const totalSumListeners = concurrentListenersData.reduce((acc, v) => acc + v, 0);
+      const avgListeners = bucketCount > 0 ? Number((totalSumListeners / bucketCount).toFixed(1)) : 0;
+
+      const responseData = {
+        title: 'Real-time Analytics',
+        subtitle: 'Live listener activity across the platform, refreshed every 10 seconds.',
+        is_live: true,
+        refresh_interval_seconds: 10,
+        timestamp: now.toISOString(),
+        kpis: {
+          listeners_online: {
+            label: 'Listeners Online',
+            value: formatCount(currentListenersOnline),
+            count: currentListenersOnline,
+            tag: 'Live',
+            is_live: true,
+            icon: 'headphones',
+            color: '#22C55E',
+            sparkline: concurrentListenersData,
+          },
+          episodes_playing: {
+            label: 'Episodes Playing',
+            value: formatCount(currentEpisodesPlaying),
+            count: currentEpisodesPlaying,
+            tag: 'Live',
+            is_live: true,
+            icon: 'play',
+            color: '#8B5CF6',
+            sparkline: episodesPlayingSparkline,
+          },
+          new_signups_1h: {
+            label: 'New Signups (1h)',
+            value: formatCount(totalSignups1h),
+            count: totalSignups1h,
+            tag: 'Live',
+            is_live: true,
+            icon: 'users',
+            color: '#3B82F6',
+            sparkline: signupsSparkline,
+          },
+          coin_purchases_1h: {
+            label: 'Coin Purchases (1h)',
+            value: formatCount(totalPurchases1h),
+            count: totalPurchases1h,
+            tag: 'Live',
+            is_live: true,
+            icon: 'coins',
+            color: '#F59E0B',
+            sparkline: purchasesSparkline,
+          },
+        },
+        chart: {
+          title: 'Concurrent Listeners — last 60 min',
+          unit: 'listeners',
+          window_minutes: windowMinutes,
+          interval_minutes: intervalMinutes,
+          current_listeners: currentListenersOnline,
+          peak_listeners: peakListeners,
+          average_listeners: avgListeners,
+          labels: chartLabels,
+          data: concurrentListenersData,
+          timestamps: chartTimestamps,
+        },
+      };
+
+      return ApiResponse.success(res, responseData, 'Real-time analytics retrieved successfully');
+    } catch (error) {
+      console.error('Real-time Analytics Error:', error);
+      return ApiResponse.error(res, 'Failed to load real-time analytics.', 500);
+    }
+  }
+
+  /**
    * GET /api/v1/admin/dashboard
    * Preserves existing dashboard contract while enriching with overview metrics
    */

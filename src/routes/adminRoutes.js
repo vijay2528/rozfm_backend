@@ -54,6 +54,11 @@ router.post('/auth/logout', AdminAuthController.logout);
 // ── 1. Admin Dashboard & Analytics ───────────────────────────────────────────
 router.get('/overview', AdminDashboardController.getOverview);
 router.get('/dashboard/overview', AdminDashboardController.getOverview);
+router.get('/realtime-analytics', AdminDashboardController.getRealtimeAnalytics);
+router.get('/real-time-analytics', AdminDashboardController.getRealtimeAnalytics);
+router.get('/dashboard/realtime', AdminDashboardController.getRealtimeAnalytics);
+router.get('/dashboard/real-time', AdminDashboardController.getRealtimeAnalytics);
+router.get('/analytics/realtime', AdminDashboardController.getRealtimeAnalytics);
 router.get('/dashboard', AdminDashboardController.index);
 router.get('/story-analytics', AdminStoryAnalyticsController.getStoryAnalytics);
 router.get('/stories/analytics', AdminStoryAnalyticsController.getStoryAnalytics);

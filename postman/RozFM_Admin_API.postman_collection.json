@@ -113,6 +113,41 @@
           }
         },
         {
+          "name": "Get Real-time Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/real-time-analytics?window=60&interval=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "real-time-analytics"
+              ],
+              "query": [
+                {
+                  "key": "window",
+                  "value": "60",
+                  "description": "Time window in minutes (default 60, min 15, max 180)"
+                },
+                {
+                  "key": "interval",
+                  "value": "5",
+                  "description": "Bucket interval in minutes (default 5, min 1, max 30)"
+                }
+              ]
+            },
+            "description": "Fetch live real-time listener activity across the platform refreshed every 10 seconds: Listeners Online, Episodes Playing, New Signups (1h), Coin Purchases (1h), and Concurrent Listeners over the last 60 minutes."
+          }
+        },
+        {
           "name": "Get Dashboard Statistics",
           "request": {
             "method": "GET",
