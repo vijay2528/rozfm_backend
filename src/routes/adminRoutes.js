@@ -149,6 +149,9 @@ router.delete('/coin-packs/:id', AdminMonetizationController.deletePack);
 router.get('/transactions', AdminMonetizationController.listTransactions);
 
 // ── Payment Management (Razorpay, Transactions, Failed Payments, Revenue Reports) ──
+router.get('/payments/dashboard', AdminPaymentController.getPaymentDashboard);
+router.get('/payment/dashboard', AdminPaymentController.getPaymentDashboard);
+router.get('/payment-dashboard', AdminPaymentController.getPaymentDashboard);
 router.get('/payments/razorpay', AdminPaymentController.getRazorpayDashboard);
 router.get('/payment/razorpay', AdminPaymentController.getRazorpayDashboard);
 router.get('/payments/transactions', AdminPaymentController.listTransactions);

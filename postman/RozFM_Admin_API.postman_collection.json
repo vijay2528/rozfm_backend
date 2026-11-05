@@ -5592,6 +5592,49 @@
       "name": "Payment (Razorpay, Transactions, Failed Payments, Revenue Reports)",
       "item": [
         {
+          "name": "Get Payment Dashboard (Overview & Revenue by Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/dashboard?page=1&limit=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "15",
+                  "description": "Number of transactions per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search transaction ID, user name, or description"
+                }
+              ]
+            },
+            "description": "Payment > Payment Dashboard screen API: Returns 4 KPI cards (Total Revenue, Razorpay Revenue, Google Play = 0, Apple IAP = 0), Revenue by Gateway bar chart (Razorpay, Google Play, Apple IAP, Refunds), and recent Razorpay transactions table."
+          },
+          "response": []
+        },
+        {
           "name": "Get Razorpay Dashboard (Performance & Daily Settlement)",
           "request": {
             "method": "GET",
