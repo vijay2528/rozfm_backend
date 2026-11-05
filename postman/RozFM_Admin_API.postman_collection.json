@@ -5589,6 +5589,191 @@
       ]
     },
     {
+      "name": "Payment (Razorpay, Transactions, Failed Payments, Revenue Reports)",
+      "item": [
+        {
+          "name": "Get Razorpay Dashboard (Performance & Daily Settlement)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/razorpay?days=30&status=all&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "razorpay"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "description": "Number of past days for metrics and daily settlement (default 30)"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter by status: all, success, failed, refunded"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search transaction ID, user name, or description"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "Payment > Razorpay screen API: Returns 4 KPI cards (Revenue 30d with growth %, Success Rate %, Avg. Ticket Size, Disputes count), Daily settlement line chart curve, and paginated Razorpay transactions list."
+          },
+          "response": []
+        },
+        {
+          "name": "List All Payment Transactions across Gateways",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/transactions?status=all&gateway=all&search=&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter tabs: all, success, failed, refunded"
+                },
+                {
+                  "key": "gateway",
+                  "value": "all",
+                  "description": "Filter by gateway: all, razorpay, google_play, apple_pay"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search transaction ID, user name, or description"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "Payment > Transactions screen API: Returns all payment transactions across Razorpay, Google Play, and Apple Pay with status tab counters (all, success, failed, refunded), formatted amounts, user info, and pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "List Failed Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/failed?gateway=all&search=&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "failed"
+              ],
+              "query": [
+                {
+                  "key": "gateway",
+                  "value": "all",
+                  "description": "Filter by gateway: all, razorpay, google_play, apple_pay"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search transaction ID, user name, or description"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "Payment > Failed Payments screen API: Returns transactions that did not complete, with failure reason, user details, gateway, amount, and date."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Revenue Reports (Consolidated Revenue & 12M Trend)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/revenue-reports",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "revenue-reports"
+              ]
+            },
+            "description": "Payment > Revenue Reports screen API: Returns consolidated revenue reporting across coins, subscriptions and ads with Total Revenue (with growth %), MoM Growth %, YoY Growth %, 12-month trend chart curve, and category breakdown."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Recommendation Lists",
       "item": [
         {

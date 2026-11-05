@@ -30,6 +30,7 @@ const AdminCoinTransactionController = require('../controllers/admin/coinTransac
 const AdminRecommendationController = require('../controllers/admin/recommendationController');
 const AdminReportController = require('../controllers/admin/reportController');
 const AdminNotificationController = require('../controllers/admin/notificationController');
+const AdminPaymentController = require('../controllers/admin/paymentController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -146,6 +147,16 @@ router.post('/coin-packs/:id', AdminMonetizationController.updatePack);
 router.delete('/coin-packs/:id', AdminMonetizationController.deletePack);
 
 router.get('/transactions', AdminMonetizationController.listTransactions);
+
+// ── Payment Management (Razorpay, Transactions, Failed Payments, Revenue Reports) ──
+router.get('/payments/razorpay', AdminPaymentController.getRazorpayDashboard);
+router.get('/payment/razorpay', AdminPaymentController.getRazorpayDashboard);
+router.get('/payments/transactions', AdminPaymentController.listTransactions);
+router.get('/payment/transactions', AdminPaymentController.listTransactions);
+router.get('/payments/failed', AdminPaymentController.listFailedPayments);
+router.get('/payment/failed', AdminPaymentController.listFailedPayments);
+router.get('/payments/revenue-reports', AdminPaymentController.getRevenueReports);
+router.get('/payment/revenue-reports', AdminPaymentController.getRevenueReports);
 
 // ── 7. Content Moderation (Reviews & Comments) ───────────────────────────────
 router.get('/reviews', AdminModerationController.listReviews);
