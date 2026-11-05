@@ -90,6 +90,29 @@
       "name": "1. Admin Dashboard",
       "item": [
         {
+          "name": "Get Admin Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/overview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "overview"
+              ]
+            },
+            "description": "Comprehensive real-time snapshot of Roz FM's platform health: KPI cards (Total Revenue, Active Users, Stories, Episodes, Creators, Listening Time, Premium Members, Daily Growth), Coin Revenue, Quick Actions, Revenue Trend chart, Listening by Genre (considering category), and Recent Activity."
+          }
+        },
+        {
           "name": "Get Dashboard Statistics",
           "request": {
             "method": "GET",
