@@ -795,12 +795,6 @@
                   "description": "Publish date formatted as YYYY-MM-DD or null"
                 },
                 {
-                  "key": "is_monetized",
-                  "value": "1",
-                  "type": "text",
-                  "description": "Enable monetization for this story (1 for yes, 0 for no)"
-                },
-                {
                   "key": "free_episodes_count",
                   "value": "2",
                   "type": "text",

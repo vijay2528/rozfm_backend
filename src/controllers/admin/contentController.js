@@ -311,8 +311,8 @@ class ContentController {
 
       // 5. Insert Story with Monetization settings
       const [result] = await pool.query(
-        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, free_episodes_count, coin_price_per_episode, is_monetized, status, release_status, publish_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, free_episodes_count, coin_price_per_episode, status, release_status, publish_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           finalUserId,
           title.trim(),
@@ -325,7 +325,6 @@ class ContentController {
           isMonetizedBool ? 1 : 0,
           finalFreeEpisodes,
           finalCoinPrice,
-          isMonetizedBool ? 1 : 0,
           finalStatus,
           finalReleaseStatus,
           finalPublishDate,
@@ -459,14 +458,14 @@ class ContentController {
         }
       }
 
-      if (is_monetized !== undefined || monetization !== undefined || is_premium !== undefined) {
-        const isMon = Boolean(
+      if (is_premium !== undefined || is_monetized !== undefined || monetization !== undefined) {
+        const isPrem = Boolean(
+          is_premium === true || is_premium === 'true' || is_premium === 1 || is_premium === '1' ||
           is_monetized === true || is_monetized === 'true' || is_monetized === 1 || is_monetized === '1' ||
-          monetization === true || monetization === 'true' || monetization === 1 || monetization === '1' ||
-          is_premium === true || is_premium === 'true' || is_premium === 1 || is_premium === '1'
+          monetization === true || monetization === 'true' || monetization === 1 || monetization === '1'
         );
-        updateFields.push('`is_monetized` = ?', '`is_premium` = ?');
-        queryParams.push(isMon ? 1 : 0, isMon ? 1 : 0);
+        updateFields.push('`is_premium` = ?');
+        queryParams.push(isPrem ? 1 : 0);
       }
 
       const rawFree = free_episodes_count !== undefined ? free_episodes_count : (free_episodes !== undefined ? free_episodes : (free_episode_count !== undefined ? free_episode_count : free_limit));
@@ -957,12 +956,11 @@ class ContentController {
       // Episodes <= free_episodes_count are free with 0 coins.
       // Episodes > free_episodes_count use configured coin_price_per_episode.
       const [[storyMonetization]] = await pool.query(
-        'SELECT id, is_premium, is_monetized, free_episodes_count, coin_price_per_episode FROM stories WHERE id = ? LIMIT 1',
+        'SELECT id, is_premium, free_episodes_count, coin_price_per_episode FROM stories WHERE id = ? LIMIT 1',
         [targetStoryId]
       );
       if (storyMonetization) {
         const isStoryMonetized = Boolean(
-          storyMonetization.is_monetized === 1 ||
           storyMonetization.is_premium === 1 ||
           (storyMonetization.free_episodes_count !== null && Number(storyMonetization.free_episodes_count) > 0)
         );
@@ -1209,7 +1207,7 @@ class ContentController {
       }
 
       const [storyRows] = await pool.query(
-        'SELECT id, title, is_premium, is_monetized, free_episodes_count, coin_price_per_episode FROM stories WHERE id = ? LIMIT 1',
+        'SELECT id, title, is_premium, free_episodes_count, coin_price_per_episode FROM stories WHERE id = ? LIMIT 1',
         [targetStoryId]
       );
       if (storyRows.length === 0) {
@@ -1224,6 +1222,7 @@ class ContentController {
         coin_price_per_episode,
         coins_per_episode,
         coin_price,
+        is_premium,
         is_monetized,
       } = req.body || {};
 
@@ -1233,7 +1232,7 @@ class ContentController {
       let coinPrice = story.coin_price_per_episode !== null && story.coin_price_per_episode !== undefined
         ? Number(story.coin_price_per_episode)
         : 25;
-      let isMonetized = Boolean(story.is_monetized === 1 || story.is_premium === 1 || freeLimit > 0);
+      let isMonetized = Boolean(story.is_premium === 1 || freeLimit > 0);
 
       const newFreeEpisodes = free_episodes_count !== undefined ? free_episodes_count : free_episodes;
       const newCoinPrice = coin_price_per_episode !== undefined ? coin_price_per_episode : (coins_per_episode !== undefined ? coins_per_episode : coin_price);
@@ -1262,10 +1261,11 @@ class ContentController {
         }
       }
 
-      if (is_monetized !== undefined) {
-        isMonetized = Boolean(is_monetized === true || is_monetized === 'true' || is_monetized === 1 || is_monetized === '1');
-        storyUpdateSql.push('is_monetized = ?', 'is_premium = ?');
-        storyUpdateParams.push(isMonetized ? 1 : 0, isMonetized ? 1 : 0);
+      if (is_premium !== undefined || is_monetized !== undefined) {
+        const rawPrem = is_premium !== undefined ? is_premium : is_monetized;
+        isMonetized = Boolean(rawPrem === true || rawPrem === 'true' || rawPrem === 1 || rawPrem === '1');
+        storyUpdateSql.push('is_premium = ?');
+        storyUpdateParams.push(isMonetized ? 1 : 0);
         storyUpdateNeeded = true;
       }
 
