@@ -2676,6 +2676,43 @@
           }
         },
         {
+          "name": "Adjust Creator Revenue Share",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rev_share_percentage\": 25\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/revenue-share",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "revenue-share"
+              ]
+            },
+            "description": "Adjust creator take-home share percentage (0-100%). Platform share automatically becomes 100 - value. Matching modal: Adjust Revenue Share."
+          }
+        },
+        {
           "name": "Get Creator Wallet",
           "request": {
             "method": "GET",
@@ -4496,6 +4533,42 @@
               "body": "User ID,Name,Email,Phone,Rev Share,This Month (INR),Total Revenue (INR),Status,Joined Date\n1018,\"Sanya Bose\",\"sanya.bose@rozfm.com\",\"+919988776658\",\"70%\",\"₹12,90,000\",\"₹12,90,000\",\"active\",\"2026-09-23\"\n1015,\"Meera Iyer\",\"meera.iyer@rozfm.com\",\"+919988776655\",\"70%\",\"₹8,42,000\",\"₹8,42,000\",\"active\",\"2026-09-23\"\n1016,\"Aman Kapoor\",\"aman.kapoor@rozfm.com\",\"+919988776656\",\"70%\",\"₹3,10,500\",\"₹3,10,500\",\"active\",\"2026-09-23\"\n1017,\"Rhea Verma\",\"rhea.verma@rozfm.com\",\"+919988776657\",\"70%\",\"₹58,200\",\"₹58,200\",\"active\",\"2026-09-23\"\n1019,\"Ishaan Gill\",\"ishaan.gill@rozfm.com\",\"+919988776659\",\"70%\",\"₹14,000\",\"₹14,000\",\"active\",\"2026-09-23\""
             }
           ]
+        },
+        {
+          "name": "Adjust Creator Revenue Share",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rev_share_percentage\": 25\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-share/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-share",
+                "1"
+              ]
+            },
+            "description": "Adjust individual creator revenue share split from the Revenue Share management module."
+          }
         }
       ]
     },

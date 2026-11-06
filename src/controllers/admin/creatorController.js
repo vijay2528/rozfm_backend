@@ -30,6 +30,23 @@ function formatDate(date) {
   });
 }
 
+let isRevShareColEnsured = false;
+async function ensureRevenueShareColumn() {
+  if (isRevShareColEnsured) return;
+  try {
+    await pool.query("ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `revenue_share_percentage` INT NULL DEFAULT NULL AFTER `wallet_balance`");
+    isRevShareColEnsured = true;
+  } catch (err) {
+    try {
+      const [cols] = await pool.query("SHOW COLUMNS FROM `users` LIKE 'revenue_share_percentage'");
+      if (cols.length === 0) {
+        await pool.query("ALTER TABLE `users` ADD COLUMN `revenue_share_percentage` INT NULL DEFAULT NULL AFTER `wallet_balance`");
+      }
+      isRevShareColEnsured = true;
+    } catch (_) {}
+  }
+}
+
 class AdminCreatorController {
   /**
    * Helper to get global revenue share percentage from settings table
@@ -57,6 +74,7 @@ class AdminCreatorController {
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
       const offset = (pageNum - 1) * limitNum;
 
+      await ensureRevenueShareColumn();
       const defaultRevShare = await AdminCreatorController.getGlobalRevShareSetting();
 
       // Creators have role = 'creator' OR role = 'Creator'
@@ -106,6 +124,7 @@ class AdminCreatorController {
           u.avatar_path,
           u.is_verified,
           u.is_blocked,
+          u.revenue_share_percentage,
           u.created_at,
           u.updated_at,
           (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id) as stories_count,
@@ -120,7 +139,7 @@ class AdminCreatorController {
 
       // Format output items
       const creators = rows.map((c) => {
-        const revShareVal = defaultRevShare;
+        const revShareVal = (c.revenue_share_percentage !== null && c.revenue_share_percentage !== undefined) ? Number(c.revenue_share_percentage) : defaultRevShare;
         const effectiveStatus = c.is_blocked === 1 ? 'InActive' : 'active';
         const earningsVal = Number(c.earnings || 0);
         const followersVal = Number(c.followers_count || 0);
@@ -194,6 +213,7 @@ class AdminCreatorController {
           u.is_verified,
           u.is_blocked,
           u.wallet_balance,
+          u.revenue_share_percentage,
           u.created_at,
           u.updated_at,
           (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id) as stories_count,
@@ -981,24 +1001,87 @@ class AdminCreatorController {
    */
   static async getRevenueShare(req, res) {
     try {
+      await ensureRevenueShareColumn();
       const creatorId = req.params.id;
-      const [cRows] = await pool.query('SELECT id, name FROM users WHERE id = ? AND (role = "creator" OR role = "Creator") LIMIT 1', [creatorId]);
+      const [cRows] = await pool.query('SELECT id, name, revenue_share_percentage FROM users WHERE id = ? AND (role = "creator" OR role = "Creator") LIMIT 1', [creatorId]);
       if (cRows.length === 0) return ApiResponse.error(res, 'Creator not found.', 404);
 
       const defaultRevShare = await AdminCreatorController.getGlobalRevShareSetting();
+      const revShareVal = (cRows[0].revenue_share_percentage !== null && cRows[0].revenue_share_percentage !== undefined)
+        ? Number(cRows[0].revenue_share_percentage)
+        : defaultRevShare;
+      const platformShare = 100 - revShareVal;
 
       return ApiResponse.success(res, {
         creator_id: Number(creatorId),
         creator_name: cRows[0].name,
-        rev_share: defaultRevShare,
-        creator_percentage: defaultRevShare,
-        platform_percentage: 100 - defaultRevShare,
-        formatted_rev_share: `${defaultRevShare}%`,
-        formatted_platform_share: `${100 - defaultRevShare}%`,
+        rev_share: revShareVal,
+        rev_share_percentage: revShareVal,
+        creator_percentage: revShareVal,
+        platform_share: platformShare,
+        platform_percentage: platformShare,
+        formatted_rev_share: `${revShareVal}%`,
+        formatted_platform_share: `${platformShare}%`,
+        is_custom: cRows[0].revenue_share_percentage !== null && cRows[0].revenue_share_percentage !== undefined,
       }, 'Creator revenue share fetched successfully.');
     } catch (error) {
       console.error('Admin Creator Revenue Share Error:', error);
       return ApiResponse.error(res, 'Failed to fetch creator revenue share.', 500);
+    }
+  }
+
+  /**
+   * PUT /api/v1/admin/creators/:id/revenue-share
+   * or PUT /api/v1/admin/revenue-share/:id
+   * Adjust creator revenue share percentage (0 - 100)
+   */
+  static async updateRevenueShare(req, res) {
+    try {
+      await ensureRevenueShareColumn();
+      const creatorId = req.params.id;
+
+      const [cRows] = await pool.query(
+        'SELECT id, name FROM users WHERE id = ? AND (role = "creator" OR role = "Creator") LIMIT 1',
+        [creatorId]
+      );
+      if (cRows.length === 0) {
+        return ApiResponse.error(res, 'Creator not found.', 404);
+      }
+
+      const creator = cRows[0];
+      const rawVal = req.body.rev_share_percentage ?? req.body.revenue_share_percentage ?? req.body.creator_percentage ?? req.body.rev_share ?? req.body.percentage;
+
+      if (rawVal === undefined || rawVal === null || String(rawVal).trim() === '' || isNaN(Number(rawVal))) {
+        return ApiResponse.error(res, 'A valid revenue share percentage (0-100) is required.', 400);
+      }
+
+      const percentage = Math.min(100, Math.max(0, parseInt(rawVal, 10)));
+      const platformPercentage = 100 - percentage;
+
+      await pool.query(
+        'UPDATE users SET revenue_share_percentage = ?, updated_at = NOW() WHERE id = ?',
+        [percentage, creatorId]
+      );
+
+      return ApiResponse.success(
+        res,
+        {
+          creator_id: Number(creatorId),
+          creator_name: creator.name,
+          rev_share: percentage,
+          rev_share_percentage: percentage,
+          creator_percentage: percentage,
+          platform_share: platformPercentage,
+          platform_percentage: platformPercentage,
+          formatted_rev_share: `${percentage}%`,
+          formatted_platform_share: `${platformPercentage}%`,
+          is_custom: true,
+        },
+        `Revenue share for ${creator.name} updated to ${percentage}% successfully.`
+      );
+    } catch (error) {
+      console.error('Admin Update Revenue Share Error:', error);
+      return ApiResponse.error(res, 'Failed to update revenue share.', 500);
     }
   }
 }

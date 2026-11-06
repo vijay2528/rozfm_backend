@@ -259,6 +259,8 @@ router.get('/creators/:id/published-stories', AdminCreatorController.getPublishe
 router.get('/creators/:id/pending-stories', AdminCreatorController.getPendingStories);
 router.get('/creators/:id/stories', AdminCreatorController.getPublishedStories);
 router.get('/creators/:id/revenue-share', AdminCreatorController.getRevenueShare);
+router.put('/creators/:id/revenue-share', AdminCreatorController.updateRevenueShare);
+router.post('/creators/:id/revenue-share', AdminCreatorController.updateRevenueShare);
 
 router.get('/creators/:id', AdminCreatorController.show);
 router.post('/creators', upload.single('avatar'), AdminCreatorController.store);
@@ -312,6 +314,10 @@ router.get('/revenue-shares/export', AdminRevenueShareController.exportData);
 router.get('/revenue-share/export', AdminRevenueShareController.exportData);
 router.get('/revenue-shares', AdminRevenueShareController.index);
 router.get('/revenue-share', AdminRevenueShareController.index);
+router.put('/revenue-share/:id', AdminCreatorController.updateRevenueShare);
+router.post('/revenue-share/:id', AdminCreatorController.updateRevenueShare);
+router.put('/revenue-shares/:id', AdminCreatorController.updateRevenueShare);
+router.post('/revenue-shares/:id', AdminCreatorController.updateRevenueShare);
 
 // ── 20. Coupon Code Management ────────────────────────────────────────────────
 router.get('/coupons', AdminCouponController.index);
