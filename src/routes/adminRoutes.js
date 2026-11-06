@@ -31,6 +31,7 @@ const AdminRecommendationController = require('../controllers/admin/recommendati
 const AdminReportController = require('../controllers/admin/reportController');
 const AdminNotificationController = require('../controllers/admin/notificationController');
 const AdminPaymentController = require('../controllers/admin/paymentController');
+const AdminPremiumAnalyticsController = require('../controllers/admin/premiumAnalyticsController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -130,6 +131,11 @@ router.get('/plans', AdminMonetizationController.listPlans);
 router.post('/plans', AdminMonetizationController.storePlan);
 router.put('/plans/:id', AdminMonetizationController.updatePlan);
 router.delete('/plans/:id', AdminMonetizationController.deletePlan);
+
+// ── Coins & Premium > Premium Analytics ──────────────────────────────────────
+router.get('/premium-analytics', AdminPremiumAnalyticsController.getAnalytics);
+router.get('/coins-premium/analytics', AdminPremiumAnalyticsController.getAnalytics);
+router.get('/coins-premium/premium-analytics', AdminPremiumAnalyticsController.getAnalytics);
 
 // ── 6a. Membership Plans CRUD ─────────────────────────────────────────────────
 router.get('/membership-plans', AdminMembershipPlanController.index);

@@ -1630,6 +1630,31 @@
       "name": "5. Monetization & Financials",
       "item": [
         {
+          "name": "Get Premium Analytics (Subscriber Growth & Plan Mix)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/premium-analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "premium-analytics"
+              ]
+            },
+            "description": "Coins & Premium > Premium Analytics screen API: Returns 4 KPI cards (Premium Members e.g. 412K, Gold Members e.g. 86K, Monthly Churn e.g. 3.1%, ARPU e.g. ₹212), 12-month Subscriber Growth line curve (Jan to Dec), and Plan Mix donut breakdown (Free 74%, Premium 19%, Gold 7%, center: 100)."
+          },
+          "response": []
+        },
+        {
           "name": "List Subscription Plans",
           "request": {
             "method": "GET",

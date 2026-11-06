@@ -107,40 +107,8 @@ async function ensureTransactionsData() {
     try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `transaction_type` VARCHAR(50) DEFAULT 'credit' AFTER `amount`"); } catch (_) {}
     try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `payment_status` VARCHAR(50) DEFAULT 'paid' AFTER `transaction_type`"); } catch (_) {}
     try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `payment_method` VARCHAR(50) DEFAULT NULL AFTER `payment_status`"); } catch (_) {}
-
-    // Check count of transactions with amount > 0
-    const [rows] = await connection.query("SELECT COUNT(*) AS total FROM `coin_transactions` WHERE amount > 0");
-    if (rows[0].total === 0) {
-      const [users] = await connection.query("SELECT id, name FROM `users` LIMIT 5");
-      const u1 = users[0]?.id || 1;
-      const u2 = users[1]?.id || 2;
-      const u3 = users[2]?.id || 3;
-      const u4 = users[3]?.id || 4;
-      const u5 = users[4]?.id || 5;
-
-      const seedData = [
-        [u1, 'coin_pack', 1200, null, 1, 999.00, 'credit', 'paid', 'razorpay', 'Purchased Coin Pack #1: Starter Pack', 'TXN-88291', '2026-07-28 10:30:00'],
-        [u2, 'plan_purchase', 500, 2, null, 399.00, 'credit', 'paid', 'google_play', 'Subscribed to VIP Monthly', 'TXN-88292', '2026-07-28 11:15:00'],
-        [u3, 'coin_pack', 2500, null, 3, 1999.00, 'credit', 'failed', 'apple_pay', 'Payment declined by bank', 'TXN-88293', '2026-07-27 15:45:00'],
-        [u4, 'plan_purchase', 2000, 3, null, 1499.00, 'credit', 'refunded', 'razorpay', 'Gold Membership (Refunded)', 'TXN-88294', '2026-07-27 16:20:00'],
-        [u5, 'coin_pack', 300, null, 1, 199.00, 'credit', 'paid', 'google_play', 'Purchased Basic Coin Pack', 'TXN-88295', '2026-07-26 09:10:00'],
-        [u1, 'coin_pack', 600, null, 2, 499.00, 'credit', 'paid', 'razorpay', 'Purchased Medium Coin Pack', 'pay_TwAcGGubkE3P5S', '2026-07-25 14:00:00'],
-        [u2, 'coin_pack', 110, null, 1, 49.00, 'credit', 'paid', 'razorpay', 'Purchased Coin Pack #1: Starter Pack', 'pay_TwGFH62DWg5x1u', '2026-07-24 18:30:00'],
-        [u3, 'coin_pack', 500, null, 2, 412.00, 'credit', 'failed', 'razorpay', 'Insufficient funds', 'TXN-88296', '2026-07-23 12:15:00'],
-        [u4, 'coin_pack', 1000, null, 3, 799.00, 'credit', 'paid', 'razorpay', 'Purchased Mega Coin Pack', 'pay_TwK9001Sample', '2026-07-22 17:40:00'],
-      ];
-
-      for (const item of seedData) {
-        await connection.query(
-          `INSERT INTO \`coin_transactions\` 
-           (\`user_id\`, \`type\`, \`coins\`, \`plan_id\`, \`coin_pack_id\`, \`amount\`, \`transaction_type\`, \`payment_status\`, \`payment_method\`, \`description\`, \`reference_id\`, \`created_at\`)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          item
-        );
-      }
-    }
   } catch (err) {
-    console.error('Error ensuring transactions data:', err.message);
+    console.error('Error ensuring transactions schema:', err.message);
   } finally {
     connection.release();
   }
@@ -177,7 +145,7 @@ class AdminPaymentController {
       const lastMonth = Number(revRow.last_month || 0);
       const refundsTotal = Number(revRow.refunds_total || 0);
 
-      let growthPct = 12.4;
+      let growthPct = 0;
       if (lastMonth > 0) {
         growthPct = parseFloat((((thisMonth - lastMonth) / lastMonth) * 100).toFixed(1));
       }
@@ -187,15 +155,15 @@ class AdminPaymentController {
         total_revenue: {
           label: 'Total Revenue',
           amount: razorpayTotal,
-          value: razorpayTotal > 0 ? formatCurrencyINR(razorpayTotal) : '₹48.2L',
-          change: `+${growthPct}%`,
+          value: formatCurrencyINR(razorpayTotal),
+          change: `${growthPct >= 0 ? '+' : ''}${growthPct}%`,
           is_positive: growthPct >= 0,
         },
         razorpay: {
           label: 'Razorpay',
           amount: razorpayTotal,
-          value: razorpayTotal > 0 ? formatCurrencyINR(razorpayTotal) : '₹22.6L',
-          change: `+${growthPct}%`,
+          value: formatCurrencyINR(razorpayTotal),
+          change: `${growthPct >= 0 ? '+' : ''}${growthPct}%`,
           is_positive: growthPct >= 0,
         },
         google_play: {
@@ -209,8 +177,8 @@ class AdminPaymentController {
           label: 'Apple IAP',
           amount: 0,
           value: '₹0',
-          change: '-0%',
-          is_positive: false,
+          change: '+0%',
+          is_positive: true,
         },
       };
 
@@ -359,8 +327,6 @@ class AdminPaymentController {
       let revGrowth = 0;
       if (prevRev > 0) {
         revGrowth = parseFloat((((currentRev - prevRev) / prevRev) * 100).toFixed(1));
-      } else if (currentRev > 0) {
-        revGrowth = 9.1; // realistic baseline if no prior period
       }
 
       // ── KPI 2: Success Rate (30d) ──────────────────────────────────────────
@@ -375,10 +341,10 @@ class AdminPaymentController {
 
       const totalCount = Number(rateRow.total_count || 0);
       const successCount = Number(rateRow.success_count || 0);
-      const successRate = totalCount > 0 ? parseFloat(((successCount / totalCount) * 100).toFixed(1)) : 97.2;
+      const successRate = totalCount > 0 ? parseFloat(((successCount / totalCount) * 100).toFixed(1)) : 0;
 
       // ── KPI 3: Avg. Ticket Size ────────────────────────────────────────────
-      const avgTicketSize = successCount > 0 ? Math.round(currentRev / successCount) : 412;
+      const avgTicketSize = successCount > 0 ? Math.round(currentRev / successCount) : 0;
 
       // ── KPI 4: Disputes ────────────────────────────────────────────────────
       const [[disputesRow]] = await pool.query(
@@ -496,7 +462,7 @@ class AdminPaymentController {
             revenue_30d: {
               label: 'Revenue (30d)',
               amount: currentRev,
-              value: currentRev > 0 ? formatCurrencyINR(currentRev) : '₹22.6L',
+              value: formatCurrencyINR(currentRev),
               change: `${revGrowth >= 0 ? '+' : ''}${revGrowth}%`,
               is_positive: revGrowth >= 0,
             },
@@ -504,7 +470,7 @@ class AdminPaymentController {
               label: 'Success Rate',
               rate: successRate,
               value: `${successRate}%`,
-              change: '+0.5%',
+              change: '+0%',
               is_positive: true,
             },
             avg_ticket_size: {
@@ -515,7 +481,7 @@ class AdminPaymentController {
             disputes: {
               label: 'Disputes',
               count: disputesCount,
-              value: String(disputesCount || 6),
+              value: String(disputesCount),
             },
           },
           chart: {
@@ -795,7 +761,7 @@ class AdminPaymentController {
         momGrowth = parseFloat((((thisMonthRev - lastMonthRev) / lastMonthRev) * 100).toFixed(1));
       }
 
-      let yoyGrowth = 100;
+      let yoyGrowth = 0;
       if (lastYearRev > 0) {
         yoyGrowth = parseFloat((((thisYearRev - lastYearRev) / lastYearRev) * 100).toFixed(1));
       }
@@ -866,8 +832,8 @@ class AdminPaymentController {
             total_revenue: {
               label: 'Total Revenue',
               amount: totalRevenue,
-              value: totalRevenue > 0 ? formatCurrencyINR(totalRevenue) : '₹5.09L',
-              change: `+${momGrowth}%`,
+              value: formatCurrencyINR(totalRevenue),
+              change: `${momGrowth >= 0 ? '+' : ''}${momGrowth}%`,
               is_positive: momGrowth >= 0,
             },
             mom_growth: {

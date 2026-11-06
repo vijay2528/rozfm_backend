@@ -30,37 +30,9 @@ async function ensureCoinTransactionTable() {
     try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `amount` DECIMAL(10, 2) DEFAULT 0.00 AFTER `coin_pack_id`"); } catch (_) { }
     try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `transaction_type` ENUM('credit', 'debit') DEFAULT 'credit' AFTER `amount`"); } catch (_) { }
     try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `payment_status` VARCHAR(50) DEFAULT 'paid' AFTER `transaction_type`"); } catch (_) { }
-
-    // Check if table is empty
-    const [rows] = await connection.query(`SELECT COUNT(*) AS total FROM \`coin_transactions\``);
-    if (rows[0].total === 0) {
-      // Ensure seed users exist or query existing users
-      const [users] = await connection.query(`SELECT id, name FROM \`users\` LIMIT 10`);
-
-      let u1 = users[0]?.id || 1;
-      let u2 = users[1]?.id || 2;
-      let u3 = users[2]?.id || 3;
-
-      const seedTxns = [
-        [u1, 'reward', 100, null, null, 0.00, 'credit', 'paid', 'Streak Milestone Reward (3 Days)', 'STREAK-3D', '2026-07-27 10:30:00'],
-        [u2, 'spend', -40, null, null, 0.00, 'debit', 'paid', 'Unlocked Episode #14', 'EP-104', '2026-07-26 14:15:00'],
-        [u3, 'coin_pack', 300, null, 2, 199.00, 'credit', 'paid', 'Purchased Popular Coin Pack (₹199)', 'RAZORPAY-8821', '2026-07-25 18:20:00'],
-        [u1, 'reward', 400, null, null, 0.00, 'credit', 'paid', 'Daily Listening Bonus & Ad Reward', 'AD-REWARD-99', '2026-07-24 11:45:00'],
-        [u2, 'spend', -100, null, null, 0.00, 'debit', 'paid', 'Unlocked Episode #20', 'EP-110', '2026-07-22 09:10:00'],
-        [u3, 'coin_pack', 600, null, 4, 399.00, 'credit', 'paid', 'Purchased Mega Coin Pack (₹399)', 'RAZORPAY-9932', '2026-07-19 16:50:00'],
-        [u1, 'reward', 700, null, null, 0.00, 'credit', 'paid', 'Referral Bonus Reward', 'REF-2026', '2026-07-28 12:00:00'],
-      ];
-
-      for (const txn of seedTxns) {
-        await connection.query(
-          `INSERT INTO \`coin_transactions\` (\`user_id\`, \`type\`, \`coins\`, \`plan_id\`, \`coin_pack_id\`, \`amount\`, \`transaction_type\`, \`payment_status\`, \`description\`, \`reference_id\`, \`created_at\`)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          txn
-        );
-      }
-    }
+    try { await connection.query("ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `payment_method` VARCHAR(50) DEFAULT NULL AFTER `payment_status`"); } catch (_) { }
   } catch (err) {
-    console.error('Error ensuring coin_transactions table:', err.message);
+    console.error('Error ensuring coin_transactions table schema:', err.message);
   } finally {
     connection.release();
   }
@@ -142,8 +114,9 @@ class CoinTransactionController {
     try {
       await ensureCoinTransactionTable();
 
-      const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
-      const limitNum = Math.max(1, parseInt(req.query.limit, 10) || 10);
+      const { search, type, page, limit } = req.query || {};
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.max(1, parseInt(limit, 10) || 10);
       const offset = (pageNum - 1) * limitNum;
 
       let whereClauses = ['1=1'];
@@ -175,7 +148,7 @@ class CoinTransactionController {
         `SELECT COUNT(*) AS total FROM \`coin_transactions\` ct LEFT JOIN \`users\` u ON ct.user_id = u.id ${whereSql}`,
         params
       );
-      const total = countResult[0].total;
+      const total = Number(countResult[0]?.total || 0);
 
       const [rows] = await pool.query(
         `SELECT ct.*, u.name AS user_name, u.email AS user_email
