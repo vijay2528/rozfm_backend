@@ -248,15 +248,24 @@ class UserController {
       }
 
       const [transactions] = await pool.query(
-        'SELECT id, type, coins as amount, description, "Completed" as status, created_at as date FROM coin_transactions WHERE user_id = ? ORDER BY created_at DESC',
+        `SELECT 
+           id,
+           COALESCE(reference_id, CONCAT('TXN-', id)) as transaction_id,
+           type,
+           COALESCE(NULLIF(coins, 0), amount, 0) as amount,
+           coins,
+           amount as cash_amount,
+           description,
+           COALESCE(payment_status, 'Success') as status,
+           created_at as date,
+           created_at
+         FROM coin_transactions 
+         WHERE user_id = ? 
+         ORDER BY id DESC`,
         [userId]
       );
 
-      return ApiResponse.success(res, {
-        user_id: Number(userId),
-        current_balance: Number(userRows[0].wallet_balance || 0),
-        transactions,
-      });
+      return ApiResponse.success(res, transactions);
     } catch (error) {
       console.error('User Wallet Transactions Section Error:', error);
       return ApiResponse.error(res, 'Failed to fetch wallet transactions.', 500);
@@ -288,10 +297,7 @@ class UserController {
         [userId]
       );
 
-      return ApiResponse.success(res, {
-        user_id: Number(userId),
-        history,
-      });
+      return ApiResponse.success(res, history);
     } catch (error) {
       console.error('User Listening History Section Error:', error);
       return ApiResponse.error(res, 'Failed to fetch listening history.', 500);
@@ -321,20 +327,25 @@ class UserController {
 
       const premiumStatus = subscriptions.length > 0 ? {
         plan: subscriptions[0].plan_name || userRows[0].subscription_type || 'Free',
+        plan_name: subscriptions[0].plan_name || userRows[0].subscription_type || 'Free',
+        subscription_type: subscriptions[0].plan_name || userRows[0].subscription_type || 'Free',
         status: subscriptions[0].status || 'Active',
         renews_on: subscriptions[0].expires_at ? new Date(subscriptions[0].expires_at).toLocaleDateString() : 'N/A',
         days_remaining: subscriptions[0].expires_at ? Math.max(0, Math.ceil((new Date(subscriptions[0].expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0,
+        total_days: 30,
+        progress_percent: subscriptions[0].expires_at ? Math.min(100, Math.round((Math.max(0, Math.ceil((new Date(subscriptions[0].expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) / 30) * 100)) : 0,
       } : {
         plan: userRows[0].subscription_type || 'Free',
+        plan_name: userRows[0].subscription_type || 'Free',
+        subscription_type: userRows[0].subscription_type || 'Free',
         status: 'Active',
         renews_on: 'N/A',
         days_remaining: 0,
+        total_days: 30,
+        progress_percent: 0,
       };
 
-      return ApiResponse.success(res, {
-        user_id: Number(userId),
-        premium_status: premiumStatus,
-      });
+      return ApiResponse.success(res, premiumStatus);
     } catch (error) {
       console.error('User Premium Status Section Error:', error);
       return ApiResponse.error(res, 'Failed to fetch premium status.', 500);
@@ -359,19 +370,16 @@ class UserController {
       }
 
       const user = userRows[0];
-      const devices = [
+      const devices = user.device_type || user.platform || user.last_login_at ? [
         {
-          device: user.device_type === 'ios' ? 'iPhone 15 Pro' : 'Android Device',
-          os: user.platform || 'Android 15',
-          location: user.city && user.country ? `${user.city}, ${user.country}` : 'Lucknow, IN',
+          device: user.device_type === 'ios' ? 'iPhone 15 Pro' : (user.device_type ? `${user.device_type} Device` : 'Mobile Device'),
+          os: user.platform || 'Android',
+          location: user.city && user.country ? `${user.city}, ${user.country}` : (user.country || 'India'),
           time: user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Recently active',
         }
-      ];
+      ] : [];
 
-      return ApiResponse.success(res, {
-        user_id: Number(userId),
-        devices,
-      });
+      return ApiResponse.success(res, devices);
     } catch (error) {
       console.error('User Devices Section Error:', error);
       return ApiResponse.error(res, 'Failed to fetch device login history.', 500);
@@ -391,20 +399,16 @@ class UserController {
         return ApiResponse.error(res, 'User not found.', 404);
       }
 
-      return ApiResponse.success(res, {
-        user_id: Number(userId),
-        reports: [],
-        message: 'No reports filed for this user account.',
-      });
+      return ApiResponse.success(res, []);
     } catch (error) {
       console.error('User Reports Section Error:', error);
-      return ApiResponse.error(res, 'Failed to fetch moderation reports.', 500);
+      return ApiResponse.error(res, 'Failed to fetch user moderation reports.', 500);
     }
   }
 
   /**
    * POST /api/v1/admin/users
-   * Create a new user from Admin Panel
+   * Create a new user
    */
   static async store(req, res) {
     try {
