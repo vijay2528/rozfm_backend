@@ -2618,6 +2618,222 @@
           }
         },
         {
+          "name": "Get Creator Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "analytics"
+              ]
+            },
+            "description": "Tab 1: Fetch creator total plays, avg completion %, this month earnings, 30d follower growth, and 12-month earnings trend curve."
+          }
+        },
+        {
+          "name": "Get Creator Revenue Share",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/revenue-share",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "revenue-share"
+              ]
+            },
+            "description": "Tab 2: Fetch creator revenue share % split and platform split."
+          }
+        },
+        {
+          "name": "Get Creator Wallet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/wallet",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "wallet"
+              ]
+            },
+            "description": "Tab 3: Fetch creator available balance, pending clearance, and lifetime earnings."
+          }
+        },
+        {
+          "name": "Get Creator Withdrawals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/withdrawals?status=all&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "withdrawals"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Tab 4: Paginated list of creator withdrawal requests with status filter (all, pending, approved, paid, rejected)."
+          }
+        },
+        {
+          "name": "Get Creator Published Stories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/published-stories?search=&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "published-stories"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Tab 5: Paginated list of approved and published stories belonging to this creator with episode counts and play metrics."
+          }
+        },
+        {
+          "name": "Get Creator Pending Stories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/pending-stories?search=&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "pending-stories"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Tab 6: Paginated list of pending review stories awaiting approval for this creator."
+          }
+        },
+        {
           "name": "Invite / Create New Creator",
           "request": {
             "method": "POST",

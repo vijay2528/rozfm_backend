@@ -251,6 +251,15 @@ router.get('/creators', AdminCreatorController.index);
 // Creator Analytics — must be declared BEFORE /creators/:id to avoid param capture
 router.get('/creators/analytics', AdminCreatorAnalyticsController.getAnalytics);
 
+// Creator Sub-Resources (Tabs on Creator Profile: Analytics, Wallet, Withdrawals, Stories, Rev Share)
+router.get('/creators/:id/analytics', AdminCreatorController.getAnalytics);
+router.get('/creators/:id/wallet', AdminCreatorController.getWallet);
+router.get('/creators/:id/withdrawals', AdminCreatorController.getWithdrawals);
+router.get('/creators/:id/published-stories', AdminCreatorController.getPublishedStories);
+router.get('/creators/:id/pending-stories', AdminCreatorController.getPendingStories);
+router.get('/creators/:id/stories', AdminCreatorController.getPublishedStories);
+router.get('/creators/:id/revenue-share', AdminCreatorController.getRevenueShare);
+
 router.get('/creators/:id', AdminCreatorController.show);
 router.post('/creators', upload.single('avatar'), AdminCreatorController.store);
 router.post('/creators/invite', AdminCreatorController.store);
