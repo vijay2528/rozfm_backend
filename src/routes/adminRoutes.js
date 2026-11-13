@@ -30,6 +30,7 @@ const AdminCoinTransactionController = require('../controllers/admin/coinTransac
 const AdminRecommendationController = require('../controllers/admin/recommendationController');
 const AdminReportController = require('../controllers/admin/reportController');
 const AdminNotificationController = require('../controllers/admin/notificationController');
+const AdminPaymentTransactionController = require('../controllers/admin/paymentTransactionController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -132,6 +133,17 @@ router.post('/coin-packs/:id', AdminMonetizationController.updatePack);
 router.delete('/coin-packs/:id', AdminMonetizationController.deletePack);
 
 router.get('/transactions', AdminMonetizationController.listTransactions);
+
+// ── 6b. Payments: Razorpay Transactions & Failed Payments ───────────────────
+router.get('/payments/transactions/stats', AdminPaymentTransactionController.stats);
+router.get('/payments/transactions/export', AdminPaymentTransactionController.export);
+router.get('/payments/transactions', AdminPaymentTransactionController.index);
+router.get('/payments/transactions/:id', AdminPaymentTransactionController.show);
+router.get('/payments/failed/export', AdminPaymentTransactionController.exportFailed);
+router.get('/payments/failed', AdminPaymentTransactionController.failed);
+router.get('/payments/failed/:id', AdminPaymentTransactionController.show);
+router.post('/payments/failed/:id/resolve', AdminPaymentTransactionController.resolveFailed);
+router.delete('/payments/failed/:id', AdminPaymentTransactionController.destroyFailed);
 
 // ── 7. Content Moderation (Reviews & Comments) ───────────────────────────────
 router.get('/reviews', AdminModerationController.listReviews);
