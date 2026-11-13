@@ -146,12 +146,16 @@ class EpisodeCommentController {
           .then(([userRows]) => {
             if (!userRows.length) return;
             const commenterName = userRows[0].name;
-            PushNotificationService.sendToUser(
-              Number(authorId),
-              '💬 New Comment',
-              `${commenterName} commented on episode "${episode.title}"`,
-              { action_type: 'episode', action_id: String(episodeId), story_id: String(episode.story_id || '') }
-            ).catch(() => {});
+            PushNotificationService.sendCommentNotification({
+              recipientUserId: Number(authorId),
+              commentId: result.insertId,
+              episodeId: episodeId,
+              storyId: episode.story_id,
+              commenterName: commenterName,
+              commentText: comment.trim(),
+              title: 'New Comment on your Episode 💬',
+              body: `${commenterName} commented: '${comment.trim().length > 50 ? comment.trim().substring(0, 47) + '...' : comment.trim()}'`,
+            }).catch(() => {});
           })
           .catch(() => {});
       }).catch(() => {});

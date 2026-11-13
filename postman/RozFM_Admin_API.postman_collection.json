@@ -90,6 +90,64 @@
       "name": "1. Admin Dashboard",
       "item": [
         {
+          "name": "Get Admin Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/overview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "overview"
+              ]
+            },
+            "description": "Comprehensive real-time snapshot of Roz FM's platform health: KPI cards (Total Revenue, Active Users, Stories, Episodes, Creators, Listening Time, Premium Members, Daily Growth), Coin Revenue, Quick Actions, Revenue Trend chart, Listening by Genre (considering category), and Recent Activity."
+          }
+        },
+        {
+          "name": "Get Real-time Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/real-time-analytics?window=60&interval=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "real-time-analytics"
+              ],
+              "query": [
+                {
+                  "key": "window",
+                  "value": "60",
+                  "description": "Time window in minutes (default 60, min 15, max 180)"
+                },
+                {
+                  "key": "interval",
+                  "value": "5",
+                  "description": "Bucket interval in minutes (default 5, min 1, max 30)"
+                }
+              ]
+            },
+            "description": "Fetch live real-time listener activity across the platform refreshed every 10 seconds: Listeners Online, Episodes Playing, New Signups (1h), Coin Purchases (1h), and Concurrent Listeners over the last 60 minutes."
+          }
+        },
+        {
           "name": "Get Dashboard Statistics",
           "request": {
             "method": "GET",
@@ -735,6 +793,18 @@
                   "value": "2026-09-15",
                   "type": "text",
                   "description": "Publish date formatted as YYYY-MM-DD or null"
+                },
+                {
+                  "key": "free_episodes_count",
+                  "value": "2",
+                  "type": "text",
+                  "description": "Number of initial episodes available for free before coin pricing starts"
+                },
+                {
+                  "key": "coin_price_per_episode",
+                  "value": "25",
+                  "type": "text",
+                  "description": "Coin price automatically applied to every subsequent episode beyond the free limit"
                 }
               ]
             },
@@ -819,6 +889,18 @@
                   "value": "2026-09-15",
                   "type": "text",
                   "description": "Publish date formatted as YYYY-MM-DD or null"
+                },
+                {
+                  "key": "free_episodes_count",
+                  "value": "3",
+                  "type": "text",
+                  "description": "Update the number of free initial episodes"
+                },
+                {
+                  "key": "coin_price_per_episode",
+                  "value": "30",
+                  "type": "text",
+                  "description": "Update the coin price per episode for subsequent paid episodes"
                 }
               ]
             },
@@ -1034,6 +1116,92 @@
               ]
             },
             "description": "Create a new episode for a story with title, story_id, audio_file, duration, is_premium, and published_at date/time."
+          }
+        },
+        {
+          "name": "Upload Multiple Episodes for Story (Bulk)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "episodes",
+                  "value": "[\n  {\"title\": \"Episode 1: The Beginning\", \"duration_seconds\": 180},\n  {\"title\": \"Episode 2: The Rising\", \"duration_seconds\": 240},\n  {\"title\": \"Episode 3: The Turning Point\", \"duration_seconds\": 300},\n  {\"title\": \"Episode 4: The Climax\", \"duration_seconds\": 360}\n]",
+                  "type": "text",
+                  "description": "JSON array of episode details. Positions will be assigned sequentially."
+                },
+                {
+                  "key": "audio_files",
+                  "type": "file",
+                  "description": "Select multiple audio files (MP3, WAV, AAC, M4A). Files will map to episodes in order."
+                },
+                {
+                  "key": "free_episodes_count",
+                  "value": "2",
+                  "type": "text",
+                  "description": "Optional: override free episodes count for this story"
+                },
+                {
+                  "key": "coin_price_per_episode",
+                  "value": "30",
+                  "type": "text",
+                  "description": "Optional: override coin price per episode for this story"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/stories/1/episodes/bulk",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "stories",
+                "1",
+                "episodes",
+                "bulk"
+              ]
+            },
+            "description": "Upload multiple episodes for a story within the Story Details section.\n\n**Monetization Rules automatically enforced:**\n- Episodes within `free_episodes_count` remain FREE (`is_premium = false`, `coins = 0`).\n- Every subsequent episode beyond the free limit automatically receives the configured `coin_price_per_episode` (`is_premium = true`).\n- Sequential episode positions are automatically computed based on the story's existing episodes count.\n- Story's `episodes_count` is automatically updated."
+          }
+        },
+        {
+          "name": "Upload Multiple Episodes (JSON Batch)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"story_id\": 1,\n  \"episodes\": [\n    {\n      \"title\": \"Episode 1: Origin\",\n      \"audio_path\": \"https://files.rozfm.com/episodes/sample1.mp3\",\n      \"duration_seconds\": 180\n    },\n    {\n      \"title\": \"Episode 2: The Journey\",\n      \"audio_path\": \"https://files.rozfm.com/episodes/sample2.mp3\",\n      \"duration_seconds\": 240\n    },\n    {\n      \"title\": \"Episode 3: The Revelation\",\n      \"audio_path\": \"https://files.rozfm.com/episodes/sample3.mp3\",\n      \"duration_seconds\": 300\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/episodes/bulk",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "episodes",
+                "bulk"
+              ]
+            },
+            "description": "Batch create multiple episodes using JSON payload. Enforces story monetization rules: episodes up to `free_episodes_count` are free (0 coins), while episodes beyond are set to configured `coin_price_per_episode`."
           }
         },
         {
@@ -1461,6 +1629,31 @@
     {
       "name": "5. Monetization & Financials",
       "item": [
+        {
+          "name": "Get Premium Analytics (Subscriber Growth & Plan Mix)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/premium-analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "premium-analytics"
+              ]
+            },
+            "description": "Coins & Premium > Premium Analytics screen API: Returns 4 KPI cards (Premium Members e.g. 412K, Gold Members e.g. 86K, Monthly Churn e.g. 3.1%, ARPU e.g. ₹212), 12-month Subscriber Growth line curve (Jan to Dec), and Plan Mix donut breakdown (Free 74%, Premium 19%, Gold 7%, center: 100)."
+          },
+          "response": []
+        },
         {
           "name": "List Subscription Plans",
           "request": {
@@ -2422,6 +2615,259 @@
               ]
             },
             "description": "Fetch master profile of a creator including published stories list, total views, followers count, lifetime earnings, rev share %, and status."
+          }
+        },
+        {
+          "name": "Get Creator Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "analytics"
+              ]
+            },
+            "description": "Tab 1: Fetch creator total plays, avg completion %, this month earnings, 30d follower growth, and 12-month earnings trend curve."
+          }
+        },
+        {
+          "name": "Get Creator Revenue Share",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/revenue-share",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "revenue-share"
+              ]
+            },
+            "description": "Tab 2: Fetch creator revenue share % split and platform split."
+          }
+        },
+        {
+          "name": "Adjust Creator Revenue Share",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rev_share_percentage\": 25\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/revenue-share",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "revenue-share"
+              ]
+            },
+            "description": "Adjust creator take-home share percentage (0-100%). Platform share automatically becomes 100 - value. Matching modal: Adjust Revenue Share."
+          }
+        },
+        {
+          "name": "Get Creator Wallet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/wallet",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "wallet"
+              ]
+            },
+            "description": "Tab 3: Fetch creator available balance, pending clearance, and lifetime earnings."
+          }
+        },
+        {
+          "name": "Get Creator Withdrawals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/withdrawals?status=all&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "withdrawals"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Tab 4: Paginated list of creator withdrawal requests with status filter (all, pending, approved, paid, rejected)."
+          }
+        },
+        {
+          "name": "Get Creator Published Stories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/published-stories?search=&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "published-stories"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Tab 5: Paginated list of approved and published stories belonging to this creator with episode counts and play metrics."
+          }
+        },
+        {
+          "name": "Get Creator Pending Stories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/creators/1/pending-stories?search=&page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "creators",
+                "1",
+                "pending-stories"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Tab 6: Paginated list of pending review stories awaiting approval for this creator."
           }
         },
         {
@@ -4087,6 +4533,42 @@
               "body": "User ID,Name,Email,Phone,Rev Share,This Month (INR),Total Revenue (INR),Status,Joined Date\n1018,\"Sanya Bose\",\"sanya.bose@rozfm.com\",\"+919988776658\",\"70%\",\"₹12,90,000\",\"₹12,90,000\",\"active\",\"2026-09-23\"\n1015,\"Meera Iyer\",\"meera.iyer@rozfm.com\",\"+919988776655\",\"70%\",\"₹8,42,000\",\"₹8,42,000\",\"active\",\"2026-09-23\"\n1016,\"Aman Kapoor\",\"aman.kapoor@rozfm.com\",\"+919988776656\",\"70%\",\"₹3,10,500\",\"₹3,10,500\",\"active\",\"2026-09-23\"\n1017,\"Rhea Verma\",\"rhea.verma@rozfm.com\",\"+919988776657\",\"70%\",\"₹58,200\",\"₹58,200\",\"active\",\"2026-09-23\"\n1019,\"Ishaan Gill\",\"ishaan.gill@rozfm.com\",\"+919988776659\",\"70%\",\"₹14,000\",\"₹14,000\",\"active\",\"2026-09-23\""
             }
           ]
+        },
+        {
+          "name": "Adjust Creator Revenue Share",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rev_share_percentage\": 25\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/revenue-share/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "revenue-share",
+                "1"
+              ]
+            },
+            "description": "Adjust individual creator revenue share split from the Revenue Share management module."
+          }
         }
       ]
     },
@@ -5417,6 +5899,234 @@
               ]
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "Payment (Razorpay, Transactions, Failed Payments, Revenue Reports)",
+      "item": [
+        {
+          "name": "Get Payment Dashboard (Overview & Revenue by Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/dashboard?page=1&limit=15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "15",
+                  "description": "Number of transactions per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search transaction ID, user name, or description"
+                }
+              ]
+            },
+            "description": "Payment > Payment Dashboard screen API: Returns 4 KPI cards (Total Revenue, Razorpay Revenue, Google Play = 0, Apple IAP = 0), Revenue by Gateway bar chart (Razorpay, Google Play, Apple IAP, Refunds), and recent Razorpay transactions table."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Razorpay Dashboard (Performance & Daily Settlement)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/razorpay?days=30&status=all&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "razorpay"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "description": "Number of past days for metrics and daily settlement (default 30)"
+                },
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter by status: all, success, failed, refunded"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search transaction ID, user name, or description"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "Payment > Razorpay screen API: Returns 4 KPI cards (Revenue 30d with growth %, Success Rate %, Avg. Ticket Size, Disputes count), Daily settlement line chart curve, and paginated Razorpay transactions list."
+          },
+          "response": []
+        },
+        {
+          "name": "List All Payment Transactions across Gateways",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/transactions?status=all&gateway=all&search=&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Filter tabs: all, success, failed, refunded"
+                },
+                {
+                  "key": "gateway",
+                  "value": "all",
+                  "description": "Filter by gateway: all, razorpay, google_play, apple_pay"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search transaction ID, user name, or description"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "Payment > Transactions screen API: Returns all payment transactions across Razorpay, Google Play, and Apple Pay with status tab counters (all, success, failed, refunded), formatted amounts, user info, and pagination."
+          },
+          "response": []
+        },
+        {
+          "name": "List Failed Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/failed?gateway=all&search=&page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "failed"
+              ],
+              "query": [
+                {
+                  "key": "gateway",
+                  "value": "all",
+                  "description": "Filter by gateway: all, razorpay, google_play, apple_pay"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search transaction ID, user name, or description"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Records per page"
+                }
+              ]
+            },
+            "description": "Payment > Failed Payments screen API: Returns transactions that did not complete, with failure reason, user details, gateway, amount, and date."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Revenue Reports (Consolidated Revenue & 12M Trend)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/payments/revenue-reports",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "payments",
+                "revenue-reports"
+              ]
+            },
+            "description": "Payment > Revenue Reports screen API: Returns consolidated revenue reporting across coins, subscriptions and ads with Total Revenue (with growth %), MoM Growth %, YoY Growth %, 12-month trend chart curve, and category breakdown."
+          },
+          "response": []
         }
       ]
     },

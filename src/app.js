@@ -98,6 +98,25 @@ const serveCopyrightPolicy = (req, res) => {
 
 app.get('/copy-right-policy', serveCopyrightPolicy);
 
+// Serve app-ads.txt for Google AdMob verification
+const serveAppAdsTxt = (req, res) => {
+  const filePath = path.join(__dirname, '..', 'app-ads.txt');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.sendFile(filePath);
+  }
+  const altPath = path.join(__dirname, 'app-ads.txt');
+  if (fs.existsSync(altPath)) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.sendFile(altPath);
+  }
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  return res.send('google.com, pub-6312932745538617, DIRECT, f08c47fec0942fa0\n');
+};
+
+app.get('/app-ads.txt', serveAppAdsTxt);
+app.get('/api/v1/app-ads.txt', serveAppAdsTxt);
+
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
   return ApiResponse.success(

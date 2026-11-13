@@ -2,11 +2,99 @@
  * Push Notification Service
  * Sends real FCM push notifications via Firebase Admin SDK.
  * Device tokens are stored in the `device_token` column of the `users` table.
+ * 
+ * Payload structure strictly matches send_notification_payload.txt specs:
+ *  - android: priority high, channel_id: high_importance_channel, icon: @mipmap/ic_launcher, sound: default
+ *  - apns: apns-priority 10, alert { title, body }, sound: default, badge: 1, content-available: 1
+ *  - data: click_action: FLUTTER_NOTIFICATION_CLICK, type, action_type, action_id, entity IDs
  */
 const { getMessaging } = require('../config/firebase');
 const { pool } = require('../config/db');
 
 class PushNotificationService {
+  /**
+   * Internal builder to construct normalized FCM v1 message payload
+   * conforming to Flutter FCM client and send_notification_payload.txt specs.
+   */
+  static _buildMessage({ token, tokens, title, body, data = {} }) {
+    const sanitizedData = PushNotificationService._sanitizeData(data);
+
+    // Ensure FLUTTER_NOTIFICATION_CLICK is always present for Flutter foreground/background click handling
+    if (!sanitizedData.click_action) {
+      sanitizedData.click_action = 'FLUTTER_NOTIFICATION_CLICK';
+    }
+
+    // Harmonize type and action_type
+    if (sanitizedData.type && !sanitizedData.action_type) {
+      sanitizedData.action_type = sanitizedData.type;
+    }
+    if (sanitizedData.action_type && !sanitizedData.type) {
+      sanitizedData.type = sanitizedData.action_type;
+    }
+
+    // Map entity specific keys matching send_notification_payload.txt
+    const targetType = (sanitizedData.type || sanitizedData.action_type || '').toLowerCase();
+    const actionId = sanitizedData.action_id || sanitizedData.story_id || sanitizedData.episode_id || sanitizedData.comment_id;
+
+    if (actionId && !sanitizedData.action_id) {
+      sanitizedData.action_id = String(actionId);
+    }
+
+    if (targetType === 'story') {
+      if (actionId && !sanitizedData.story_id) sanitizedData.story_id = String(actionId);
+    } else if (targetType === 'episode') {
+      if (actionId && !sanitizedData.episode_id) sanitizedData.episode_id = String(actionId);
+      if (!sanitizedData.auto_unlock) sanitizedData.auto_unlock = 'true';
+    } else if (targetType === 'comment') {
+      if (actionId && !sanitizedData.comment_id) sanitizedData.comment_id = String(actionId);
+      if (!sanitizedData.open_comments) sanitizedData.open_comments = 'true';
+    } else if (targetType === 'review') {
+      if (actionId && !sanitizedData.story_id) sanitizedData.story_id = String(actionId);
+    }
+
+    const titleStr = String(title || '');
+    const bodyStr = String(body || '');
+
+    const message = {
+      notification: {
+        title: titleStr,
+        body: bodyStr,
+      },
+      data: sanitizedData,
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'high_importance_channel',
+          channel_id: 'high_importance_channel',
+          icon: '@mipmap/ic_launcher',
+          sound: 'default',
+        },
+      },
+      apns: {
+        headers: {
+          'apns-priority': '10',
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: titleStr,
+              body: bodyStr,
+            },
+            sound: 'default',
+            badge: 1,
+            contentAvailable: true,
+            'content-available': 1,
+          },
+        },
+      },
+    };
+
+    if (token) message.token = token;
+    if (tokens) message.tokens = tokens;
+
+    return message;
+  }
+
   /**
    * Send a push notification to a single FCM device token.
    *
@@ -19,37 +107,21 @@ class PushNotificationService {
   static async sendToToken(deviceToken, title, body, data = {}) {
     if (!deviceToken || !title || !body) return null;
 
-    const message = {
+    const message = PushNotificationService._buildMessage({
       token: deviceToken,
-      notification: {
-        title: String(title),
-        body: String(body),
-      },
-      data: PushNotificationService._sanitizeData(data),
-      android: {
-        priority: 'high',
-        notification: {
-          sound: 'default',
-          channelId: 'rozfm_default',
-        },
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: 'default',
-            badge: 1,
-          },
-        },
-      },
-    };
+      title,
+      body,
+      data,
+    });
 
     try {
       const messageId = await getMessaging().send(message);
       return messageId;
     } catch (error) {
-      // Log but don't throw — invalid/expired tokens are common; don't break app flow
-      if (error.code === 'messaging/registration-token-not-registered' ||
-          error.code === 'messaging/invalid-registration-token') {
+      if (
+        error.code === 'messaging/registration-token-not-registered' ||
+        error.code === 'messaging/invalid-registration-token'
+      ) {
         console.warn('[FCM] Stale token detected, clearing:', deviceToken.substring(0, 20) + '...');
         await PushNotificationService._clearStaleToken(deviceToken);
       } else {
@@ -71,9 +143,6 @@ class PushNotificationService {
   static async sendToMultipleTokens(tokens, title, body, data = {}) {
     if (!tokens || tokens.length === 0) return { successCount: 0, failureCount: 0 };
 
-    const sanitizedData = PushNotificationService._sanitizeData(data);
-
-    // FCM allows max 500 tokens per multicast message
     const BATCH_SIZE = 500;
     let totalSuccess = 0;
     let totalFailure = 0;
@@ -81,30 +150,12 @@ class PushNotificationService {
 
     for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
       const batch = tokens.slice(i, i + BATCH_SIZE);
-
-      const message = {
+      const message = PushNotificationService._buildMessage({
         tokens: batch,
-        notification: {
-          title: String(title),
-          body: String(body),
-        },
-        data: sanitizedData,
-        android: {
-          priority: 'high',
-          notification: {
-            sound: 'default',
-            channelId: 'rozfm_default',
-          },
-        },
-        apns: {
-          payload: {
-            aps: {
-              sound: 'default',
-              badge: 1,
-            },
-          },
-        },
-      };
+        title,
+        body,
+        data,
+      });
 
       try {
         const response = await getMessaging().sendEachForMulticast(message);
@@ -129,7 +180,7 @@ class PushNotificationService {
       }
     }
 
-    // Clear stale tokens from DB asynchronously (fire-and-forget)
+    // Clear stale tokens from DB asynchronously
     if (staleTokens.length > 0) {
       PushNotificationService._clearStaleTokens(staleTokens).catch(console.error);
     }
@@ -139,7 +190,6 @@ class PushNotificationService {
 
   /**
    * Send a push notification to a single user by their user ID.
-   * Fetches the device_token from the users table.
    *
    * @param {number} userId   - User ID
    * @param {string} title    - Notification title
@@ -162,7 +212,6 @@ class PushNotificationService {
 
   /**
    * Broadcast a push notification to ALL active (non-blocked) users.
-   * Users without a device_token are skipped.
    *
    * @param {string} title  - Notification title
    * @param {string} body   - Notification body/message
@@ -208,6 +257,130 @@ class PushNotificationService {
 
     const tokens = rows.map((r) => r.device_token);
     return PushNotificationService.sendToMultipleTokens(tokens, title, body, data);
+  }
+
+  // ─── Specialized Payload Helpers from send_notification_payload.txt ──────────
+
+  /**
+   * 1. New Story Notification Payload
+   * Redirects to: View Story Screen (/view-story?id={story_id})
+   */
+  static async sendStoryNotification({
+    recipientUserIds = null,
+    storyId,
+    storyTitle = '',
+    authorName = 'Roz FM',
+    title = 'New Story Released! 📚',
+    body = null,
+  }) {
+    const finalBody = body || `Check out '${storyTitle}' by ${authorName}, now live on Roz FM.`;
+    const payloadData = {
+      type: 'story',
+      action_type: 'story',
+      action_id: String(storyId),
+      story_id: String(storyId),
+      title: String(storyTitle),
+      click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    };
+
+    if (Array.isArray(recipientUserIds) && recipientUserIds.length > 0) {
+      return PushNotificationService.sendToUserIds(recipientUserIds, title, finalBody, payloadData);
+    }
+    return PushNotificationService.sendToAllUsers(title, finalBody, payloadData);
+  }
+
+  /**
+   * 2. New Episode Notification Payload
+   * Redirects to: Play Episode Screen (/play-episode?episodeId={episode_id}&storyId={story_id})
+   */
+  static async sendEpisodeNotification({
+    recipientUserIds = null,
+    episodeId,
+    storyId,
+    episodeNumber = '',
+    episodeTitle = '',
+    title = 'New Episode Available! 🎙️',
+    body = null,
+  }) {
+    const prefix = episodeNumber ? `Ep ${episodeNumber} - ` : '';
+    const finalBody = body || `${prefix}'${episodeTitle || 'New Episode'}' is now available to listen.`;
+    const payloadData = {
+      type: 'episode',
+      action_type: 'episode',
+      action_id: String(episodeId),
+      episode_id: String(episodeId),
+      story_id: String(storyId || ''),
+      auto_unlock: 'true',
+      click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    };
+
+    if (Array.isArray(recipientUserIds) && recipientUserIds.length > 0) {
+      return PushNotificationService.sendToUserIds(recipientUserIds, title, finalBody, payloadData);
+    }
+    return PushNotificationService.sendToAllUsers(title, finalBody, payloadData);
+  }
+
+  /**
+   * 3. New Comment / Reply Notification Payload
+   * Redirects to: Play Episode / Open Comments Sheet
+   */
+  static async sendCommentNotification({
+    recipientUserId,
+    commentId,
+    episodeId = null,
+    storyId = null,
+    commenterName = 'Someone',
+    commentText = '',
+    title = null,
+    body = null,
+  }) {
+    if (!recipientUserId) return null;
+    const finalTitle = title || (episodeId ? 'New Comment on your Episode 💬' : 'New Comment on your Story 💬');
+    const snippet = commentText ? (commentText.length > 60 ? commentText.substring(0, 57) + '...' : commentText) : 'Great episode!';
+    const finalBody = body || `${commenterName} commented: '${snippet}'`;
+
+    const payloadData = {
+      type: 'comment',
+      action_type: 'comment',
+      action_id: String(commentId || episodeId || storyId || ''),
+      comment_id: String(commentId || ''),
+      episode_id: episodeId ? String(episodeId) : '',
+      story_id: storyId ? String(storyId) : '',
+      open_comments: 'true',
+      click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    };
+
+    return PushNotificationService.sendToUser(recipientUserId, finalTitle, finalBody, payloadData);
+  }
+
+  /**
+   * 4. New Review Notification Payload
+   * Redirects to: Story Reviews Screen (/review?storyId={story_id})
+   */
+  static async sendReviewNotification({
+    recipientUserId,
+    storyId,
+    storyTitle = 'Story',
+    reviewerName = 'Someone',
+    rating = 5,
+    title = null,
+    body = null,
+  }) {
+    if (!recipientUserId) return null;
+    const stars = Math.min(5, Math.max(1, Math.round(Number(rating) || 5)));
+    const finalTitle = title || `New ${stars}-Star Review! ⭐`;
+    const finalBody = body || `${reviewerName} left a ${stars}-star review for '${storyTitle}'.`;
+
+    const payloadData = {
+      type: 'review',
+      action_type: 'review',
+      action_id: String(storyId),
+      story_id: String(storyId),
+      rating: String(stars),
+      click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    };
+
+    return PushNotificationService.sendToUser(recipientUserId, finalTitle, finalBody, payloadData);
   }
 
   // ─── Private Helpers ────────────────────────────────────────────────────────

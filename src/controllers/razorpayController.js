@@ -103,8 +103,8 @@ class RazorpayController {
 
         await connection.query(
           `INSERT INTO coin_transactions 
-           (user_id, type, coins, plan_id, coin_pack_id, amount, transaction_type, payment_status, description, reference_id) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, type, coins, plan_id, coin_pack_id, amount, transaction_type, payment_status, payment_method, description, reference_id) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'razorpay', ?, ?)`,
           [
             userId,
             type,

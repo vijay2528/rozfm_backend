@@ -357,8 +357,8 @@ class RazorpaySubscriptionController {
         // Log coin transaction
         await connection.query(
           `INSERT INTO coin_transactions
-           (user_id, type, coins, plan_id, amount, transaction_type, payment_status, description, reference_id)
-           VALUES (?, 'plan_purchase', ?, ?, ?, 'credit', 'paid', ?, ?)`,
+           (user_id, type, coins, plan_id, amount, transaction_type, payment_status, payment_method, description, reference_id)
+           VALUES (?, 'plan_purchase', ?, ?, ?, 'credit', 'paid', 'razorpay', ?, ?)`,
           [
             userId,
             planCoins,

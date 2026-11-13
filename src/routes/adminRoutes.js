@@ -30,7 +30,8 @@ const AdminCoinTransactionController = require('../controllers/admin/coinTransac
 const AdminRecommendationController = require('../controllers/admin/recommendationController');
 const AdminReportController = require('../controllers/admin/reportController');
 const AdminNotificationController = require('../controllers/admin/notificationController');
-const AdminPaymentTransactionController = require('../controllers/admin/paymentTransactionController');
+const AdminPaymentController = require('../controllers/admin/paymentController');
+const AdminPremiumAnalyticsController = require('../controllers/admin/premiumAnalyticsController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
@@ -53,6 +54,13 @@ router.post('/logout', AdminAuthController.logout);
 router.post('/auth/logout', AdminAuthController.logout);
 
 // ── 1. Admin Dashboard & Analytics ───────────────────────────────────────────
+router.get('/overview', AdminDashboardController.getOverview);
+router.get('/dashboard/overview', AdminDashboardController.getOverview);
+router.get('/realtime-analytics', AdminDashboardController.getRealtimeAnalytics);
+router.get('/real-time-analytics', AdminDashboardController.getRealtimeAnalytics);
+router.get('/dashboard/realtime', AdminDashboardController.getRealtimeAnalytics);
+router.get('/dashboard/real-time', AdminDashboardController.getRealtimeAnalytics);
+router.get('/analytics/realtime', AdminDashboardController.getRealtimeAnalytics);
 router.get('/dashboard', AdminDashboardController.index);
 router.get('/story-analytics', AdminStoryAnalyticsController.getStoryAnalytics);
 router.get('/stories/analytics', AdminStoryAnalyticsController.getStoryAnalytics);
@@ -92,6 +100,13 @@ router.put('/stories/:id/approval-status', AdminPublishedStoriesController.updat
 router.get('/episodes', AdminContentController.listEpisodes);
 router.get('/episodes/:id', AdminContentController.showEpisode);
 router.post('/episodes', upload.episodeMedia, AdminContentController.storeEpisode);
+
+// Multiple Episodes upload for a Story (Story Details Section)
+router.post('/stories/:id/episodes', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
+router.post('/stories/:id/episodes/bulk', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
+router.post('/stories/:id/episodes/batch', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
+router.post('/episodes/bulk', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
+router.post('/episodes/batch', upload.episodeMedia, AdminContentController.storeMultipleEpisodes);
 router.put('/episodes/:id', upload.episodeMedia, AdminContentController.updateEpisode);
 router.post('/episodes/:id', upload.episodeMedia, AdminContentController.updateEpisode);
 router.delete('/episodes/:id', AdminContentController.deleteEpisode);
@@ -117,6 +132,11 @@ router.post('/plans', AdminMonetizationController.storePlan);
 router.put('/plans/:id', AdminMonetizationController.updatePlan);
 router.delete('/plans/:id', AdminMonetizationController.deletePlan);
 
+// ── Coins & Premium > Premium Analytics ──────────────────────────────────────
+router.get('/premium-analytics', AdminPremiumAnalyticsController.getAnalytics);
+router.get('/coins-premium/analytics', AdminPremiumAnalyticsController.getAnalytics);
+router.get('/coins-premium/premium-analytics', AdminPremiumAnalyticsController.getAnalytics);
+
 // ── 6a. Membership Plans CRUD ─────────────────────────────────────────────────
 router.get('/membership-plans', AdminMembershipPlanController.index);
 router.get('/membership-plans/:id', AdminMembershipPlanController.show);
@@ -134,16 +154,18 @@ router.delete('/coin-packs/:id', AdminMonetizationController.deletePack);
 
 router.get('/transactions', AdminMonetizationController.listTransactions);
 
-// ── 6b. Payments: Razorpay Transactions & Failed Payments ───────────────────
-router.get('/payments/transactions/stats', AdminPaymentTransactionController.stats);
-router.get('/payments/transactions/export', AdminPaymentTransactionController.export);
-router.get('/payments/transactions', AdminPaymentTransactionController.index);
-router.get('/payments/transactions/:id', AdminPaymentTransactionController.show);
-router.get('/payments/failed/export', AdminPaymentTransactionController.exportFailed);
-router.get('/payments/failed', AdminPaymentTransactionController.failed);
-router.get('/payments/failed/:id', AdminPaymentTransactionController.show);
-router.post('/payments/failed/:id/resolve', AdminPaymentTransactionController.resolveFailed);
-router.delete('/payments/failed/:id', AdminPaymentTransactionController.destroyFailed);
+// ── Payment Management (Razorpay, Transactions, Failed Payments, Revenue Reports) ──
+router.get('/payments/dashboard', AdminPaymentController.getPaymentDashboard);
+router.get('/payment/dashboard', AdminPaymentController.getPaymentDashboard);
+router.get('/payment-dashboard', AdminPaymentController.getPaymentDashboard);
+router.get('/payments/razorpay', AdminPaymentController.getRazorpayDashboard);
+router.get('/payment/razorpay', AdminPaymentController.getRazorpayDashboard);
+router.get('/payments/transactions', AdminPaymentController.listTransactions);
+router.get('/payment/transactions', AdminPaymentController.listTransactions);
+router.get('/payments/failed', AdminPaymentController.listFailedPayments);
+router.get('/payment/failed', AdminPaymentController.listFailedPayments);
+router.get('/payments/revenue-reports', AdminPaymentController.getRevenueReports);
+router.get('/payment/revenue-reports', AdminPaymentController.getRevenueReports);
 
 // ── 7. Content Moderation (Reviews & Comments) ───────────────────────────────
 router.get('/reviews', AdminModerationController.listReviews);
@@ -229,6 +251,17 @@ router.get('/creators', AdminCreatorController.index);
 // Creator Analytics — must be declared BEFORE /creators/:id to avoid param capture
 router.get('/creators/analytics', AdminCreatorAnalyticsController.getAnalytics);
 
+// Creator Sub-Resources (Tabs on Creator Profile: Analytics, Wallet, Withdrawals, Stories, Rev Share)
+router.get('/creators/:id/analytics', AdminCreatorController.getAnalytics);
+router.get('/creators/:id/wallet', AdminCreatorController.getWallet);
+router.get('/creators/:id/withdrawals', AdminCreatorController.getWithdrawals);
+router.get('/creators/:id/published-stories', AdminCreatorController.getPublishedStories);
+router.get('/creators/:id/pending-stories', AdminCreatorController.getPendingStories);
+router.get('/creators/:id/stories', AdminCreatorController.getPublishedStories);
+router.get('/creators/:id/revenue-share', AdminCreatorController.getRevenueShare);
+router.put('/creators/:id/revenue-share', AdminCreatorController.updateRevenueShare);
+router.post('/creators/:id/revenue-share', AdminCreatorController.updateRevenueShare);
+
 router.get('/creators/:id', AdminCreatorController.show);
 router.post('/creators', upload.single('avatar'), AdminCreatorController.store);
 router.post('/creators/invite', AdminCreatorController.store);
@@ -281,6 +314,10 @@ router.get('/revenue-shares/export', AdminRevenueShareController.exportData);
 router.get('/revenue-share/export', AdminRevenueShareController.exportData);
 router.get('/revenue-shares', AdminRevenueShareController.index);
 router.get('/revenue-share', AdminRevenueShareController.index);
+router.put('/revenue-share/:id', AdminCreatorController.updateRevenueShare);
+router.post('/revenue-share/:id', AdminCreatorController.updateRevenueShare);
+router.put('/revenue-shares/:id', AdminCreatorController.updateRevenueShare);
+router.post('/revenue-shares/:id', AdminCreatorController.updateRevenueShare);
 
 // ── 20. Coupon Code Management ────────────────────────────────────────────────
 router.get('/coupons', AdminCouponController.index);

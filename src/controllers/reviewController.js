@@ -1,5 +1,7 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
+const PushNotificationService = require('../services/pushNotificationService');
+const PushNotificationSettings = require('../services/pushNotificationSettings');
 
 class ReviewController {
   static async index(req, res) {
@@ -126,6 +128,26 @@ class ReviewController {
       const rawAvg = parseFloat(avgRow[0].avg_rating) || 0;
       const newRating = Number(rawAvg.toFixed(1));
       await pool.query('UPDATE stories SET rating = ? WHERE id = ?', [newRating, storyId]);
+
+      // ── Push Notification: new review on story ───────────────────────────
+      PushNotificationSettings.isEnabled('push_notify_new_review').then((on) => {
+        if (!on) return;
+        pool.query(
+          'SELECT s.user_id as author_id, s.title, u.name as reviewer_name FROM stories s JOIN users u ON u.id = ? WHERE s.id = ? LIMIT 1',
+          [userId, storyId]
+        ).then(([storyRows]) => {
+          if (!storyRows.length) return;
+          const { author_id, title: storyTitle, reviewer_name } = storyRows[0];
+          if (Number(author_id) === Number(userId)) return; // skip self-review
+          PushNotificationService.sendReviewNotification({
+            recipientUserId: Number(author_id),
+            storyId,
+            storyTitle,
+            reviewerName: reviewer_name,
+            rating: numericRating,
+          }).catch(() => {});
+        }).catch(() => {});
+      }).catch(() => {});
 
       return ApiResponse.success(res, { rating: newRating }, 'Review submitted successfully.');
     } catch (error) {

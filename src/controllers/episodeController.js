@@ -455,12 +455,15 @@ class EpisodeController {
           ).then(([followers]) => {
             if (!followers.length) return;
             const followerIds = followers.map((f) => f.follower_id);
-            PushNotificationService.sendToUserIds(
-              followerIds,
-              '📖 New Episode',
-              `${author_name} published a new episode in "${story_title}"`,
-              { action_type: 'episode', action_id: String(episodeId), story_id: String(targetStoryId) }
-            ).catch(() => {});
+            PushNotificationService.sendEpisodeNotification({
+              recipientUserIds: followerIds,
+              episodeId,
+              storyId: targetStoryId,
+              episodeNumber: newEp[0]?.episode_number || '',
+              episodeTitle: newEp[0]?.title || '',
+              title: 'New Episode Available! 🎙️',
+              body: `Ep ${newEp[0]?.episode_number || ''} - '${newEp[0]?.title || 'New Episode'}' is now available to listen.`,
+            }).catch(() => {});
           }).catch(() => {});
         }).catch(() => {});
       }).catch(() => {});
