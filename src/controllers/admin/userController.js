@@ -22,9 +22,14 @@ class UserController {
         queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
       }
 
-      if (role) {
-        whereClauses.push('(role = ? OR subscription_type = ?)');
-        queryParams.push(role, role);
+      if (role && role.toLowerCase() !== 'all') {
+        const lowerRole = role.toLowerCase();
+        if (lowerRole === 'listener' || lowerRole === 'user') {
+          whereClauses.push('(LOWER(COALESCE(role, "" )) IN ("listener", "user", "") OR role IS NULL OR LOWER(COALESCE(subscription_type, "" )) = "listener")');
+        } else {
+          whereClauses.push('(LOWER(COALESCE(role, "" )) = ? OR LOWER(COALESCE(subscription_type, "" )) = ?)');
+          queryParams.push(lowerRole, lowerRole);
+        }
       }
 
       if (is_blocked !== undefined && is_blocked !== '') {
@@ -39,7 +44,12 @@ class UserController {
 
       const [users] = await pool.query(
         `SELECT id, name, email, phone, country, state, city, subscription_type, wallet_balance, wallet_balance as coins,
-                role, locale, is_blocked, last_login_at, created_at, updated_at
+                CASE
+                  WHEN LOWER(COALESCE(role, "")) = "admin" THEN "Admin"
+                  WHEN LOWER(COALESCE(role, "")) = "creator" THEN "Creator"
+                  ELSE "Listener"
+                END as role,
+                locale, is_blocked, last_login_at, created_at, updated_at
          FROM users
          ${whereSql}
          ORDER BY created_at DESC
@@ -85,8 +95,13 @@ class UserController {
       }
 
       if (role && role.toLowerCase() !== 'all') {
-        whereClauses.push('(role = ? OR subscription_type = ?)');
-        queryParams.push(role, role);
+        const lowerRole = role.toLowerCase();
+        if (lowerRole === 'listener' || lowerRole === 'user') {
+          whereClauses.push('(LOWER(COALESCE(role, "")) IN ("listener", "user", "") OR role IS NULL OR LOWER(COALESCE(subscription_type, "")) = "listener")');
+        } else {
+          whereClauses.push('(LOWER(COALESCE(role, "")) = ? OR LOWER(COALESCE(subscription_type, "")) = ?)');
+          queryParams.push(lowerRole, lowerRole);
+        }
       }
 
       if (is_blocked !== undefined && is_blocked !== '') {
@@ -105,7 +120,12 @@ class UserController {
 
       const [users] = await pool.query(
         `SELECT id, name, email, phone, country, state, city, subscription_type, wallet_balance,
-                role, locale, is_blocked, created_at
+                CASE
+                  WHEN LOWER(COALESCE(role, "")) = "admin" THEN "Admin"
+                  WHEN LOWER(COALESCE(role, "")) = "creator" THEN "Creator"
+                  ELSE "Listener"
+                END as role,
+                locale, is_blocked, created_at
          FROM users
          ${whereSql}
          ORDER BY id DESC`,
