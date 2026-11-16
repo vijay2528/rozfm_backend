@@ -31,6 +31,7 @@ class MeController {
         'country', 'state', 'city', 'age_group', 'gender',
         'email', 'locale',
         'instagram_link', 'youtube_link', 'facebook_link',
+        'device_token', 'device_type', 'platform',
       ];
       const updateFields = [];
       const queryParams = [];
@@ -238,6 +239,32 @@ class MeController {
       return ApiResponse.error(res, 'Failed to update notification settings.', 500);
     }
   }
+  static async updateDeviceToken(req, res) {
+    try {
+      const userId = req.user.id;
+      const { device_token, device_type, platform } = req.body;
+
+      if (!device_token) {
+        return ApiResponse.error(res, 'device_token is required.', 422);
+      }
+
+      const devType = device_type || platform || 'android';
+      await pool.query(
+        'UPDATE users SET device_token = ?, device_type = ?, platform = ?, updated_at = NOW() WHERE id = ?',
+        [device_token.trim(), devType, devType, userId]
+      );
+
+      return ApiResponse.success(res, {
+        user_id: userId,
+        device_token: device_token.trim(),
+        device_type: devType,
+      }, 'Device token updated successfully.');
+    } catch (error) {
+      console.error('Update Device Token Error:', error);
+      return ApiResponse.error(res, 'Failed to update device token.', 500);
+    }
+  }
+
 }
 
 module.exports = MeController;

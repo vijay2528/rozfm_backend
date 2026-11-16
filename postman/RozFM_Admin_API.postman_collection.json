@@ -250,6 +250,52 @@
           }
         },
         {
+          "name": "Export Users (CSV / JSON)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/users/export?search=&role=&status=&format=csv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "users",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Optional name, email, or phone search filter"
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "description": "Optional role filter: All, Listener, Creator, Admin"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Optional status filter: Active, Banned, Suspended"
+                },
+                {
+                  "key": "format",
+                  "value": "csv",
+                  "description": "Export format: csv (default) or json"
+                }
+              ]
+            },
+            "description": "Export users list to CSV file download or JSON with optional search and role filtering matching the All Users table."
+          }
+        },
+        {
           "name": "Get Master User Details",
           "request": {
             "method": "GET",

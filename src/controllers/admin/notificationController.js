@@ -66,13 +66,19 @@ class AdminNotificationController {
     try {
       const title = String(req.body.title || '').trim();
       const message = String(req.body.body || req.body.message || '').trim();
-      const segment = String(req.body.segment || 'all').toLowerCase();
+      let segment = String(req.body.segment || 'all').toLowerCase();
       const actionType = String(req.body.action_type || 'none').toLowerCase();
       const actionValue = req.body.action_value ?? req.body.action_id ?? null;
-      const userIds = normalizeUserIds(req.body.user_ids);
+      let userIds = normalizeUserIds(req.body.user_ids);
+
+      // Support single user_id passed directly in payload
+      if (req.body.user_id && !userIds.length) {
+        userIds = [Number(req.body.user_id)];
+        segment = 'users';
+      }
 
       if (!title || !message) {
-        return ApiResponse.error(res, 'Title and message are required', 422);
+        return ApiResponse.error(res, 'Title and message/body are required', 422);
       }
       if (title.length > 255) {
         return ApiResponse.error(res, 'Title must be 255 characters or less', 422);
@@ -81,7 +87,7 @@ class AdminNotificationController {
         return ApiResponse.error(res, `Invalid segment. Allowed: ${Object.keys(SEGMENTS).join(', ')}`, 422);
       }
       if (segment === 'users' && userIds.length === 0) {
-        return ApiResponse.error(res, 'user_ids is required when segment is "users"', 422);
+        return ApiResponse.error(res, 'user_ids or user_id is required when segment is "users"', 422);
       }
 
       // 1. Resolve target users
@@ -135,8 +141,11 @@ class AdminNotificationController {
           recipients: targetIds.length,
           push_delivered: pushResult.successCount,
           push_failed: pushResult.failureCount,
+          fcm: pushResult,
         },
-        `Notification sent to ${targetIds.length} user(s)`
+        pushResult.successCount > 0
+          ? `Notification successfully sent to ${targetIds.length} user(s). FCM delivered: ${pushResult.successCount}.`
+          : `Notification saved to inbox for ${targetIds.length} user(s). FCM delivered: ${pushResult.successCount} (devices with valid active FCM tokens will receive the push).`
       );
     } catch (err) {
       console.error('Error in admin send push API:', err);

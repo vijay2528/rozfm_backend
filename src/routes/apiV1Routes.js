@@ -151,6 +151,8 @@ router.post('/me', upload.single('image'), MeController.update);
 router.get('/user/profile', MeController.show);
 router.put('/user/profile', upload.single('image'), MeController.update);
 router.post('/user/profile', upload.single('image'), MeController.update);
+router.post('/me/device-token', MeController.updateDeviceToken);
+router.post('/user/device-token', MeController.updateDeviceToken);
 
 router.post('/user/select-language', MeController.selectLanguage);
 router.post('/user/delete-account', MeController.deleteAccount);

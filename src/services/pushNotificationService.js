@@ -65,9 +65,10 @@ class PushNotificationService {
         priority: 'high',
         notification: {
           channelId: 'high_importance_channel',
-          channel_id: 'high_importance_channel',
           icon: '@mipmap/ic_launcher',
           sound: 'default',
+          defaultSound: true,
+          priority: 'high',
         },
       },
       apns: {
@@ -83,7 +84,6 @@ class PushNotificationService {
             sound: 'default',
             badge: 1,
             contentAvailable: true,
-            'content-available': 1,
           },
         },
       },
@@ -162,10 +162,12 @@ class PushNotificationService {
         totalSuccess += response.successCount;
         totalFailure += response.failureCount;
 
-        // Collect stale/invalid tokens to clear from DB
+        // Collect stale/invalid tokens to clear from DB and log failures
         response.responses.forEach((resp, idx) => {
           if (!resp.success) {
             const errCode = resp.error && resp.error.code;
+            const errMsg = resp.error && resp.error.message;
+            console.warn(`[FCM] Token index ${idx} failed:`, errCode, errMsg || '');
             if (
               errCode === 'messaging/registration-token-not-registered' ||
               errCode === 'messaging/invalid-registration-token'
@@ -175,7 +177,7 @@ class PushNotificationService {
           }
         });
       } catch (error) {
-        console.error('[FCM] Batch send error:', error.message);
+        console.error('[FCM] Batch send error:', error.code || error.message);
         totalFailure += batch.length;
       }
     }

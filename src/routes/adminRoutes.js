@@ -68,6 +68,8 @@ router.get('/analytics/stories', AdminStoryAnalyticsController.getStoryAnalytics
 
 // ── 2. User Management ────────────────────────────────────────────────────────
 router.get('/users', AdminUserController.index);
+router.get('/users/export', AdminUserController.exportUsers);
+router.get('/users/export-csv', AdminUserController.exportUsers);
 router.get('/users/:id', AdminUserController.show);
 router.get('/users/:id/overview', AdminUserController.getOverview);
 router.get('/users/:id/wallet-transactions', AdminUserController.getWalletTransactions);
@@ -204,7 +206,7 @@ router.get('/streak-rewards', AdminStreakSettingsController.listStreakRewards);
 router.get('/streak-rewards/list', AdminStreakSettingsController.listStreakRewards);
 router.post('/streak-rewards', AdminStreakSettingsController.updateSettings);
 router.put('/streak-rewards/:id', AdminStreakSettingsController.updateStreakReward);
-router.post('/notifications/send', AdminSettingsController.sendNotification);
+// router.post('/notifications/send', AdminSettingsController.sendNotification); // Handled by AdminNotificationController.sendPush
 
 router.post('/faqs', AdminSettingsController.storeFaq);
 router.put('/faqs/:id', AdminSettingsController.updateFaq);

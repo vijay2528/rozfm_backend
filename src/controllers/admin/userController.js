@@ -67,7 +67,97 @@ class UserController {
    * GET /api/v1/admin/users/:id
    * Get complete master profile of a user (including all section data)
    */
-  static async show(req, res) {
+    /**
+   * GET /api/v1/admin/users/export
+   * GET /api/v1/admin/users/export-csv
+   * Export all users to CSV or JSON format with optional search, role, status filters
+   */
+  static async exportUsers(req, res) {
+    try {
+      const { search, role, is_blocked, status, format = 'csv' } = req.query;
+
+      let whereClauses = ['1=1'];
+      let queryParams = [];
+
+      if (search) {
+        whereClauses.push('(name LIKE ? OR email LIKE ? OR phone LIKE ?)');
+        queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      }
+
+      if (role && role.toLowerCase() !== 'all') {
+        whereClauses.push('(role = ? OR subscription_type = ?)');
+        queryParams.push(role, role);
+      }
+
+      if (is_blocked !== undefined && is_blocked !== '') {
+        const blockVal = is_blocked === '1' || is_blocked === 'true' || is_blocked === 1;
+        whereClauses.push('is_blocked = ?');
+        queryParams.push(blockVal ? 1 : 0);
+      } else if (status) {
+        if (status.toLowerCase() === 'banned' || status.toLowerCase() === 'suspended') {
+          whereClauses.push('is_blocked = 1');
+        } else if (status.toLowerCase() === 'active') {
+          whereClauses.push('is_blocked = 0');
+        }
+      }
+
+      const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
+
+      const [users] = await pool.query(
+        `SELECT id, name, email, phone, country, state, city, subscription_type, wallet_balance,
+                role, locale, is_blocked, created_at
+         FROM users
+         ${whereSql}
+         ORDER BY id DESC`,
+        queryParams
+      );
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      if (format.toLowerCase() === 'json') {
+        return ApiResponse.success(res, {
+          total: users.length,
+          users,
+        }, 'Users exported successfully.');
+      }
+
+      // Generate CSV
+      const headers = ['User ID', 'Name', 'Email', 'Phone', 'Plan', 'Coins', 'Status', 'Role', 'Joined Date'];
+      const csvRows = [headers.join(',')];
+
+      users.forEach(u => {
+        const joinedDate = u.created_at ? new Date(u.created_at).toISOString().split('T')[0] : '';
+        const userStatus = u.is_blocked ? 'Banned' : 'Active';
+        const plan = u.subscription_type || 'Free';
+        const coins = Number(u.wallet_balance || 0).toFixed(2);
+        const escapeCsv = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+
+        csvRows.push([
+          u.id,
+          escapeCsv(u.name || 'User ' + u.id),
+          escapeCsv(u.email || ''),
+          escapeCsv(u.phone || ''),
+          escapeCsv(plan),
+          coins,
+          escapeCsv(userStatus),
+          escapeCsv(u.role || 'Listener'),
+          escapeCsv(joinedDate),
+        ].join(','));
+      });
+
+      const csvData = csvRows.join('\r\n');
+      const filename = `rozfm_users_${todayStr}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.status(200).send(csvData);
+    } catch (error) {
+      console.error('Admin Export Users Error:', error);
+      return ApiResponse.error(res, 'Failed to export users.', 500);
+    }
+  }
+
+static async show(req, res) {
     try {
       const userId = req.params.id;
 
