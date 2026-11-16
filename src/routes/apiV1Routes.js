@@ -132,6 +132,11 @@ router.get('/users/:id/reviews', UserController.getUserReviews);
 router.get('/users/:id/followers', authMiddleware.optional, UserController.getFollowers);
 router.get('/users/:id/following', authMiddleware.optional, UserController.getFollowing);
 
+// Episode Reports (Public / Optional Auth — guest users or logged-in users)
+router.post('/episodes/report', authMiddleware.optional, EpisodeReportController.store);
+router.post('/report-episode', authMiddleware.optional, EpisodeReportController.store);
+router.post('/episodes/:id/report', authMiddleware.optional, EpisodeReportController.store);
+
 // ── Authenticated User Routes ──────────────────────────────────────────────────
 router.use(authMiddleware);
 
@@ -225,8 +230,6 @@ router.post('/stories/:id', upload.storyMedia, StoryController.update);
 
 router.post('/episodes', upload.episodeMedia, EpisodeController.store);
 router.post('/stories/:storyId/episodes', upload.episodeMedia, EpisodeController.store);
-router.put('/episodes/:id', upload.episodeMedia, EpisodeController.update);
-router.post('/episodes/:id', upload.episodeMedia, EpisodeController.update);
 
 // Interactions & Engagement
 router.post('/stories/:id/reviews', ReviewController.store);
@@ -254,20 +257,20 @@ router.post('/watch-history/track-minutes', WatchHistoryController.trackMinutes)
 router.delete('/watch-history', WatchHistoryController.clear);
 router.delete('/watch-history/:id', WatchHistoryController.destroy);
 
-// Episode Reports (static routes before dynamic :id routes)
-router.post('/report-episode', EpisodeReportController.store);
-router.post('/episodes/report', EpisodeReportController.store);
+// Episode Reports (Authenticated User Reports Listing)
 router.get('/user/episode-reports', EpisodeReportController.myReports);
-router.post('/episodes/:id/report', EpisodeReportController.store);
 
 // Static episode routes MUST come before dynamic :id routes
 router.post('/episodes/play-duration', WatchHistoryController.updatePlayDuration);
 router.post('/episodes/update-play-duration', WatchHistoryController.updatePlayDuration);
 router.post('/episode/play-duration', WatchHistoryController.updatePlayDuration);
+
 // Dynamic :id routes
 router.post('/episodes/:id/track-progress', WatchHistoryController.trackProgress);
 router.get('/episodes/:id/progress', WatchHistoryController.getEpisodeProgress);
 router.post('/episodes/:id/unlock', EpisodeController.unlock);
+router.put('/episodes/:id', upload.episodeMedia, EpisodeController.update);
+router.post('/episodes/:id', upload.episodeMedia, EpisodeController.update);
 router.get('/stories/:id/progress', WatchHistoryController.getStoryProgress);
 router.get('/user/listening-stats', WatchHistoryController.getUserListeningStats);
 

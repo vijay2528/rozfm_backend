@@ -17,15 +17,46 @@ function formatReport(r) {
   };
 }
 
+let tableChecked = false;
+async function ensureTable() {
+  if (tableChecked) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS \`episode_reports\` (
+        \`id\` INT NOT NULL AUTO_INCREMENT,
+        \`user_id\` INT NOT NULL,
+        \`episode_id\` INT NOT NULL,
+        \`story_id\` INT NULL DEFAULT NULL,
+        \`reason\` VARCHAR(100) NULL DEFAULT NULL,
+        \`message\` TEXT NULL,
+        \`status\` ENUM('pending', 'reviewed', 'resolved', 'rejected') NOT NULL DEFAULT 'pending',
+        \`admin_note\` TEXT NULL,
+        \`created_at\` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (\`id\`),
+        INDEX \`idx_episode_reports_user_id\` (\`user_id\`),
+        INDEX \`idx_episode_reports_episode_id\` (\`episode_id\`),
+        INDEX \`idx_episode_reports_story_id\` (\`story_id\`),
+        INDEX \`idx_episode_reports_status\` (\`status\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    tableChecked = true;
+  } catch (err) {
+    console.error('Failed to ensure episode_reports table:', err.message);
+  }
+}
+
 class EpisodeReportController {
   /**
    * POST /report-episode  |  POST /episodes/report  |  POST /episodes/:id/report
    * Body: { episode_id, story_id?, reason?, message }
-   * user_id is taken from the authenticated token.
+   * user_id is taken from the authenticated token if present, or optional guest.
    */
   static async store(req, res) {
     try {
-      const userId = req.user.id;
+      await ensureTable();
+
+      const userId = req.user?.id || (req.body?.user_id ? Number(req.body.user_id) : 0);
       const body = req.body || {};
 
       const episodeId = Number(req.params.id || body.episode_id);
@@ -62,13 +93,15 @@ class EpisodeReportController {
       }
       const storyId = episode.story_id ? Number(episode.story_id) : storyIdInput;
 
-      // Prevent duplicate pending reports from the same user on the same episode
-      const [existing] = await pool.query(
-        "SELECT id FROM episode_reports WHERE user_id = ? AND episode_id = ? AND status = 'pending' LIMIT 1",
-        [userId, episodeId]
-      );
-      if (existing.length > 0) {
-        return ApiResponse.error(res, 'You have already reported this episode. Our team is reviewing it.', 409);
+      // Prevent duplicate pending reports from the same user on the same episode (if authenticated)
+      if (userId > 0) {
+        const [existing] = await pool.query(
+          "SELECT id FROM episode_reports WHERE user_id = ? AND episode_id = ? AND status = 'pending' LIMIT 1",
+          [userId, episodeId]
+        );
+        if (existing.length > 0) {
+          return ApiResponse.error(res, 'You have already reported this episode. Our team is reviewing it.', 409);
+        }
       }
 
       const [result] = await pool.query(
