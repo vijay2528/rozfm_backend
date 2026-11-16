@@ -14,7 +14,10 @@ class UserController {
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
       const offset = (pageNum - 1) * limitNum;
 
-      let whereClauses = ['1=1'];
+      // Exclude admin staff/superadmins from general user list
+      let whereClauses = [
+        '(LOWER(COALESCE(role, "")) NOT IN ("admin", "superadmin", "super_admin"))'
+      ];
       let queryParams = [];
 
       if (search) {
@@ -25,9 +28,11 @@ class UserController {
       if (role && role.toLowerCase() !== 'all') {
         const lowerRole = role.toLowerCase();
         if (lowerRole === 'listener' || lowerRole === 'user') {
-          whereClauses.push('(LOWER(COALESCE(role, "" )) IN ("listener", "user", "") OR role IS NULL OR LOWER(COALESCE(subscription_type, "" )) = "listener")');
+          whereClauses.push('(LOWER(COALESCE(role, "")) IN ("listener", "user", "") OR role IS NULL OR LOWER(COALESCE(subscription_type, "")) = "listener")');
+        } else if (lowerRole === 'creator' || lowerRole === 'writer') {
+          whereClauses.push('(LOWER(COALESCE(role, "")) IN ("creator", "writer") OR LOWER(COALESCE(subscription_type, "")) IN ("creator", "writer"))');
         } else {
-          whereClauses.push('(LOWER(COALESCE(role, "" )) = ? OR LOWER(COALESCE(subscription_type, "" )) = ?)');
+          whereClauses.push('(LOWER(COALESCE(role, "")) = ? OR LOWER(COALESCE(subscription_type, "")) = ?)');
           queryParams.push(lowerRole, lowerRole);
         }
       }
@@ -86,7 +91,10 @@ class UserController {
     try {
       const { search, role, is_blocked, status, format = 'csv' } = req.query;
 
-      let whereClauses = ['1=1'];
+      // Exclude admin staff/superadmins from user exports
+      let whereClauses = [
+        '(LOWER(COALESCE(role, "")) NOT IN ("admin", "superadmin", "super_admin"))'
+      ];
       let queryParams = [];
 
       if (search) {
@@ -98,6 +106,8 @@ class UserController {
         const lowerRole = role.toLowerCase();
         if (lowerRole === 'listener' || lowerRole === 'user') {
           whereClauses.push('(LOWER(COALESCE(role, "")) IN ("listener", "user", "") OR role IS NULL OR LOWER(COALESCE(subscription_type, "")) = "listener")');
+        } else if (lowerRole === 'creator' || lowerRole === 'writer') {
+          whereClauses.push('(LOWER(COALESCE(role, "")) IN ("creator", "writer") OR LOWER(COALESCE(subscription_type, "")) IN ("creator", "writer"))');
         } else {
           whereClauses.push('(LOWER(COALESCE(role, "")) = ? OR LOWER(COALESCE(subscription_type, "")) = ?)');
           queryParams.push(lowerRole, lowerRole);
