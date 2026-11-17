@@ -33,12 +33,32 @@ class StoryController {
           whereClauses.push("(LOWER(s.status) = 'scheduled' OR LOWER(s.release_status) = 'scheduled' OR LOWER(s.status) LIKE '%schedule%' OR LOWER(s.release_status) LIKE '%schedule%')");
         } else if (lowerVal === 'all') {
           // No status restriction
+        } else if (lowerVal === 'published') {
+          whereClauses.push(`(
+            (LOWER(s.status) = 'published' OR LOWER(s.release_status) = 'published' OR LOWER(s.release_status) = 'publish_immediately')
+            OR (
+              (LOWER(COALESCE(s.release_status, '')) LIKE '%schedule%' OR LOWER(COALESCE(s.status, '')) LIKE '%schedule%')
+              AND s.publish_date IS NOT NULL
+              AND DATE(s.publish_date) <= CURDATE()
+            )
+          ) AND (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%draft%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%draft%')`);
         } else if (lowerVal) {
           whereClauses.push('(LOWER(s.status) = ? OR LOWER(s.release_status) = ?)');
           queryParams.push(lowerVal, lowerVal);
         }
       } else {
-        whereClauses.push("(s.status IS NULL OR s.status = '' OR LOWER(s.status) IN ('ongoing', 'completed', 'published'))");
+        whereClauses.push(`(
+          (
+            (LOWER(COALESCE(s.release_status, '')) LIKE '%schedule%' OR LOWER(COALESCE(s.status, '')) LIKE '%schedule%')
+            AND s.publish_date IS NOT NULL
+            AND DATE(s.publish_date) <= CURDATE()
+          )
+          OR
+          (
+            (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%schedule%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%schedule%')
+            AND (s.status IS NULL OR s.status = '' OR LOWER(s.status) IN ('ongoing', 'completed', 'published'))
+          )
+        ) AND (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%draft%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%draft%')`);
       }
 
       if (category_id) {

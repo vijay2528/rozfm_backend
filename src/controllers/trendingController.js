@@ -228,7 +228,18 @@ class TrendingController {
     );
 
     const params = [];
-    let whereClause = `WHERE (s.status IS NULL OR s.status = '' OR LOWER(s.status) IN ('ongoing', 'completed', 'published'))`;
+    let whereClause = `WHERE (
+      (
+        (LOWER(COALESCE(s.release_status, '')) LIKE '%schedule%' OR LOWER(COALESCE(s.status, '')) LIKE '%schedule%')
+        AND s.publish_date IS NOT NULL
+        AND DATE(s.publish_date) <= CURDATE()
+      )
+      OR
+      (
+        (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%schedule%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%schedule%')
+        AND (s.status IS NULL OR s.status = '' OR LOWER(s.status) IN ('ongoing', 'completed', 'published'))
+      )
+    ) AND (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%draft%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%draft%')`;
 
     if (categoryId) {
       whereClause += ` AND s.category_id = ?`;

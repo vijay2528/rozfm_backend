@@ -28,6 +28,15 @@ class ContentController {
           whereClauses.push("(LOWER(s.status) = 'draft' OR LOWER(s.release_status) = 'draft' OR LOWER(s.release_status) LIKE '%draft%')");
         } else if (lowerVal.includes('schedule')) {
           whereClauses.push("(LOWER(s.status) = 'scheduled' OR LOWER(s.release_status) = 'scheduled' OR LOWER(s.status) LIKE '%schedule%' OR LOWER(s.release_status) LIKE '%schedule%')");
+        } else if (lowerVal === 'published') {
+          whereClauses.push(`(
+            (LOWER(s.status) = 'published' OR LOWER(s.release_status) = 'published' OR LOWER(s.release_status) = 'publish_immediately')
+            OR (
+              (LOWER(COALESCE(s.release_status, '')) LIKE '%schedule%' OR LOWER(COALESCE(s.status, '')) LIKE '%schedule%')
+              AND s.publish_date IS NOT NULL
+              AND DATE(s.publish_date) <= CURDATE()
+            )
+          ) AND (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%draft%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%draft%')`);
         } else {
           whereClauses.push('(LOWER(s.status) = ? OR LOWER(s.release_status) = ?)');
           queryParams.push(lowerVal, lowerVal);

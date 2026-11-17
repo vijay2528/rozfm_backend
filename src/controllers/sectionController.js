@@ -2,6 +2,19 @@ const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const { toStoryFieldsArray } = require('../utils/storyPresenter');
 
+const PUBLIC_STORY_STATUS_CONDITION = `(
+  (
+    (LOWER(COALESCE(s.release_status, '')) LIKE '%schedule%' OR LOWER(COALESCE(s.status, '')) LIKE '%schedule%')
+    AND s.publish_date IS NOT NULL
+    AND DATE(s.publish_date) <= CURDATE()
+  )
+  OR
+  (
+    (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%schedule%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%schedule%')
+    AND (s.status IS NULL OR s.status = '' OR LOWER(s.status) IN ('ongoing', 'completed', 'published'))
+  )
+) AND (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%draft%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%draft%')`;
+
 class SectionController {
   static async trending(req, res) {
     try {
@@ -10,7 +23,7 @@ class SectionController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published')
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION}
          ORDER BY s.total_views DESC
          LIMIT 30`
       );
@@ -28,7 +41,7 @@ class SectionController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published')
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION}
          ORDER BY s.listeners_count DESC, s.total_views DESC
          LIMIT 30`
       );
@@ -46,7 +59,7 @@ class SectionController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published')
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION}
          ORDER BY s.rating DESC, s.listeners_count DESC
          LIMIT 30`
       );
@@ -64,7 +77,7 @@ class SectionController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published')
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION}
          ORDER BY s.listeners_count DESC
          LIMIT 30`
       );

@@ -2,6 +2,19 @@ const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const { toStoryFieldsArray, toEpisodeFieldsArray, formatNumber } = require('../utils/storyPresenter');
 
+const PUBLIC_STORY_STATUS_CONDITION = `(
+  (
+    (LOWER(COALESCE(s.release_status, '')) LIKE '%schedule%' OR LOWER(COALESCE(s.status, '')) LIKE '%schedule%')
+    AND s.publish_date IS NOT NULL
+    AND DATE(s.publish_date) <= CURDATE()
+  )
+  OR
+  (
+    (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%schedule%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%schedule%')
+    AND (s.status IS NULL OR s.status = '' OR LOWER(s.status) IN ('ongoing', 'completed', 'published'))
+  )
+) AND (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%draft%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%draft%')`;
+
 function formatFollowersCount(num) {
   const val = Number(num) || 0;
   if (val >= 1000000) {
@@ -46,7 +59,7 @@ class HomeController {
            FROM stories s
            LEFT JOIN categories c ON s.category_id = c.id
            LEFT JOIN users u ON s.user_id = u.id
-           WHERE s.status IN ('ongoing', 'completed', 'published') 
+           WHERE ${PUBLIC_STORY_STATUS_CONDITION}
              AND (s.title LIKE ? OR s.description LIKE ? OR c.category_name LIKE ? OR u.name LIKE ?)
            ORDER BY s.listeners_count DESC, s.total_views DESC
            LIMIT 30`,
@@ -63,7 +76,7 @@ class HomeController {
         // 2. Categories matching category_name
         const [categoryRows] = await pool.query(
           `SELECT c.*, 
-                  (SELECT COUNT(*) FROM stories s WHERE s.category_id = c.id AND s.status IN ('ongoing', 'completed', 'published')) as stories_count
+                  (SELECT COUNT(*) FROM stories s WHERE s.category_id = c.id AND ${PUBLIC_STORY_STATUS_CONDITION}) as stories_count
            FROM categories c
            WHERE c.category_name LIKE ?
            ORDER BY stories_count DESC
@@ -83,7 +96,7 @@ class HomeController {
         // 3. Writers / Creators matching name, email, or bio
         const [writerRows] = await pool.query(
           `SELECT u.id, u.name, u.email, u.phone, u.bio, u.avatar_path, u.is_verified, u.is_blocked,
-                  (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id AND s.status IN ('ongoing', 'completed', 'published')) as stories_count,
+                  (SELECT COUNT(*) FROM stories s WHERE s.user_id = u.id AND ${PUBLIC_STORY_STATUS_CONDITION}) as stories_count,
                   (SELECT COUNT(*) FROM user_follows uf WHERE uf.following_id = u.id) as followers_count
            FROM users u
            WHERE (u.role = 'creator' OR u.role = 'Creator' OR u.id IN (SELECT DISTINCT user_id FROM stories WHERE user_id IS NOT NULL))
@@ -241,7 +254,7 @@ class HomeController {
 
       // ── 2. Recommended for You ─────────────────────────────────────────────
       // Logic: High likes/bookmarks & matching preferred categories if user logged in
-      let recWhere = "s.status = 'published'";
+      let recWhere = `${PUBLIC_STORY_STATUS_CONDITION}`;
       let recParams = [];
       if (preferredCategoryIds.length > 0) {
         recWhere += ' AND s.category_id IN (?)';
@@ -270,7 +283,7 @@ class HomeController {
            FROM stories s
            LEFT JOIN categories c ON s.category_id = c.id
            LEFT JOIN users u ON s.user_id = u.id
-           WHERE s.status IN ('ongoing', 'completed', 'published')
+           WHERE ${PUBLIC_STORY_STATUS_CONDITION}
            ORDER BY s.rating DESC, s.listeners_count DESC
            LIMIT 10`
         );
@@ -285,7 +298,7 @@ class HomeController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published')
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION}
          ORDER BY s.total_views DESC, s.listeners_count DESC
          LIMIT 10`
       );
@@ -299,7 +312,7 @@ class HomeController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published') AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION} AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
          ORDER BY s.total_views DESC, s.created_at DESC
          LIMIT 10`
       );
@@ -312,7 +325,7 @@ class HomeController {
            FROM stories s
            LEFT JOIN categories c ON s.category_id = c.id
            LEFT JOIN users u ON s.user_id = u.id
-           WHERE s.status IN ('ongoing', 'completed', 'published')
+           WHERE ${PUBLIC_STORY_STATUS_CONDITION}
            ORDER BY s.created_at DESC
            LIMIT 10`
         );
@@ -327,7 +340,7 @@ class HomeController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published')
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION}
          ORDER BY s.total_views DESC, s.listeners_count DESC
          LIMIT 10`
       );
@@ -341,7 +354,7 @@ class HomeController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published') AND (s.updated_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) OR s.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR))
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION} AND (s.updated_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) OR s.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR))
          ORDER BY s.updated_at DESC
          LIMIT 10`
       );
@@ -354,7 +367,7 @@ class HomeController {
            FROM stories s
            LEFT JOIN categories c ON s.category_id = c.id
            LEFT JOIN users u ON s.user_id = u.id
-           WHERE s.status IN ('ongoing', 'completed', 'published')
+           WHERE ${PUBLIC_STORY_STATUS_CONDITION}
            ORDER BY s.updated_at DESC
            LIMIT 10`
         );
@@ -388,7 +401,7 @@ class HomeController {
              FROM stories s
              LEFT JOIN categories c ON s.category_id = c.id
              LEFT JOIN users u ON s.user_id = u.id
-             WHERE s.status IN ('ongoing', 'completed', 'published') AND s.category_id = ? AND s.id != ?
+             WHERE ${PUBLIC_STORY_STATUS_CONDITION} AND s.category_id = ? AND s.id != ?
              ORDER BY s.listeners_count DESC
              LIMIT 10`,
             [recentCategoryId, recentStoryId]
@@ -404,7 +417,7 @@ class HomeController {
            FROM stories s
            LEFT JOIN categories c ON s.category_id = c.id
            LEFT JOIN users u ON s.user_id = u.id
-           WHERE s.status IN ('ongoing', 'completed', 'published')
+           WHERE ${PUBLIC_STORY_STATUS_CONDITION}
            ORDER BY s.listeners_count DESC
            LIMIT 10`
         );
@@ -419,7 +432,7 @@ class HomeController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status IN ('ongoing', 'completed', 'published')
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION}
          ORDER BY s.listeners_count DESC, s.total_views DESC
          LIMIT 10`
       );
@@ -433,7 +446,7 @@ class HomeController {
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
-         WHERE s.status = 'published' AND s.is_premium = 0
+         WHERE ${PUBLIC_STORY_STATUS_CONDITION} AND s.is_premium = 0
          ORDER BY s.listeners_count DESC
          LIMIT 10`
       );

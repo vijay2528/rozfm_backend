@@ -217,7 +217,13 @@ function toStoryFieldsArray(story, options = {}) {
   const sharesCount = Number(story.shares_count || 0);
 
   const statusStr = story.status || null;
-  const isLive = statusStr ? ['published', 'ongoing', 'completed', 'live'].includes(String(statusStr).toLowerCase()) : false;
+  let isLive = statusStr ? ['published', 'ongoing', 'completed', 'live'].includes(String(statusStr).toLowerCase()) : false;
+  const isScheduled = String(statusStr || '').toLowerCase().includes('schedule') || String(story.release_status || '').toLowerCase().includes('schedule');
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const storyPublishDateStr = story.publish_date ? (story.publish_date instanceof Date ? `${story.publish_date.getFullYear()}-${String(story.publish_date.getMonth() + 1).padStart(2, '0')}-${String(story.publish_date.getDate()).padStart(2, '0')}` : String(story.publish_date).split('T')[0]) : null;
+  if (isScheduled && storyPublishDateStr && storyPublishDateStr <= todayStr) {
+    isLive = true;
+  }
 
   const performanceObj = performance || {
     plays: {
