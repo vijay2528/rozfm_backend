@@ -101,7 +101,12 @@ class AuthController {
 
       // Phone Login Flow
       if (phoneStr !== '') {
-        const [users] = await pool.query('SELECT * FROM users WHERE phone = ? LIMIT 1', [phoneStr]);
+        const digits = phoneStr.replace(/\D/g, '');
+        const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
+        const [users] = await pool.query(
+          'SELECT * FROM users WHERE phone = ? OR phone = ? OR (LENGTH(?) = 10 AND RIGHT(REPLACE(phone, "+", ""), 10) = ?) LIMIT 1',
+          [phoneStr, digits, last10, last10]
+        );
         let isNewUser = users.length === 0;
         let userId;
 
@@ -121,6 +126,16 @@ class AuthController {
           if (user.is_blocked) {
             return ApiResponse.error(res, 'Your account has been suspended. Contact an administrator.', 403);
           }
+
+          const loginMethod = String(user.login_method || '').toLowerCase().trim();
+          if (loginMethod === 'email_otp' || loginMethod === 'google') {
+            return ApiResponse.error(
+              res,
+              'This account is registered with Google Email. Please login using your email.',
+              422
+            );
+          }
+
           userId = user.id;
 
           if (nameStr) {
@@ -259,7 +274,12 @@ class AuthController {
       await pool.query('UPDATE otp_verifications SET verified_at = NOW() WHERE id = ?', [record.id]);
 
       // Fetch user
-      const [users] = await pool.query('SELECT * FROM users WHERE phone = ? LIMIT 1', [phoneStr]);
+      const digits = phoneStr.replace(/\D/g, '');
+      const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
+      const [users] = await pool.query(
+        'SELECT * FROM users WHERE phone = ? OR phone = ? OR (LENGTH(?) = 10 AND RIGHT(REPLACE(phone, "+", ""), 10) = ?) LIMIT 1',
+        [phoneStr, digits, last10, last10]
+      );
       if (users.length === 0) {
         return ApiResponse.error(res, 'User not found. Please request OTP again.', 422);
       }
@@ -267,6 +287,15 @@ class AuthController {
       let user = users[0];
       if (user.is_blocked) {
         return ApiResponse.error(res, 'Your account has been suspended. Contact an administrator.', 403);
+      }
+
+      const loginMethod = String(user.login_method || '').toLowerCase().trim();
+      if (loginMethod === 'email_otp' || loginMethod === 'google') {
+        return ApiResponse.error(
+          res,
+          'This account is registered with Google Email. Please login using your email.',
+          422
+        );
       }
 
       // Update user last login

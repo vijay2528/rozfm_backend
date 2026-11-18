@@ -84,8 +84,8 @@ class PlanController {
           return {
             id: Number(p.id),
             name: p.name || 'Subscription Plan',
-            coins: Number(p.coins || 0),
-            bonus_coins: Number(p.bonus_coins || 0),
+            coins: 0,
+            bonus_coins: 0,
             price: priceVal,
             amount: priceVal,
             original_price: origPrice,

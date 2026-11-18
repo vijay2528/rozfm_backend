@@ -301,7 +301,7 @@ class RazorpaySubscriptionController {
 
       const startsAt  = new Date();
       const expiresAt = new Date(Date.now() + cycleInfo.duration_days * 24 * 60 * 60 * 1000);
-      const planCoins = plan ? (Number(plan.coins || 0) + Number(plan.bonus_coins || 0)) : 0;
+      const planCoins = 0; // Coins should not be added while buying plans
 
       // ── Activate in DB ────────────────────────────────────────────────────
       const connection = await pool.getConnection();
@@ -340,28 +340,20 @@ class RazorpaySubscriptionController {
           newSubId = subResult.insertId;
         }
 
-        // Credit coins to wallet
-        if (planCoins > 0) {
-          await connection.query(
-            'UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?',
-            [planCoins, userId]
-          );
-        }
-
-        // Mark user as VIP
+        // Mark user as VIP (coins are not added for plan purchases)
         await connection.query(
           "UPDATE users SET subscription_type = 'vip' WHERE id = ?",
           [userId]
         );
 
-        // Log coin transaction
+        // Log transaction (coins: 0 for plan subscription)
         await connection.query(
           `INSERT INTO coin_transactions
            (user_id, type, coins, plan_id, amount, transaction_type, payment_status, payment_method, description, reference_id)
            VALUES (?, 'plan_purchase', ?, ?, ?, 'credit', 'paid', 'razorpay', ?, ?)`,
           [
             userId,
-            planCoins,
+            0,
             plan_id || null,
             cycleInfo.amount_inr,
             plan
@@ -384,7 +376,7 @@ class RazorpaySubscriptionController {
           trial_days:                 cycleInfo.is_trial ? cycleInfo.trial_days : null,
           duration_days:              cycleInfo.duration_days,
           amount:                     cycleInfo.amount_inr,
-          coins_credited:             planCoins,
+          coins_credited:             0,
           status:                     'active',
           starts_at:                  startsAt.toISOString(),
           expires_at:                 expiresAt.toISOString(),

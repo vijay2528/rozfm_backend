@@ -93,11 +93,13 @@ class WalletController {
         planId = parseInt(plan_id, 10) || null;
         const [plans] = await pool.query('SELECT * FROM purchase_plans WHERE id = ? LIMIT 1', [plan_id]);
         if (plans.length > 0) {
-          coinsToAdd = Number(plans[0].coins || 0) + Number(plans[0].bonus_coins || 0) || Number(coins || 0);
+          coinsToAdd = 0; // Coins should not be added while buying plans
           if (!moneyAmount) {
-            moneyAmount = parseFloat(plans[0].monthly_amount ?? plans[0].yearly_amount ?? 0) || 0.00;
+            moneyAmount = parseFloat(plans[0].monthly_amount ?? plans[0].yearly_amount ?? plans[0].price ?? 0) || 0.00;
           }
           description = `Purchased Plan: ${plans[0].name}`;
+        } else {
+          return ApiResponse.error(res, 'Plan not found.', 404);
         }
       } else if (coin_pack_id) {
         if (!reqType) type = 'coin_pack';
@@ -109,6 +111,8 @@ class WalletController {
             moneyAmount = parseFloat(packs[0].amount ?? packs[0].price) || 0.00;
           }
           description = `Purchased Coin Pack: ${packs[0].pack_name}`;
+        } else {
+          return ApiResponse.error(res, 'Coin pack not found.', 404);
         }
       } else if (coins) {
         if (!reqType) type = 'coin';
@@ -116,8 +120,8 @@ class WalletController {
         description = `Purchased Coins: ${coinsToAdd}`;
       }
 
-      if (coinsToAdd <= 0) {
-        return ApiResponse.error(res, 'Invalid purchase plan or pack.', 422);
+      if (!planId && coinsToAdd <= 0) {
+        return ApiResponse.error(res, 'Invalid purchase coin pack or coins amount.', 422);
       }
 
       const rawStatus = String(payment_status || status || 'paid').toLowerCase().trim();
@@ -128,7 +132,7 @@ class WalletController {
       try {
         await connection.beginTransaction();
 
-        if (!isFailed) {
+        if (!isFailed && coinsToAdd > 0) {
           await connection.query('UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?', [coinsToAdd, userId]);
         }
 
@@ -149,6 +153,30 @@ class WalletController {
             reference_id || null,
           ]
         );
+
+        if (planId && !isFailed) {
+          const startsAt = new Date();
+          const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+          try {
+            await connection.query(
+              "UPDATE subscriptions SET status = 'expired' WHERE user_id = ? AND status = 'active'",
+              [userId]
+            );
+
+            await connection.query(
+              'INSERT INTO subscriptions (user_id, plan_id, status, starts_at, expires_at) VALUES (?, ?, ?, ?, ?)',
+              [userId, planId, 'active', startsAt, expiresAt]
+            );
+
+            await connection.query(
+              "UPDATE users SET subscription_type = 'vip' WHERE id = ?",
+              [userId]
+            );
+          } catch (subErr) {
+            console.error('Auto-activate subscription error on plan purchase:', subErr.message);
+          }
+        }
 
         await connection.commit();
       } catch (txErr) {

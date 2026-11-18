@@ -62,7 +62,7 @@ class RazorpayController {
         planId = parseInt(plan_id, 10) || null;
         const [plans] = await pool.query('SELECT * FROM purchase_plans WHERE id = ? LIMIT 1', [plan_id]);
         if (plans.length > 0) {
-          coinsToAdd = Number(plans[0].coins || 0) + Number(plans[0].bonus_coins || 0) || Number(coins || 0);
+          coinsToAdd = 0; // Coins should not be added while buying plans
           if (!moneyAmount) {
             moneyAmount = parseFloat(plans[0].price ?? plans[0].amount ?? plans[0].monthly_amount ?? plans[0].yearly_amount ?? 0) || 0.00;
           }
@@ -85,8 +85,8 @@ class RazorpayController {
         description = `Purchased Coins (${coinsToAdd || 100})`;
       }
 
-      if (coinsToAdd <= 0) {
-        coinsToAdd = 100; // Default fallback for test order
+      if (!planId && coinsToAdd <= 0) {
+        coinsToAdd = 100; // Default fallback for test order only if not a plan
       }
 
       const rawStatus = String(payment_status || status || 'paid').toLowerCase().trim();
@@ -97,7 +97,7 @@ class RazorpayController {
       try {
         await connection.beginTransaction();
 
-        if (!isFailed) {
+        if (!isFailed && coinsToAdd > 0) {
           await connection.query('UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?', [coinsToAdd, userId]);
         }
 

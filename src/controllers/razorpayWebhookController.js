@@ -160,20 +160,8 @@ class RazorpayWebhookController {
           [userId]
         );
 
-        // Log renewal transaction
+        // Log renewal transaction (coins are not added for plan purchases/renewals)
         let planCoins = 0;
-        if (sub.plan_id) {
-          const [planRows] = await pool.query('SELECT coins, bonus_coins, name FROM purchase_plans WHERE id = ? LIMIT 1', [sub.plan_id]);
-          if (planRows && planRows[0]) {
-            planCoins = Number(planRows[0].coins || 0) + Number(planRows[0].bonus_coins || 0);
-            if (planCoins > 0) {
-              await connection.query(
-                'UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?',
-                [planCoins, userId]
-              );
-            }
-          }
-        }
 
         await connection.query(
           `INSERT INTO coin_transactions 
