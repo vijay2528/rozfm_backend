@@ -1,5 +1,6 @@
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
+const { resolveUrl } = require('../../utils/storyPresenter');
 
 /**
  * Drop temporary recommendation tables if they were previously created.
@@ -90,7 +91,7 @@ class RecommendationController {
         total = countRes[0]?.total || 0;
 
         const [historyRows] = await pool.query(
-          `SELECT wh.*, u.id AS user_id, u.name AS user_name, u.email AS user_email, s.id AS story_id, s.title AS story_title
+          `SELECT wh.*, u.id AS user_id, u.name AS user_name, u.email AS user_email, s.id AS story_id, s.title AS story_title, s.cover_image_path
            FROM watch_histories wh
            LEFT JOIN users u ON wh.user_id = u.id
            LEFT JOIN stories s ON wh.story_id = s.id
@@ -116,7 +117,7 @@ class RecommendationController {
         total = countRes[0]?.total || 0;
 
         const [storyRows] = await pool.query(
-          `SELECT s.id AS story_id, s.title AS story_title, s.updated_at, u.id AS user_id, u.name AS user_name, u.email AS user_email
+          `SELECT s.id AS story_id, s.title AS story_title, s.cover_image_path, s.updated_at, u.id AS user_id, u.name AS user_name, u.email AS user_email
            FROM stories s
            LEFT JOIN users u ON s.user_id = u.id
            ${whereSql}
@@ -153,6 +154,8 @@ class RecommendationController {
           user_color: color,
           story: r.story_title || 'Untitled Story',
           story_title: r.story_title || 'Untitled Story',
+          cover_image: resolveUrl(r.cover_image_path),
+          cover_image_path: r.cover_image_path || null,
           progress: progressPct,
           lastPlayed: formatRelativeTime(r.updated_at || r.created_at),
           last_played: formatRelativeTime(r.updated_at || r.created_at),
@@ -211,7 +214,7 @@ class RecommendationController {
       const total = countRes[0]?.total || 0;
 
       const [rows] = await pool.query(
-        `SELECT s.id, s.title, s.total_views, s.listeners_count, s.rating, u.name AS creator_name
+        `SELECT s.id, s.title, s.cover_image_path, s.total_views, s.listeners_count, s.rating, u.name AS creator_name
          FROM stories s
          LEFT JOIN users u ON s.user_id = u.id
          ${whereSql}
@@ -230,6 +233,8 @@ class RecommendationController {
           rank,
           title: r.title,
           story_title: r.title,
+          cover_image: resolveUrl(r.cover_image_path),
+          cover_image_path: r.cover_image_path || null,
           creator: r.creator_name || 'Roz FM Creator',
           creator_name: r.creator_name || 'Roz FM Creator',
           velocity: velocityVal,
@@ -290,7 +295,7 @@ class RecommendationController {
       const total = countRes[0]?.total || 0;
 
       const [rows] = await pool.query(
-        `SELECT s.id, s.title, s.created_at, s.publish_date, u.name AS creator_name
+        `SELECT s.id, s.title, s.cover_image_path, s.created_at, s.publish_date, u.name AS creator_name
          FROM stories s
          LEFT JOIN users u ON s.user_id = u.id
          ${whereSql}
@@ -307,6 +312,8 @@ class RecommendationController {
           id: Number(r.id),
           title: r.title,
           story_title: r.title,
+          cover_image: resolveUrl(r.cover_image_path),
+          cover_image_path: r.cover_image_path || null,
           creator: r.creator_name || 'Roz FM Creator',
           creator_name: r.creator_name || 'Roz FM Creator',
           publishedOn: dateStr,
@@ -367,7 +374,7 @@ class RecommendationController {
       const total = countRes[0]?.total || 0;
 
       const [rows] = await pool.query(
-        `SELECT s.id, s.title, s.rating, s.listeners_count, u.name AS creator_name
+        `SELECT s.id, s.title, s.cover_image_path, s.rating, s.listeners_count, u.name AS creator_name
          FROM stories s
          LEFT JOIN users u ON s.user_id = u.id
          ${whereSql}
@@ -384,6 +391,8 @@ class RecommendationController {
           id: Number(r.id),
           title: r.title,
           story_title: r.title,
+          cover_image: resolveUrl(r.cover_image_path),
+          cover_image_path: r.cover_image_path || null,
           creator: r.creator_name || 'Roz FM Creator',
           creator_name: r.creator_name || 'Roz FM Creator',
           rating: Number(ratingVal),
@@ -444,7 +453,7 @@ class RecommendationController {
       const total = countRes[0]?.total || 0;
 
       const [rows] = await pool.query(
-        `SELECT s.id, s.title, s.rating, s.total_views, c.category_name, u.name AS creator_name
+        `SELECT s.id, s.title, s.cover_image_path, s.rating, s.total_views, c.category_name, u.name AS creator_name
          FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
          LEFT JOIN users u ON s.user_id = u.id
@@ -472,6 +481,8 @@ class RecommendationController {
           id: Number(r.id),
           title: r.title,
           story_title: r.title,
+          cover_image: resolveUrl(r.cover_image_path),
+          cover_image_path: r.cover_image_path || null,
           reason: reasonText,
           recommended_because: reasonText,
           score: `${scoreVal}%`,
