@@ -337,7 +337,7 @@ class AdminPublishedStoriesController {
       }
 
       await pool.query(
-        "UPDATE stories SET is_approved = 'Approved', status = 'Published', admin_remarks = ?, updated_at = NOW() WHERE id = ?",
+        "UPDATE stories SET is_approved = 'Approved', admin_remarks = ?, updated_at = NOW() WHERE id = ?",
         [remarks, storyId]
       );
 
@@ -476,10 +476,9 @@ class AdminPublishedStoriesController {
         return ApiResponse.error(res, 'Story not found.', 404);
       }
 
-      const newStatus = status === 'Approved' ? 'Published' : (status === 'Rejected' ? 'Draft' : 'Draft');
       await pool.query(
-        'UPDATE stories SET is_approved = ?, status = ?, admin_remarks = ?, updated_at = NOW() WHERE id = ?',
-        [status, newStatus, remarks ? remarks.trim() : null, storyId]
+        'UPDATE stories SET is_approved = ?, admin_remarks = ?, updated_at = NOW() WHERE id = ?',
+        [status, remarks ? remarks.trim() : null, storyId]
       );
 
       // ── Push: story approval status changed ───────────────────────────────
