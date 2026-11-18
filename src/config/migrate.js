@@ -132,6 +132,8 @@ async function runMigrations() {
         \`language\` VARCHAR(50) DEFAULT 'en',
         \`tags\` VARCHAR(512) NULL,
         \`status\` VARCHAR(50) NULL DEFAULT NULL,
+        \`is_approved\` VARCHAR(50) NOT NULL DEFAULT 'Pending',
+        \`admin_remarks\` TEXT NULL,
         \`release_status\` VARCHAR(50) NULL DEFAULT NULL,
         \`publish_date\` DATE NULL DEFAULT NULL,
         \`episodes_count\` INT DEFAULT 0,
@@ -190,6 +192,8 @@ async function runMigrations() {
 
     // Safe Alter Table for existing installations
     const alterQueries = [
+      "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `is_approved` VARCHAR(50) NOT NULL DEFAULT 'Pending'",
+      "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `admin_remarks` TEXT NULL",
       "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `tags` VARCHAR(512) NULL",
       "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `shares_count` INT DEFAULT 0",
       "ALTER TABLE `episodes` ADD COLUMN IF NOT EXISTS `created_by` INT NULL",

@@ -329,7 +329,7 @@ class AdminPublishedStoriesController {
       const remarks = req.body.remarks || req.body.admin_remarks || req.body.note || null;
 
       const [existing] = await pool.query(
-        'SELECT id, title, is_approved FROM stories WHERE id = ? LIMIT 1',
+        'SELECT id, user_id, title, is_approved FROM stories WHERE id = ? LIMIT 1',
         [storyId]
       );
       if (existing.length === 0) {
@@ -337,7 +337,7 @@ class AdminPublishedStoriesController {
       }
 
       await pool.query(
-        "UPDATE stories SET is_approved = 'Approved', admin_remarks = ?, updated_at = NOW() WHERE id = ?",
+        "UPDATE stories SET is_approved = 'Approved', status = 'Published', admin_remarks = ?, updated_at = NOW() WHERE id = ?",
         [remarks, storyId]
       );
 
@@ -393,7 +393,7 @@ class AdminPublishedStoriesController {
       }
 
       const [existing] = await pool.query(
-        'SELECT id, title, is_approved FROM stories WHERE id = ? LIMIT 1',
+        'SELECT id, user_id, title, is_approved FROM stories WHERE id = ? LIMIT 1',
         [storyId]
       );
       if (existing.length === 0) {
@@ -401,8 +401,8 @@ class AdminPublishedStoriesController {
       }
 
       await pool.query(
-        "UPDATE stories SET is_approved = 'Rejected', admin_remarks = ?, updated_at = NOW() WHERE id = ?",
-        [remarks.trim(), storyId]
+        "UPDATE stories SET is_approved = 'Rejected', status = 'Draft', admin_remarks = ?, updated_at = NOW() WHERE id = ?",
+        [remarks ? remarks.trim() : 'Rejected by Admin', storyId]
       );
 
       // ── Push: story rejected ──────────────────────────────────────────────
@@ -469,16 +469,17 @@ class AdminPublishedStoriesController {
       }
 
       const [existing] = await pool.query(
-        'SELECT id, title FROM stories WHERE id = ? LIMIT 1',
+        'SELECT id, user_id, title FROM stories WHERE id = ? LIMIT 1',
         [storyId]
       );
       if (existing.length === 0) {
         return ApiResponse.error(res, 'Story not found.', 404);
       }
 
+      const newStatus = status === 'Approved' ? 'Published' : (status === 'Rejected' ? 'Draft' : 'Draft');
       await pool.query(
-        'UPDATE stories SET is_approved = ?, admin_remarks = ?, updated_at = NOW() WHERE id = ?',
-        [status, remarks ? remarks.trim() : null, storyId]
+        'UPDATE stories SET is_approved = ?, status = ?, admin_remarks = ?, updated_at = NOW() WHERE id = ?',
+        [status, newStatus, remarks ? remarks.trim() : null, storyId]
       );
 
       // ── Push: story approval status changed ───────────────────────────────

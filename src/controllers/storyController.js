@@ -656,6 +656,15 @@ class StoryController {
         updateFields.push('`status` = ?');
         queryParams.push(status);
       }
+      const rawIsApproved = req.body.is_approved !== undefined ? req.body.is_approved : (req.body.isApproved !== undefined ? req.body.isApproved : undefined);
+      if (rawIsApproved !== undefined) {
+        updateFields.push('`is_approved` = ?');
+        queryParams.push(rawIsApproved);
+      }
+      if (req.body.admin_remarks !== undefined) {
+        updateFields.push('`admin_remarks` = ?');
+        queryParams.push(req.body.admin_remarks);
+      }
 
       const rawPublishDate = publish_date !== undefined ? publish_date : (publishDate !== undefined ? publishDate : (release_date !== undefined ? release_date : releaseDate));
       if (rawPublishDate !== undefined) {
