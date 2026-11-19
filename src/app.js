@@ -133,8 +133,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/v1/admin', adminRoutes);
 app.use('/admin', adminRoutes);
 
-// API Routes (v1)
+// API Routes (v1 & alias /api)
 app.use('/api/v1', apiV1Routes);
+app.use('/api', apiV1Routes);
 
 // 404 Route Handler
 app.use((req, res) => {

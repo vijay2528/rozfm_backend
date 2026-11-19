@@ -62,21 +62,21 @@ class SubscriptionController {
 
       const activeSubscription = activeSub
         ? {
-            id: Number(activeSub.id),
-            plan_id: activeSub.plan_id ? Number(activeSub.plan_id) : null,
-            plan_name: activeSub.plan_name || 'VIP Subscription',
-            plan_slug: activeSub.plan_slug || null,
-            plan_description: activeSub.plan_description || null,
-            monthly_amount: monthlyAmount,
-            yearly_amount: yearlyAmount,
-            amount: effectiveAmount,
-            status: activeSub.status || 'active',
-            is_active: activeSub.status === 'active',
-            starts_at: activeSub.starts_at ? new Date(activeSub.starts_at).toISOString() : null,
-            expires_at: activeSub.expires_at ? new Date(activeSub.expires_at).toISOString() : null,
-            created_at: activeSub.created_at ? new Date(activeSub.created_at).toISOString() : null,
-            updated_at: activeSub.updated_at ? new Date(activeSub.updated_at).toISOString() : null,
-          }
+          id: Number(activeSub.id),
+          plan_id: activeSub.plan_id ? Number(activeSub.plan_id) : null,
+          plan_name: activeSub.plan_name || 'VIP Subscription',
+          plan_slug: activeSub.plan_slug || null,
+          plan_description: activeSub.plan_description || null,
+          monthly_amount: monthlyAmount,
+          yearly_amount: yearlyAmount,
+          amount: effectiveAmount,
+          status: activeSub.status || 'active',
+          is_active: activeSub.status === 'active',
+          starts_at: activeSub.starts_at ? new Date(activeSub.starts_at).toISOString() : null,
+          expires_at: activeSub.expires_at ? new Date(activeSub.expires_at).toISOString() : null,
+          created_at: activeSub.created_at ? new Date(activeSub.created_at).toISOString() : null,
+          updated_at: activeSub.updated_at ? new Date(activeSub.updated_at).toISOString() : null,
+        }
         : null;
 
       return ApiResponse.success(
@@ -131,7 +131,7 @@ class SubscriptionController {
               durationDaysNum = Number(p.duration_days);
             }
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const startsAt = new Date();
@@ -207,7 +207,7 @@ class SubscriptionController {
           "UPDATE subscriptions SET status = 'expired' WHERE user_id = ? AND status = 'active' AND expires_at IS NOT NULL AND expires_at <= NOW()",
           [userId]
         );
-      } catch (_) {}
+      } catch (_) { }
 
       // Query all subscriptions for user with actual purchase_plans columns
       const [subRows] = await pool.query(
@@ -260,7 +260,7 @@ class SubscriptionController {
         const startsAtDate = s.starts_at ? new Date(s.starts_at) : (s.created_at ? new Date(s.created_at) : new Date());
         const expiresAtDate = s.expires_at ? new Date(s.expires_at) : null;
         const isActive = s.status === 'active' && (!expiresAtDate || expiresAtDate > new Date());
-        const durationDays = expiresAtDate && startsAtDate 
+        const durationDays = expiresAtDate && startsAtDate
           ? Math.max(1, Math.round((expiresAtDate.getTime() - startsAtDate.getTime()) / (1000 * 60 * 60 * 24)))
           : 30;
 
@@ -296,8 +296,8 @@ class SubscriptionController {
         if (!matchedTxnIds.has(t.id)) {
           const monthlyAmount = t.monthly_amount !== undefined && t.monthly_amount !== null ? Number(t.monthly_amount) : null;
           const yearlyAmount = t.yearly_amount !== undefined && t.yearly_amount !== null ? Number(t.yearly_amount) : null;
-          const priceVal = t.amount !== undefined && t.amount !== null 
-            ? Number(t.amount) 
+          const priceVal = t.amount !== undefined && t.amount !== null
+            ? Number(t.amount)
             : (monthlyAmount ?? yearlyAmount ?? 0);
 
           historyList.push({

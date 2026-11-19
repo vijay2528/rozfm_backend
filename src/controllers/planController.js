@@ -84,7 +84,9 @@ class PlanController {
           return {
             id: Number(p.id),
             product_id: p.product_id || null,
+            base_plan_id: p.base_plan_id || null,
             name: p.name || 'Subscription Plan',
+            slug: p.slug || null,
             description: p.description || p.subtitle || null,
             coins: Number(p.coins || 0),
             bonus_coins: Number(p.bonus_coins || 0),
@@ -100,6 +102,7 @@ class PlanController {
             is_trial: Boolean(p.is_trial),
             trial_days: Number(p.trial_days || 0),
             duration_days: Number(p.duration_days || 30),
+            billing_period: p.billing_period || null,
             subtitle: p.subtitle || p.description || null,
             features: featuresList,
             renew_plan_id: p.renew_plan_id ? Number(p.renew_plan_id) : null,

@@ -246,7 +246,11 @@ async function runMigrations() {
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `sort_order` INT DEFAULT 0",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `is_active` TINYINT(1) DEFAULT 1",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `product_id` VARCHAR(100) NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `base_plan_id` VARCHAR(50) NULL",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `description` TEXT NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `billing_period` VARCHAR(20) NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `monthly_amount` DECIMAL(10,2) NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `yearly_amount` DECIMAL(10,2) NULL",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `currency` VARCHAR(10) DEFAULT 'INR'",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `region` VARCHAR(20) NULL DEFAULT 'IN'",
       "ALTER TABLE `roles` ADD COLUMN IF NOT EXISTS `key_permissions` VARCHAR(255) NULL AFTER `permissions`",
@@ -362,17 +366,24 @@ async function runMigrations() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS \`purchase_plans\` (
         \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`product_id\` VARCHAR(100) NULL,
+        \`base_plan_id\` VARCHAR(50) NULL,
         \`name\` VARCHAR(255) NOT NULL,
+        \`description\` TEXT NULL,
         \`coins\` INT DEFAULT 0,
         \`bonus_coins\` INT DEFAULT 0,
         \`price\` DECIMAL(10, 2) NOT NULL,
         \`original_price\` DECIMAL(10, 2) NULL,
+        \`monthly_amount\` DECIMAL(10, 2) NULL,
+        \`yearly_amount\` DECIMAL(10, 2) NULL,
         \`currency\` VARCHAR(10) DEFAULT 'INR',
+        \`region\` VARCHAR(20) DEFAULT 'IN',
         \`badge_text\` VARCHAR(100) NULL,
         \`is_popular\` TINYINT(1) DEFAULT 0,
         \`is_trial\` TINYINT(1) DEFAULT 0,
         \`trial_days\` INT DEFAULT 0,
         \`duration_days\` INT DEFAULT 30,
+        \`billing_period\` VARCHAR(20) NULL,
         \`subtitle\` VARCHAR(255) NULL,
         \`features\` JSON NULL,
         \`renew_plan_id\` INT NULL,
@@ -384,19 +395,137 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Seed default purchase plans if empty
-    const [planCount] = await connection.query('SELECT COUNT(*) AS count FROM purchase_plans');
-    if (planCount[0].count === 0) {
-      await connection.query(`
-        INSERT INTO purchase_plans 
-        (id, name, price, original_price, currency, badge_text, is_popular, is_trial, trial_days, duration_days, subtitle, features, sort_order, status, is_active) 
-        VALUES
-        (1, 'Introductory Offer', 1.00, 799.00, 'INR', '🔥 Most Popular', 1, 1, 3, 3, 'Sirf ₹1 me Premium try karein', '["3 din tak full Premium access", "Uske baad automatically 3 Month Plan (₹799) renew hoga", "Kabhi bhi cancel kar sakte hain"]', 1, 1, 1),
-        (2, '3 Month Plan', 799.00, 1197.00, 'INR', 'Save 33%', 0, 0, 0, 90, '3 mahine tak bina rukavat premium kahaniyan', '["Full Premium access for 3 months", "Ad-free listening", "Offline downloads"]', 2, 1, 1),
-        (3, '1 Year Plan', 2499.00, 4788.00, 'INR', 'Save 48%', 0, 0, 0, 365, 'Pura saal unlimited entertainment', '["Full Premium access for 1 year", "Ad-free listening", "Offline downloads"]', 3, 1, 1)
-      `);
-      console.log('🌱 Default subscription / trial purchase plans seeded!');
+    // Seed Google Play subscription plans into purchase_plans
+    const googlePlaySubscriptions = [
+      {
+        product_id: 'roz_pass',
+        base_plan_id: 'monthly',
+        name: 'Roz Pass',
+        description: 'Full access to Roz FM audio series and episodes.',
+        subtitle: 'Full access to Roz FM audio series and episodes.',
+        price: 199.00,
+        original_price: null,
+        monthly_amount: 199.00,
+        yearly_amount: null,
+        duration_days: 30,
+        billing_period: 'P1M',
+        currency: 'INR',
+        region: 'IN',
+        badge_text: null,
+        is_popular: 0,
+        features: JSON.stringify(['Full access to Roz FM audio series and episodes', 'Ad-free listening', 'Offline downloads', 'Auto-renewing monthly']),
+        sort_order: 1,
+        status: 1,
+        is_active: 1
+      },
+      {
+        product_id: 'roz_saver',
+        base_plan_id: 'six-month',
+        name: 'Roz Saver',
+        description: 'Full access to Roz FM for 6 months at just ₹150/month.',
+        subtitle: 'Full access to Roz FM for 6 months at just ₹150/month.',
+        price: 899.00,
+        original_price: 1194.00,
+        monthly_amount: 150.00,
+        yearly_amount: null,
+        duration_days: 180,
+        billing_period: 'P6M',
+        currency: 'INR',
+        region: 'IN',
+        badge_text: 'Save 25%',
+        is_popular: 0,
+        features: JSON.stringify(['Full access to Roz FM for 6 months', 'Just ₹150/month', 'Ad-free listening', 'Offline downloads', 'Auto-renewing every 6 months']),
+        sort_order: 2,
+        status: 1,
+        is_active: 1
+      },
+      {
+        product_id: 'roz_premium',
+        base_plan_id: 'yearly',
+        name: 'Roz Premium',
+        description: 'Full access to Roz FM for 1 year at just ₹125/month.',
+        subtitle: 'Full access to Roz FM for 1 year at just ₹125/month.',
+        price: 1499.00,
+        original_price: 2388.00,
+        monthly_amount: 125.00,
+        yearly_amount: 1499.00,
+        duration_days: 365,
+        billing_period: 'P1Y',
+        currency: 'INR',
+        region: 'IN',
+        badge_text: 'Best Value',
+        is_popular: 1,
+        features: JSON.stringify(['Full access to Roz FM for 1 year', 'Just ₹125/month - Best Value', 'Ad-free listening', 'Offline downloads', 'Auto-renewing yearly']),
+        sort_order: 3,
+        status: 1,
+        is_active: 1
+      },
+      {
+        product_id: 'roz_pass',
+        base_plan_id: 'six-month',
+        name: 'Roz Pass (6 Months)',
+        description: 'Full access to Roz FM audio series and episodes.',
+        subtitle: 'Full access to Roz FM audio series and episodes.',
+        price: 899.00,
+        original_price: null,
+        monthly_amount: 150.00,
+        yearly_amount: null,
+        duration_days: 180,
+        billing_period: 'P6M',
+        currency: 'INR',
+        region: 'IN',
+        badge_text: null,
+        is_popular: 0,
+        features: JSON.stringify(['Full access for 6 months']),
+        sort_order: 4,
+        status: 0,
+        is_active: 0
+      },
+      {
+        product_id: 'roz_pass',
+        base_plan_id: 'yearly',
+        name: 'Roz Pass (Yearly)',
+        description: 'Full access to Roz FM audio series and episodes.',
+        subtitle: 'Full access to Roz FM audio series and episodes.',
+        price: 1499.00,
+        original_price: null,
+        monthly_amount: 125.00,
+        yearly_amount: 1499.00,
+        duration_days: 365,
+        billing_period: 'P1Y',
+        currency: 'INR',
+        region: 'IN',
+        badge_text: null,
+        is_popular: 0,
+        features: JSON.stringify(['Full access for 1 year']),
+        sort_order: 5,
+        status: 0,
+        is_active: 0
+      }
+    ];
+
+    for (const gp of googlePlaySubscriptions) {
+      const [existingGp] = await connection.query(
+        'SELECT id FROM purchase_plans WHERE product_id = ? AND base_plan_id = ? LIMIT 1',
+        [gp.product_id, gp.base_plan_id]
+      );
+      if (existingGp.length === 0) {
+        await connection.query(
+          `INSERT INTO purchase_plans 
+           (product_id, base_plan_id, name, description, subtitle, price, original_price, monthly_amount, yearly_amount, duration_days, billing_period, currency, region, badge_text, is_popular, features, sort_order, status, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [gp.product_id, gp.base_plan_id, gp.name, gp.description, gp.subtitle, gp.price, gp.original_price, gp.monthly_amount, gp.yearly_amount, gp.duration_days, gp.billing_period, gp.currency, gp.region, gp.badge_text, gp.is_popular, gp.features, gp.sort_order, gp.status, gp.is_active]
+        );
+      } else {
+        await connection.query(
+          `UPDATE purchase_plans 
+           SET product_id = ?, base_plan_id = ?, name = ?, description = ?, subtitle = ?, price = ?, original_price = ?, monthly_amount = ?, yearly_amount = ?, duration_days = ?, billing_period = ?, currency = ?, region = ?, badge_text = ?, is_popular = ?, features = ?, sort_order = ?, status = ?, is_active = ?
+           WHERE id = ?`,
+          [gp.product_id, gp.base_plan_id, gp.name, gp.description, gp.subtitle, gp.price, gp.original_price, gp.monthly_amount, gp.yearly_amount, gp.duration_days, gp.billing_period, gp.currency, gp.region, gp.badge_text, gp.is_popular, gp.features, gp.sort_order, gp.status, gp.is_active, existingGp[0].id]
+        );
+      }
     }
+    console.log('🌱 Google Play subscriptions seeded in purchase_plans!');
 
     // 15. Coin Sales table
     await connection.query(`

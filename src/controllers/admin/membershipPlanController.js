@@ -46,6 +46,7 @@ function formatPlan(p) {
   return {
     id: Number(p.id),
     product_id: p.product_id || null,
+    base_plan_id: p.base_plan_id || null,
     name: p.name || '',
     slug: p.slug || generateSlug(p.name),
     description: p.description || p.subtitle || null,
@@ -64,6 +65,7 @@ function formatPlan(p) {
     is_trial: Boolean(p.is_trial),
     trial_days: Number(p.trial_days || 0),
     duration_days: Number(p.duration_days || 30),
+    billing_period: p.billing_period || null,
     features: featuresList,
     renew_plan_id: p.renew_plan_id ? Number(p.renew_plan_id) : null,
     sort_order: p.sort_order !== null && p.sort_order !== undefined ? Number(p.sort_order) : 0,
@@ -178,12 +180,22 @@ class MembershipPlanController {
   static async store(req, res) {
     try {
       const {
+        product_id,
+        base_plan_id,
         name,
         slug,
         description,
         monthly_amount,
         yearly_amount,
         price,
+        original_price,
+        duration_days,
+        billing_period,
+        currency,
+        region,
+        badge_text,
+        is_popular,
+        features,
         sort_order,
         is_active,
         status,
@@ -204,20 +216,42 @@ class MembershipPlanController {
         ? parseFloat(yearly_amount)
         : 0;
 
+      const priceVal = price !== undefined && price !== null && price !== ''
+        ? parseFloat(price)
+        : mAmount;
+
       const isActiveVal = (is_active === false || is_active === 0 || is_active === '0' || is_active === 'false' || status === 0 || status === '0') ? 0 : 1;
       const sortVal = sort_order !== undefined && sort_order !== null ? parseInt(sort_order, 10) : 0;
+      const durationVal = duration_days !== undefined && duration_days !== null ? parseInt(duration_days, 10) : 30;
+
+      let featuresJson = null;
+      if (features) {
+        featuresJson = typeof features === 'string' ? features : JSON.stringify(features);
+      }
 
       const [result] = await pool.query(
         `INSERT INTO purchase_plans
-           (name, slug, description, monthly_amount, yearly_amount, sort_order, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           (product_id, base_plan_id, name, slug, description, price, original_price, monthly_amount, yearly_amount, duration_days, billing_period, currency, region, badge_text, is_popular, features, sort_order, is_active, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
+          product_id ? String(product_id).trim() : null,
+          base_plan_id ? String(base_plan_id).trim() : null,
           planName,
           planSlug,
           description ? String(description).trim() : null,
+          priceVal,
+          original_price ? parseFloat(original_price) : null,
           mAmount,
           yAmount,
+          durationVal,
+          billing_period ? String(billing_period).trim() : null,
+          currency ? String(currency).trim() : 'INR',
+          region ? String(region).trim() : 'IN',
+          badge_text ? String(badge_text).trim() : null,
+          is_popular ? 1 : 0,
+          featuresJson,
           sortVal,
+          isActiveVal,
           isActiveVal,
         ]
       );
@@ -243,12 +277,22 @@ class MembershipPlanController {
     try {
       const planId = req.params.id;
       const {
+        product_id,
+        base_plan_id,
         name,
         slug,
         description,
         monthly_amount,
         yearly_amount,
         price,
+        original_price,
+        duration_days,
+        billing_period,
+        currency,
+        region,
+        badge_text,
+        is_popular,
+        features,
         sort_order,
         is_active,
         status,
@@ -261,6 +305,16 @@ class MembershipPlanController {
 
       const updateFields = [];
       const queryParams = [];
+
+      if (product_id !== undefined) {
+        updateFields.push('`product_id` = ?');
+        queryParams.push(product_id ? String(product_id).trim() : null);
+      }
+
+      if (base_plan_id !== undefined) {
+        updateFields.push('`base_plan_id` = ?');
+        queryParams.push(base_plan_id ? String(base_plan_id).trim() : null);
+      }
 
       if (name !== undefined && String(name).trim() !== '') {
         updateFields.push('`name` = ?');
@@ -275,6 +329,51 @@ class MembershipPlanController {
       if (description !== undefined) {
         updateFields.push('`description` = ?');
         queryParams.push(description ? String(description).trim() : null);
+      }
+
+      if (price !== undefined && price !== null && price !== '') {
+        updateFields.push('`price` = ?');
+        queryParams.push(parseFloat(price) || 0);
+      }
+
+      if (original_price !== undefined) {
+        updateFields.push('`original_price` = ?');
+        queryParams.push(original_price !== null && original_price !== '' ? parseFloat(original_price) : null);
+      }
+
+      if (duration_days !== undefined && duration_days !== null) {
+        updateFields.push('`duration_days` = ?');
+        queryParams.push(parseInt(duration_days, 10) || 30);
+      }
+
+      if (billing_period !== undefined) {
+        updateFields.push('`billing_period` = ?');
+        queryParams.push(billing_period ? String(billing_period).trim() : null);
+      }
+
+      if (currency !== undefined) {
+        updateFields.push('`currency` = ?');
+        queryParams.push(currency ? String(currency).trim() : 'INR');
+      }
+
+      if (region !== undefined) {
+        updateFields.push('`region` = ?');
+        queryParams.push(region ? String(region).trim() : 'IN');
+      }
+
+      if (badge_text !== undefined) {
+        updateFields.push('`badge_text` = ?');
+        queryParams.push(badge_text ? String(badge_text).trim() : null);
+      }
+
+      if (is_popular !== undefined) {
+        updateFields.push('`is_popular` = ?');
+        queryParams.push(is_popular ? 1 : 0);
+      }
+
+      if (features !== undefined) {
+        updateFields.push('`features` = ?');
+        updateFields.push(typeof features === 'string' ? features : JSON.stringify(features));
       }
 
       if (monthly_amount !== undefined && monthly_amount !== null && monthly_amount !== '') {
@@ -298,6 +397,8 @@ class MembershipPlanController {
       if (is_active !== undefined || status !== undefined) {
         const activeVal = (is_active === false || is_active === 0 || is_active === '0' || is_active === 'false' || status === 0 || status === '0') ? 0 : 1;
         updateFields.push('`is_active` = ?');
+        queryParams.push(activeVal);
+        updateFields.push('`status` = ?');
         queryParams.push(activeVal);
       }
 

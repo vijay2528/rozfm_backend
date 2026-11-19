@@ -22,6 +22,7 @@ const CoinHistoryController = require('../controllers/coinHistoryController');
 const RazorpayController = require('../controllers/razorpayController');
 const RazorpaySubscriptionController = require('../controllers/razorpaySubscriptionController');
 const RazorpayWebhookController = require('../controllers/razorpayWebhookController');
+const PurchaseController = require('../controllers/purchaseController');
 const SubscriptionController = require('../controllers/subscriptionController');
 const LocationController = require('../controllers/locationController');
 const UserController = require('../controllers/userController');
@@ -333,6 +334,10 @@ router.delete('/bank-details', BankController.destroy);
 // Payments & Subscriptions
 router.post('/payments/razorpay/order', RazorpayController.createOrder);
 router.post('/payments/razorpay/verify', RazorpayController.verifyPayment);
+
+// Google Play In-App Purchases & Subscriptions
+router.post('/purchases/verify', authMiddleware.required, PurchaseController.verify);
+router.post('/payments/google-play/verify', authMiddleware.required, PurchaseController.verify);
 
 // Razorpay Auto-pay Subscriptions
 router.post('/plans/subscribe', RazorpaySubscriptionController.createSubscription);
