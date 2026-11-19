@@ -225,7 +225,11 @@ async function runMigrations() {
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `completion_percentage` DECIMAL(5, 2) DEFAULT 0.00",
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `status` VARCHAR(50) DEFAULT 'playing'",
       "ALTER TABLE `watch_histories` ADD COLUMN IF NOT EXISTS `play_counted` TINYINT(1) DEFAULT 0",
-      "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `bonus` INT DEFAULT 0 AFTER `coins`",
+      "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `product_id` VARCHAR(100) NULL",
+      "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `description` TEXT NULL",
+      "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `bonus` INT DEFAULT 0",
+      "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `currency` VARCHAR(10) DEFAULT 'INR'",
+      "ALTER TABLE `coin_sales` ADD COLUMN IF NOT EXISTS `region` VARCHAR(20) DEFAULT 'IN'",
       "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `plan_id` INT NULL AFTER `coins`",
       "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `coin_pack_id` INT NULL AFTER `plan_id`",
       "ALTER TABLE `coin_transactions` ADD COLUMN IF NOT EXISTS `amount` DECIMAL(10, 2) DEFAULT 0.00 AFTER `coin_pack_id`",
@@ -241,6 +245,10 @@ async function runMigrations() {
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `renew_plan_id` INT NULL",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `sort_order` INT DEFAULT 0",
       "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `is_active` TINYINT(1) DEFAULT 1",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `product_id` VARCHAR(100) NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `description` TEXT NULL",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `currency` VARCHAR(10) DEFAULT 'INR'",
+      "ALTER TABLE `purchase_plans` ADD COLUMN IF NOT EXISTS `region` VARCHAR(20) NULL DEFAULT 'IN'",
       "ALTER TABLE `roles` ADD COLUMN IF NOT EXISTS `key_permissions` VARCHAR(255) NULL AFTER `permissions`",
     ];
 
@@ -394,10 +402,14 @@ async function runMigrations() {
     await connection.query(`
       CREATE TABLE IF NOT EXISTS \`coin_sales\` (
         \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`product_id\` VARCHAR(100) NULL,
         \`pack_name\` VARCHAR(255) NOT NULL,
+        \`description\` TEXT NULL,
         \`coins\` INT DEFAULT 0,
         \`bonus\` INT DEFAULT 0,
         \`amount\` DECIMAL(10, 2) NOT NULL,
+        \`currency\` VARCHAR(10) DEFAULT 'INR',
+        \`region\` VARCHAR(20) DEFAULT 'IN',
         \`is_best_value\` TINYINT(1) DEFAULT 0,
         \`status\` TINYINT(1) DEFAULT 1,
         \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -405,19 +417,39 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Seed default coin sales if empty
-    const [coinSalesCount] = await connection.query('SELECT COUNT(*) AS count FROM coin_sales');
-    if (coinSalesCount[0].count === 0) {
-      await connection.query(`
-        INSERT INTO coin_sales (id, pack_name, coins, bonus, amount, is_best_value, status) VALUES
-        (1, 'Starter Pack', 100, 0, 49.00, 0, 1),
-        (2, 'Popular Pack', 500, 50, 199.00, 1, 1),
-        (3, 'Value Pack', 1200, 150, 399.00, 0, 1),
-        (4, 'Mega Pack', 3000, 500, 899.00, 0, 1),
-        (5, 'Ultimate Pack', 8000, 1600, 1999.00, 0, 1)
-      `);
-      console.log('🌱 Default coin packs seeded!');
+    // Seed Google Play coin packs into coin_sales
+    const googlePlayCoinPacks = [
+      { product_id: 'rozfm_welcome_19', pack_name: 'Welcome Offer (New User)', description: 'Unlock 50 coins as a special welcome deal.', amount: 19.0, coins: 50, bonus: 0, currency: 'INR', region: 'IN', is_best_value: 0, status: 1 },
+      { product_id: 'rozfm_starter_49', pack_name: 'Starter Pack', description: '100 Roz FM coins to binge audio episodes.', amount: 49.0, coins: 100, bonus: 0, currency: 'INR', region: 'IN', is_best_value: 0, status: 1 },
+      { product_id: 'rozfm_mini_99', pack_name: 'Mini Pack', description: '250 coins for casual listening.', amount: 99.0, coins: 250, bonus: 0, currency: 'INR', region: 'IN', is_best_value: 0, status: 1 },
+      { product_id: 'rozfm_popular_199', pack_name: 'Popular Pack', description: '600 coins - most loved by listeners.', amount: 199.0, coins: 600, bonus: 0, currency: 'INR', region: 'IN', is_best_value: 1, status: 1 },
+      { product_id: 'rozfm_value_399', pack_name: 'Value Pack', description: '1500 coins to unlock premium series.', amount: 399.0, coins: 1500, bonus: 0, currency: 'INR', region: 'IN', is_best_value: 0, status: 1 },
+      { product_id: 'rozfm_mega_799', pack_name: 'Mega Pack', description: '3500 coins for non-stop streaming.', amount: 799.0, coins: 3500, bonus: 0, currency: 'INR', region: 'IN', is_best_value: 0, status: 1 },
+      { product_id: 'rozfm_ultimate_1499', pack_name: 'Ultimate Pack', description: '7500 coins + best value for avid listeners.', amount: 1499.0, coins: 7500, bonus: 0, currency: 'INR', region: 'IN', is_best_value: 1, status: 1 }
+    ];
+
+    for (const gp of googlePlayCoinPacks) {
+      const [existingGp] = await connection.query(
+        'SELECT id FROM coin_sales WHERE product_id = ? OR pack_name = ? LIMIT 1',
+        [gp.product_id, gp.pack_name]
+      );
+      if (existingGp.length === 0) {
+        await connection.query(
+          `INSERT INTO coin_sales 
+           (product_id, pack_name, description, amount, coins, bonus, currency, region, is_best_value, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [gp.product_id, gp.pack_name, gp.description, gp.amount, gp.coins, gp.bonus, gp.currency, gp.region, gp.is_best_value, gp.status]
+        );
+      } else {
+        await connection.query(
+          `UPDATE coin_sales 
+           SET product_id = ?, pack_name = ?, description = ?, amount = ?, coins = ?, bonus = ?, currency = ?, region = ?, is_best_value = ?, status = ?
+           WHERE id = ?`,
+          [gp.product_id, gp.pack_name, gp.description, gp.amount, gp.coins, gp.bonus, gp.currency, gp.region, gp.is_best_value, gp.status, existingGp[0].id]
+        );
+      }
     }
+    console.log('🌱 Google Play coin packs seeded in coin_sales!');
 
     // 16. Coin Transactions table
     await connection.query(`

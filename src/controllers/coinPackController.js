@@ -4,17 +4,22 @@ const ApiResponse = require('../utils/apiResponse');
 class CoinPackController {
   static async index(req, res) {
     try {
-      const [rows] = await pool.query('SELECT * FROM coin_sales WHERE status = 1 ORDER BY amount ASC');
+      const [rows] = await pool.query('SELECT * FROM coin_sales WHERE status = 1 OR status = "active" ORDER BY amount ASC');
 
       let coinPacks = rows.map((cp) => ({
         id: Number(cp.id),
+        product_id: cp.product_id || null,
         name: cp.pack_name,
         pack_name: cp.pack_name,
+        description: cp.description || null,
         coins: Number(cp.coins || 0),
+        bonus: Number(cp.bonus || 0),
         price: Number(cp.amount || 0),
         amount: Number(cp.amount || 0),
-        bonus: Number(cp.bonus || 0),
+        currency: cp.currency || 'INR',
+        region: cp.region || 'IN',
         is_best_value: Boolean(cp.is_best_value),
+        status: cp.status === 1 || cp.status === 'active' ? 'active' : 'inactive',
       }));
 
       if (coinPacks.length === 0) {

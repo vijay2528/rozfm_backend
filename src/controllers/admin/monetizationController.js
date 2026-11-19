@@ -98,12 +98,16 @@ class MonetizationController {
       const [packs] = await pool.query('SELECT * FROM coin_sales ORDER BY amount ASC');
       const formattedPacks = packs.map((p) => ({
         id: Number(p.id),
+        product_id: p.product_id || null,
         name: p.pack_name,
         pack_name: p.pack_name,
+        description: p.description || null,
         coins: Number(p.coins || 0),
         price: Number(p.amount || 0),
         amount: Number(p.amount || 0),
         bonus: Number(p.bonus || 0),
+        currency: p.currency || 'INR',
+        region: p.region || 'IN',
         is_best_value: Boolean(p.is_best_value),
         status: Number(p.status),
         created_at: p.created_at,
@@ -126,12 +130,16 @@ class MonetizationController {
       const p = rows[0];
       const coinPack = {
         id: Number(p.id),
+        product_id: p.product_id || null,
         name: p.pack_name,
         pack_name: p.pack_name,
+        description: p.description || null,
         coins: Number(p.coins || 0),
         price: Number(p.amount || 0),
         amount: Number(p.amount || 0),
         bonus: Number(p.bonus || 0),
+        currency: p.currency || 'INR',
+        region: p.region || 'IN',
         is_best_value: Boolean(p.is_best_value),
         status: Number(p.status),
         created_at: p.created_at,
@@ -150,6 +158,10 @@ class MonetizationController {
       const amountVal = req.body.price !== undefined ? req.body.price : req.body.amount;
       const coinsVal = req.body.coins !== undefined ? req.body.coins : 0;
       const bonusVal = req.body.bonus !== undefined ? req.body.bonus : (req.body.bonus_coins !== undefined ? req.body.bonus_coins : 0);
+      const productId = req.body.product_id ? String(req.body.product_id).trim() : null;
+      const descriptionVal = req.body.description !== undefined ? req.body.description : null;
+      const currencyVal = req.body.currency ? String(req.body.currency).trim() : 'INR';
+      const regionVal = req.body.region ? String(req.body.region).trim() : 'IN';
       const { is_best_value, status } = req.body;
 
       if (!packName || amountVal === undefined) {
@@ -157,12 +169,16 @@ class MonetizationController {
       }
 
       const [result] = await pool.query(
-        'INSERT INTO coin_sales (pack_name, coins, bonus, amount, is_best_value, status) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO coin_sales (product_id, pack_name, description, coins, bonus, amount, currency, region, is_best_value, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
+          productId,
           String(packName).trim(),
+          descriptionVal,
           parseInt(coinsVal, 10) || 0,
           parseInt(bonusVal, 10) || 0,
           parseFloat(amountVal) || 0,
+          currencyVal,
+          regionVal,
           is_best_value === '1' || is_best_value === 1 || is_best_value === true ? 1 : 0,
           status === '0' || status === 0 || status === false ? 0 : 1,
         ]
@@ -172,12 +188,16 @@ class MonetizationController {
       const p = rows[0];
       const coinPack = {
         id: Number(p.id),
+        product_id: p.product_id || null,
         name: p.pack_name,
         pack_name: p.pack_name,
+        description: p.description || null,
         coins: Number(p.coins || 0),
         price: Number(p.amount || 0),
         amount: Number(p.amount || 0),
         bonus: Number(p.bonus || 0),
+        currency: p.currency || 'INR',
+        region: p.region || 'IN',
         is_best_value: Boolean(p.is_best_value),
         status: Number(p.status),
         created_at: p.created_at,
@@ -198,6 +218,10 @@ class MonetizationController {
       const amountVal = req.body.price !== undefined ? req.body.price : req.body.amount;
       const coinsVal = req.body.coins;
       const bonusVal = req.body.bonus !== undefined ? req.body.bonus : req.body.bonus_coins;
+      const productId = req.body.product_id !== undefined ? (req.body.product_id ? String(req.body.product_id).trim() : null) : undefined;
+      const descriptionVal = req.body.description !== undefined ? req.body.description : undefined;
+      const currencyVal = req.body.currency !== undefined ? String(req.body.currency).trim() : undefined;
+      const regionVal = req.body.region !== undefined ? String(req.body.region).trim() : undefined;
       const { is_best_value, status } = req.body;
 
       const [existing] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [packId]);
@@ -208,10 +232,14 @@ class MonetizationController {
       const updateFields = [];
       const queryParams = [];
 
+      if (productId !== undefined) { updateFields.push('`product_id` = ?'); queryParams.push(productId); }
       if (packName !== undefined) { updateFields.push('`pack_name` = ?'); queryParams.push(String(packName).trim()); }
+      if (descriptionVal !== undefined) { updateFields.push('`description` = ?'); queryParams.push(descriptionVal); }
       if (coinsVal !== undefined) { updateFields.push('`coins` = ?'); queryParams.push(parseInt(coinsVal, 10) || 0); }
       if (bonusVal !== undefined) { updateFields.push('`bonus` = ?'); queryParams.push(parseInt(bonusVal, 10) || 0); }
       if (amountVal !== undefined) { updateFields.push('`amount` = ?'); queryParams.push(parseFloat(amountVal) || 0); }
+      if (currencyVal !== undefined) { updateFields.push('`currency` = ?'); queryParams.push(currencyVal); }
+      if (regionVal !== undefined) { updateFields.push('`region` = ?'); queryParams.push(regionVal); }
       if (is_best_value !== undefined) { updateFields.push('`is_best_value` = ?'); queryParams.push(is_best_value ? 1 : 0); }
       if (status !== undefined) { updateFields.push('`status` = ?'); queryParams.push(status ? 1 : 0); }
 
@@ -224,12 +252,16 @@ class MonetizationController {
       const p = updated[0];
       const coinPack = {
         id: Number(p.id),
+        product_id: p.product_id || null,
         name: p.pack_name,
         pack_name: p.pack_name,
+        description: p.description || null,
         coins: Number(p.coins || 0),
         price: Number(p.amount || 0),
         amount: Number(p.amount || 0),
         bonus: Number(p.bonus || 0),
+        currency: p.currency || 'INR',
+        region: p.region || 'IN',
         is_best_value: Boolean(p.is_best_value),
         status: Number(p.status),
         created_at: p.created_at,
