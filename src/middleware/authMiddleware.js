@@ -80,6 +80,7 @@ async function optionalAuth(req, res, next) {
 }
 
 authMiddleware.optional = optionalAuth;
+authMiddleware.required = authMiddleware;
 
 module.exports = authMiddleware;
 

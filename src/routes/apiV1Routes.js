@@ -336,8 +336,8 @@ router.post('/payments/razorpay/order', RazorpayController.createOrder);
 router.post('/payments/razorpay/verify', RazorpayController.verifyPayment);
 
 // Google Play In-App Purchases & Subscriptions
-router.post('/purchases/verify', authMiddleware.required, PurchaseController.verify);
-router.post('/payments/google-play/verify', authMiddleware.required, PurchaseController.verify);
+router.post('/purchases/verify', PurchaseController.verify);
+router.post('/payments/google-play/verify', PurchaseController.verify);
 
 // Razorpay Auto-pay Subscriptions
 router.post('/plans/subscribe', RazorpaySubscriptionController.createSubscription);
