@@ -14,7 +14,7 @@ class EpisodeController {
       const storyId = req.params.storyId || req.params.id || req.query.story_id;
       const { search, page = 1, limit = 10, filter, status, is_locked, is_unlocked, is_scheduled, is_downloadable, publish_as } = req.query;
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+      const limitNum = Math.min(1000, Math.max(1, parseInt(limit, 10) || 10));
       const offset = (pageNum - 1) * limitNum;
       const userId = req.user ? req.user.id : null;
 

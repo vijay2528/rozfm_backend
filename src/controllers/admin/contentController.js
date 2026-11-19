@@ -12,7 +12,7 @@ class ContentController {
     try {
       const { status, release_status, release, is_draft, is_scheduled, category_id, language, search, page = 1, limit = 20 } = req.query;
       const offset = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+      const limitNum = Math.min(1000, Math.max(1, parseInt(limit, 10)));
 
       let whereClauses = ['1=1'];
       let queryParams = [];
@@ -686,7 +686,7 @@ class ContentController {
     try {
       const { story_id, search, is_premium, filter, status, is_locked, is_unlocked, is_scheduled, is_downloadable, publish_as, page = 1, limit = 20 } = req.query;
       const offset = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
-      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+      const limitNum = Math.min(1000, Math.max(1, parseInt(limit, 10)));
 
       let whereClauses = ['1=1'];
       let queryParams = [];
@@ -784,7 +784,7 @@ class ContentController {
          FROM episodes e
          LEFT JOIN stories s ON e.story_id = s.id
          ${whereSql}
-         ORDER BY e.created_at DESC
+         ORDER BY ${story_id ? 'e.position ASC, e.episode_number ASC, e.id ASC' : 'e.created_at DESC'}
          LIMIT ? OFFSET ?`,
         [...queryParams, limitNum, offset]
       );
