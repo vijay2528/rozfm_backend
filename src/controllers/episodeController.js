@@ -662,13 +662,15 @@ class EpisodeController {
           [userId, episodeId, coinCost]
         );
 
-        // Record coin transaction
+        // Record coin transaction (commented out as not needed for episode unlocks)
+        /*
         await connection.query(
           `INSERT INTO coin_transactions 
            (user_id, type, coins, plan_id, coin_pack_id, amount, transaction_type, payment_status, description, reference_id) 
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [userId, 'spend', coinCost, null, null, 0.00, 'debit', 'paid', `Unlocked Episode #${episode.position}: ${episode.title}`, String(episodeId)]
         );
+        */
 
         // Fetch parent story to identify writer
         const [storyRows] = await connection.query('SELECT user_id, title FROM stories WHERE id = ? LIMIT 1', [episode.story_id]);
