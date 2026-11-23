@@ -315,9 +315,12 @@ class ContentController {
       }
 
       // 5. Insert Story with Monetization settings
+      const rawFeatureHome = req.body.is_feature_home !== undefined ? req.body.is_feature_home : (req.body.feature_home !== undefined ? req.body.feature_home : req.body.featureHome);
+      const finalFeatureHome = (rawFeatureHome === 'yes' || rawFeatureHome === true || rawFeatureHome === 1 || rawFeatureHome === '1' || rawFeatureHome === 'true') ? 'yes' : 'no';
+
       const [result] = await pool.query(
-        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, free_episodes_count, coin_price_per_episode, status, release_status, publish_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO stories (user_id, title, description, category_id, cover_image_path, banner_image_path, language, tags, is_premium, free_episodes_count, coin_price_per_episode, status, release_status, publish_date, is_feature_home)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           finalUserId,
           title.trim(),
@@ -333,6 +336,7 @@ class ContentController {
           finalStatus,
           finalReleaseStatus,
           finalPublishDate,
+          finalFeatureHome,
         ]
       );
 
@@ -541,6 +545,13 @@ class ContentController {
           updateFields.push('`status` = ?');
           queryParams.push(finalStatus);
         }
+      }
+
+      const rawFeatureHome = req.body.is_feature_home !== undefined ? req.body.is_feature_home : (req.body.feature_home !== undefined ? req.body.feature_home : req.body.featureHome);
+      if (rawFeatureHome !== undefined && rawFeatureHome !== null && String(rawFeatureHome).trim() !== '') {
+        const featVal = (rawFeatureHome === 'yes' || rawFeatureHome === true || rawFeatureHome === 1 || rawFeatureHome === '1' || rawFeatureHome === 'true') ? 'yes' : 'no';
+        updateFields.push('`is_feature_home` = ?');
+        queryParams.push(featVal);
       }
 
       let coverImagePath = null;

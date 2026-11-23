@@ -23,6 +23,7 @@ async function ensureBannerColumns() {
       "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `ends_at` DATETIME NULL",
       "ALTER TABLE `banners` ADD COLUMN IF NOT EXISTS `sort_order` INT DEFAULT 0",
       "ALTER TABLE `banners` MODIFY COLUMN `position` VARCHAR(50) DEFAULT 'Home'",
+      "ALTER TABLE `stories` ADD COLUMN IF NOT EXISTS `is_feature_home` ENUM('yes', 'no') DEFAULT 'no'",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `instagram_link` VARCHAR(512) NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `youtube_link` VARCHAR(512) NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `facebook_link` VARCHAR(512) NULL",
