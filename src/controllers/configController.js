@@ -10,9 +10,25 @@ class ConfigController {
         settingsMap[row.key] = row.value;
       });
 
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+      const rawProtocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
       const host = req.get('host') || 'api.rozfm.com';
+      // Always enforce https for production domain to prevent Android cleartext blocks
+      const protocol = (host.includes('rozfm.com') || rawProtocol === 'https') ? 'https' : rawProtocol;
       const baseUrl = `${protocol}://${host}`;
+
+      const sanitizePolicyUrl = (val, fallbackPath) => {
+        if (!val || typeof val !== 'string' || val.trim() === '') {
+          return `${baseUrl}${fallbackPath}`;
+        }
+        let trimmed = val.trim();
+        if (trimmed.startsWith('https://rozfm.com/') || trimmed.startsWith('http://rozfm.com/')) {
+          trimmed = trimmed.replace(/^https?:\/\/rozfm\.com/, baseUrl);
+        }
+        if (trimmed.startsWith('http://') && trimmed.includes('rozfm.com')) {
+          trimmed = trimmed.replace(/^http:\/\//, 'https://');
+        }
+        return trimmed;
+      };
 
       return ApiResponse.success(res, {
         platform_name: settingsMap.platform_name || settingsMap.app_name || 'Roz FM',
@@ -30,12 +46,12 @@ class ConfigController {
         },
         coin_conversion_rate: Number(settingsMap.coin_conversion_rate || 10),
         currency_symbol: settingsMap.currency_symbol || '₹',
-        privacy_policy_url: settingsMap.privacy_policy_url || `${baseUrl}/privacy-policy`,
-        refund_policy_url: settingsMap.refund_policy_url || `${baseUrl}/refund-policy`,
-        terms_and_condition_url: settingsMap.terms_and_condition_url || `${baseUrl}/terms-and-condition`,
-        terms_and_conditions_url: settingsMap.terms_and_conditions_url || `${baseUrl}/terms-and-condition`,
-        copy_right_policy: settingsMap.copy_right_policy || `${baseUrl}/copy-right-policy`,
-        copy_right_policy_url: settingsMap.copy_right_policy_url || `${baseUrl}/copy-right-policy`,
+        privacy_policy_url: sanitizePolicyUrl(settingsMap.privacy_policy_url, '/privacy-policy'),
+        refund_policy_url: sanitizePolicyUrl(settingsMap.refund_policy_url, '/refund-policy'),
+        terms_and_condition_url: sanitizePolicyUrl(settingsMap.terms_and_condition_url || settingsMap.terms_and_conditions_url, '/terms-and-condition'),
+        terms_and_conditions_url: sanitizePolicyUrl(settingsMap.terms_and_conditions_url || settingsMap.terms_and_condition_url, '/terms-and-condition'),
+        copy_right_policy: sanitizePolicyUrl(settingsMap.copy_right_policy || settingsMap.copy_right_policy_url, '/copy-right-policy'),
+        copy_right_policy_url: sanitizePolicyUrl(settingsMap.copy_right_policy_url || settingsMap.copy_right_policy, '/copy-right-policy'),
       });
     } catch (error) {
       console.error('Config Error:', error);
@@ -44,16 +60,40 @@ class ConfigController {
   }
 
   static async policies(req, res) {
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const rawProtocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.get('host') || 'api.rozfm.com';
+    const protocol = (host.includes('rozfm.com') || rawProtocol === 'https') ? 'https' : rawProtocol;
     const baseUrl = `${protocol}://${host}`;
 
+    let settingsMap = {};
+    try {
+      const [settingsRows] = await pool.query("SELECT `key`, `value` FROM settings WHERE `key` LIKE '%policy%' OR `key` LIKE '%terms%'");
+      settingsRows.forEach((row) => {
+        settingsMap[row.key] = row.value;
+      });
+    } catch (_) {}
+
+    const sanitizePolicyUrl = (val, fallbackPath) => {
+      if (!val || typeof val !== 'string' || val.trim() === '') {
+        return `${baseUrl}${fallbackPath}`;
+      }
+      let trimmed = val.trim();
+      if (trimmed.startsWith('https://rozfm.com/') || trimmed.startsWith('http://rozfm.com/')) {
+        trimmed = trimmed.replace(/^https?:\/\/rozfm\.com/, baseUrl);
+      }
+      if (trimmed.startsWith('http://') && trimmed.includes('rozfm.com')) {
+        trimmed = trimmed.replace(/^http:\/\//, 'https://');
+      }
+      return trimmed;
+    };
+
     return ApiResponse.success(res, {
-      privacy_policy_url: `${baseUrl}/privacy-policy`,
-      refund_policy_url: `${baseUrl}/refund-policy`,
-      terms_and_condition_url: `${baseUrl}/terms-and-condition`,
-      copy_right_policy: `${baseUrl}/copy-right-policy`,
-      copy_right_policy_url: `${baseUrl}/copy-right-policy`,
+      privacy_policy_url: sanitizePolicyUrl(settingsMap.privacy_policy_url, '/privacy-policy'),
+      refund_policy_url: sanitizePolicyUrl(settingsMap.refund_policy_url, '/refund-policy'),
+      terms_and_condition_url: sanitizePolicyUrl(settingsMap.terms_and_condition_url || settingsMap.terms_and_conditions_url, '/terms-and-condition'),
+      terms_and_conditions_url: sanitizePolicyUrl(settingsMap.terms_and_conditions_url || settingsMap.terms_and_condition_url, '/terms-and-condition'),
+      copy_right_policy: sanitizePolicyUrl(settingsMap.copy_right_policy || settingsMap.copy_right_policy_url, '/copy-right-policy'),
+      copy_right_policy_url: sanitizePolicyUrl(settingsMap.copy_right_policy_url || settingsMap.copy_right_policy, '/copy-right-policy'),
     });
   }
 

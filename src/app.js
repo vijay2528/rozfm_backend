@@ -68,6 +68,13 @@ const servePrivacyPolicy = (req, res) => {
 
 const privacyRoutes = [
   '/privacy-policy',
+  '/privacy-policy.html',
+  '/privacy_policy',
+  '/privacy_policy.html',
+  '/privacy',
+  '/privacy.html',
+  '/api/privacy-policy',
+  '/api/v1/privacy-policy',
 ];
 privacyRoutes.forEach((route) => app.get(route, servePrivacyPolicy));
 
@@ -78,6 +85,13 @@ const serveRefundPolicy = (req, res) => {
 
 const refundRoutes = [
   '/refund-policy',
+  '/refund-policy.html',
+  '/refund_policy',
+  '/refund_policy.html',
+  '/refund',
+  '/refund.html',
+  '/api/refund-policy',
+  '/api/v1/refund-policy',
 ];
 refundRoutes.forEach((route) => app.get(route, serveRefundPolicy));
 
@@ -88,6 +102,23 @@ const serveTermsAndConditions = (req, res) => {
 
 const termsRoutes = [
   '/terms-and-condition',
+  '/terms-and-condition.html',
+  '/terms-and-conditions',
+  '/terms-and-conditions.html',
+  '/terms_and_condition',
+  '/terms_and_condition.html',
+  '/terms_and_conditions',
+  '/terms_and_conditions.html',
+  '/terms',
+  '/terms.html',
+  '/terms-of-service',
+  '/terms-of-service.html',
+  '/terms-of-use',
+  '/terms-of-use.html',
+  '/api/terms-and-condition',
+  '/api/v1/terms-and-condition',
+  '/api/terms-and-conditions',
+  '/api/v1/terms-and-conditions',
 ];
 termsRoutes.forEach((route) => app.get(route, serveTermsAndConditions));
 
@@ -96,7 +127,21 @@ const serveCopyrightPolicy = (req, res) => {
   res.sendFile(resolveHtmlPath('copy_right_policy.html', 'copyright.html'));
 };
 
-app.get('/copy-right-policy', serveCopyrightPolicy);
+const copyrightRoutes = [
+  '/copy-right-policy',
+  '/copy-right-policy.html',
+  '/copyright-policy',
+  '/copyright-policy.html',
+  '/copy_right_policy',
+  '/copy_right_policy.html',
+  '/copyright',
+  '/copyright.html',
+  '/api/copy-right-policy',
+  '/api/v1/copy-right-policy',
+  '/api/copyright-policy',
+  '/api/v1/copyright-policy',
+];
+copyrightRoutes.forEach((route) => app.get(route, serveCopyrightPolicy));
 
 // Serve Preview Landing Page
 const servePreviewPage = (req, res) => {
