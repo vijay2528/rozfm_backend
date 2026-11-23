@@ -225,6 +225,7 @@ const serveAssetLinks = (req, res) => {
 };
 
 app.get('/.well-known/assetlinks.json', serveAssetLinks);
+app.get('/.well-known/assetlinks', serveAssetLinks);
 app.get('/assetlinks.json', serveAssetLinks);
 app.get('/api/v1/.well-known/assetlinks.json', serveAssetLinks);
 app.get('/api/.well-known/assetlinks.json', serveAssetLinks);
