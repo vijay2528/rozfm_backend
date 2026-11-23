@@ -98,6 +98,34 @@ const serveCopyrightPolicy = (req, res) => {
 
 app.get('/copy-right-policy', serveCopyrightPolicy);
 
+// Serve Preview Landing Page
+const servePreviewPage = (req, res) => {
+  res.sendFile(resolveHtmlPath('preview.html'));
+};
+app.get('/preview', servePreviewPage);
+app.get('/preview.html', servePreviewPage);
+
+// Serve Logo
+const serveLogo = (req, res) => {
+  const filePath = path.join(__dirname, '..', 'logo.png');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'image/png');
+    return res.sendFile(filePath);
+  }
+  const altPath = path.join(__dirname, 'logo.png');
+  if (fs.existsSync(altPath)) {
+    res.setHeader('Content-Type', 'image/png');
+    return res.sendFile(altPath);
+  }
+  return res.status(404).send('Logo not found');
+};
+app.get('/logo.png', serveLogo);
+
+// Serve Story Preview Landing Page (WhatsApp share, web preview & deep linking)
+const StoryWebController = require('./controllers/storyWebController');
+app.get('/stories/:id', StoryWebController.renderStoryPage);
+app.get('/stories/:id/:slug?', StoryWebController.renderStoryPage);
+
 // Serve app-ads.txt for Google AdMob verification
 const serveAppAdsTxt = (req, res) => {
   const filePath = path.join(__dirname, '..', 'app-ads.txt');
