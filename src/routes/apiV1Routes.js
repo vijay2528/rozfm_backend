@@ -116,6 +116,8 @@ router.get('/stories/:id', authMiddleware.optional, StoryController.show);
 router.get('/stories/:storyId/episodes', authMiddleware.optional, EpisodeController.index);
 router.get('/episodes', authMiddleware.optional, EpisodeController.index);
 router.get('/stories/:id/reviews', ReviewController.index);
+router.get('/reviews/:id/replies', authMiddleware.optional, ReviewController.replies);
+router.get('/stories/:storyId/reviews/:reviewId/replies', authMiddleware.optional, ReviewController.replies);
 router.get('/stories/:id/comments', CommentController.index);
 router.get('/comments/:id/replies', CommentController.replies);
 
@@ -238,6 +240,11 @@ router.post('/stories/:storyId/episodes', upload.episodeMedia, EpisodeController
 
 // Interactions & Engagement
 router.post('/stories/:id/reviews', ReviewController.store);
+router.post('/reviews/:id/replies', ReviewController.storeReply);
+router.post('/reviews/:id/reply', ReviewController.storeReply);
+router.post('/stories/:storyId/reviews/:reviewId/replies', ReviewController.storeReply);
+router.delete('/reviews/:reviewId/replies/:replyId', ReviewController.destroyReply);
+router.delete('/review-replies/:id', ReviewController.destroyReply);
 router.post('/stories/:id/comments', CommentController.store);
 router.post('/comments/:id', CommentController.update);
 router.delete('/comments/:id', CommentController.destroy);

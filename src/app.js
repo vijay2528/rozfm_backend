@@ -117,6 +117,49 @@ const serveAppAdsTxt = (req, res) => {
 app.get('/app-ads.txt', serveAppAdsTxt);
 app.get('/api/v1/app-ads.txt', serveAppAdsTxt);
 
+// Serve .well-known/assetlinks.json for Android App Links verification
+const serveAssetLinks = (req, res) => {
+  const candidates = [
+    path.join(__dirname, '.well-known', 'assetlinks.json'),
+    path.join(__dirname, '..', '.well-known', 'assetlinks.json'),
+    path.join(process.cwd(), '.well-known', 'assetlinks.json'),
+    path.join(process.cwd(), 'src', '.well-known', 'assetlinks.json'),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.sendFile(candidate);
+    }
+  }
+
+  // Fallback inline content matching Android package configuration
+  res.setHeader('Content-Type', 'application/json');
+  return res.json([
+    {
+      relation: ['delegate_permission/common.handle_all_urls'],
+      target: {
+        namespace: 'android_app',
+        package_name: 'com.rozfm',
+        sha256_cert_fingerprints: [
+          'BF:0C:83:9B:98:AF:93:44:B3:FB:C7:1B:6A:19:58:CE:05:99:7E:75:6B:50:CE:D3:BA:A9:B8:53:16:22:78:15',
+          '44:0D:B5:B6:7F:62:9C:80:2E:8E:C8:89:E8:56:8F:A5:7D:0B:65:50:25:15:30:EC:36:EC:BF:82:F9:55:13:F6',
+          '58:C9:50:C4:74:17:7F:6A:13:60:E7:28:65:50:C8:1B:FB:2A:CC:DF:C1:05:E5:A7:43:1D:4C:03:7E:AD:54:2A',
+        ],
+      },
+    },
+  ]);
+};
+
+app.get('/.well-known/assetlinks.json', serveAssetLinks);
+app.get('/assetlinks.json', serveAssetLinks);
+app.get('/api/v1/.well-known/assetlinks.json', serveAssetLinks);
+app.get('/api/.well-known/assetlinks.json', serveAssetLinks);
+
+// Serve static .well-known directory
+app.use('/.well-known', express.static(path.join(__dirname, '.well-known')));
+app.use('/.well-known', express.static(path.join(__dirname, '..', '.well-known')));
+
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {
   return ApiResponse.success(

@@ -26,6 +26,16 @@ async function ensureBannerColumns() {
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `instagram_link` VARCHAR(512) NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `youtube_link` VARCHAR(512) NULL",
       "ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `facebook_link` VARCHAR(512) NULL",
+      `CREATE TABLE IF NOT EXISTS \`review_replies\` (
+        \`id\` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        \`review_id\` BIGINT UNSIGNED NOT NULL,
+        \`user_id\` BIGINT UNSIGNED NOT NULL,
+        \`reply\` TEXT NOT NULL,
+        \`created_at\` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        \`updated_at\` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX \`idx_review_replies_review_id\` (\`review_id\`),
+        INDEX \`idx_review_replies_user_id\` (\`user_id\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
     ];
     for (const sql of alterQueries) {
       await pool.query(sql).catch(() => {});

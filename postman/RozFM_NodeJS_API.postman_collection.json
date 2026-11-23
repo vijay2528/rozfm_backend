@@ -1344,6 +1344,92 @@
           }
         },
         {
+          "name": "Reply to Story Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reply\": \"Thank you so much for your review and support!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reviews/1/replies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "1",
+                "replies"
+              ]
+            },
+            "description": "POST /api/v1/reviews/:id/replies\nPost a reply to a story review.\nRequires authentication."
+          }
+        },
+        {
+          "name": "Get Story Review Replies",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reviews/1/replies?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "1",
+                "replies"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "GET /api/v1/reviews/:id/replies\nList paginated replies for a specific story review. Public."
+          }
+        },
+        {
+          "name": "Delete Story Review Reply",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/review-replies/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "review-replies",
+                "1"
+              ]
+            },
+            "description": "DELETE /api/v1/review-replies/:id\nDelete a reply to a review. Allowed for reply author, story author, or review author."
+          }
+        },
+        {
           "name": "Get User Reviews",
           "request": {
             "method": "GET",
