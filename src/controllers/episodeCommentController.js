@@ -13,44 +13,105 @@ class EpisodeCommentController {
   /**
    * GET /api/v1/episodes/:episodeId/comments
    * List top-level comments for a specific episode (paginated).
+   * Supports optional story_id filter (?story_id=... or route param).
    */
   static async index(req, res) {
     try {
-      const episodeId = req.params.episodeId || req.params.id;
+      const episodeId = req.params.episodeId || req.params.id || req.query.episode_id || req.query.episodeId;
       const userId = req.user ? req.user.id : null;
-      const { page = 1, limit = 10 } = req.query;
+      const { page = 1, limit = 10, story_id, storyId } = req.query;
+      const targetStoryId = story_id || storyId || req.params.storyId || req.params.story_id;
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
       const offset = (pageNum - 1) * limitNum;
 
-      // Verify episode exists
-      const [epRows] = await pool.query('SELECT id FROM episodes WHERE id = ? LIMIT 1', [episodeId]);
-      if (epRows.length === 0) {
-        return ApiResponse.error(res, 'Episode not found.', 404);
+      if (!episodeId && !targetStoryId) {
+        return ApiResponse.error(res, 'Episode ID or Story ID is required.', 422);
       }
 
-      // Count top-level comments for the episode
+      let episode = null;
+      // Verify episode exists if episodeId is provided
+      if (episodeId) {
+        const [epRows] = await pool.query('SELECT id, story_id FROM episodes WHERE id = ? LIMIT 1', [episodeId]);
+        if (epRows.length === 0) {
+          return ApiResponse.error(res, 'Episode not found.', 404);
+        }
+        episode = epRows[0];
+      }
+
+      // Verify story exists if targetStoryId is provided
+      if (targetStoryId) {
+        const [storyRows] = await pool.query('SELECT id FROM stories WHERE id = ? LIMIT 1', [targetStoryId]);
+        if (storyRows.length === 0) {
+          return ApiResponse.error(res, 'Story not found.', 404);
+        }
+      }
+
+      // Build where conditions
+      const whereConditions = ['c.parent_id IS NULL'];
+      const queryParams = [];
+
+      const countWhereConditions = ['c.parent_id IS NULL'];
+      const countParams = [];
+
+      const totalWhereConditions = [];
+      const totalParams = [];
+
+      if (episodeId) {
+        whereConditions.push('c.episode_id = ?');
+        queryParams.push(episodeId);
+
+        countWhereConditions.push('c.episode_id = ?');
+        countParams.push(episodeId);
+
+        totalWhereConditions.push('c.episode_id = ?');
+        totalParams.push(episodeId);
+      }
+
+      if (targetStoryId) {
+        whereConditions.push('COALESCE(c.story_id, e.story_id) = ?');
+        queryParams.push(targetStoryId);
+
+        countWhereConditions.push('COALESCE(c.story_id, e.story_id) = ?');
+        countParams.push(targetStoryId);
+
+        totalWhereConditions.push('COALESCE(c.story_id, e.story_id) = ?');
+        totalParams.push(targetStoryId);
+      }
+
+      const whereSql = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      const countWhereSql = countWhereConditions.length > 0 ? `WHERE ${countWhereConditions.join(' AND ')}` : '';
+      const totalWhereSql = totalWhereConditions.length > 0 ? `WHERE ${totalWhereConditions.join(' AND ')}` : '';
+
+      // Count top-level comments for the episode (matching filters)
       const [[{ count }]] = await pool.query(
-        'SELECT COUNT(*) as count FROM comments WHERE episode_id = ? AND parent_id IS NULL',
-        [episodeId]
+        `SELECT COUNT(*) as count 
+         FROM comments c
+         LEFT JOIN episodes e ON c.episode_id = e.id
+         ${countWhereSql}`,
+        countParams
       );
 
-      // Count all comments (including replies) for the episode
+      // Count all comments (including replies) for the episode (matching filters)
       const [[{ totalCommentsCount }]] = await pool.query(
-        'SELECT COUNT(*) as totalCommentsCount FROM comments WHERE episode_id = ?',
-        [episodeId]
+        `SELECT COUNT(*) as totalCommentsCount 
+         FROM comments c
+         LEFT JOIN episodes e ON c.episode_id = e.id
+         ${totalWhereSql}`,
+        totalParams
       );
 
       const [comments] = await pool.query(
-        `SELECT c.*, u.name as user_name, u.avatar_path as user_avatar,
+        `SELECT c.*, e.story_id as ep_story_id, u.name as user_name, u.avatar_path as user_avatar,
                 (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id) as likes_count,
                 (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id) as replies_count
          FROM comments c
          JOIN users u ON c.user_id = u.id
-         WHERE c.episode_id = ? AND c.parent_id IS NULL
+         LEFT JOIN episodes e ON c.episode_id = e.id
+         ${whereSql}
          ORDER BY c.created_at DESC
          LIMIT ? OFFSET ?`,
-        [episodeId, limitNum, offset]
+        [...queryParams, limitNum, offset]
       );
 
       let userLikedIds = new Set();
@@ -65,6 +126,7 @@ class EpisodeCommentController {
 
       const result = comments.map((c) => ({
         id: Number(c.id),
+        story_id: c.story_id ? Number(c.story_id) : (c.ep_story_id ? Number(c.ep_story_id) : (episode && episode.story_id ? Number(episode.story_id) : null)),
         episode_id: Number(c.episode_id),
         user_id: Number(c.user_id),
         user_name: c.user_name,
@@ -105,13 +167,13 @@ class EpisodeCommentController {
   /**
    * POST /api/v1/episodes/:episodeId/comments
    * Post a new comment (or reply) on an episode.
-   * Body: { comment, parent_id? }
+   * Body: { comment, parent_id?, story_id? }
    */
   static async store(req, res) {
     try {
       const episodeId = req.params.episodeId || req.params.id;
       const userId = req.user.id;
-      const { comment, parent_id } = req.body;
+      const { comment, parent_id, story_id, storyId } = req.body;
 
       if (!comment || comment.trim() === '') {
         return ApiResponse.error(res, 'Comment text is required.', 422);
@@ -130,10 +192,11 @@ class EpisodeCommentController {
       }
 
       const episode = epRows[0];
+      const targetStoryId = story_id || storyId || episode.story_id || null;
 
       const [result] = await pool.query(
-        'INSERT INTO comments (user_id, episode_id, parent_id, comment) VALUES (?, ?, ?, ?)',
-        [userId, episodeId, parent_id || null, comment.trim()]
+        'INSERT INTO comments (user_id, story_id, episode_id, parent_id, comment) VALUES (?, ?, ?, ?, ?)',
+        [userId, targetStoryId, episodeId, parent_id || null, comment.trim()]
       );
 
       // ── Push notification: new comment on episode → notify story/episode author ──
@@ -155,14 +218,20 @@ class EpisodeCommentController {
               commentText: comment.trim(),
               title: 'New Comment on your Episode 💬',
               body: `${commenterName} commented: '${comment.trim().length > 50 ? comment.trim().substring(0, 47) + '...' : comment.trim()}'`,
-            }).catch(() => {});
+            }).catch(() => { });
           })
-          .catch(() => {});
-      }).catch(() => {});
+          .catch(() => { });
+      }).catch(() => { });
 
       return ApiResponse.success(
         res,
-        { comment_id: result.insertId, comment: comment.trim() },
+        {
+          id: result.insertId,
+          comment_id: result.insertId,
+          story_id: targetStoryId ? Number(targetStoryId) : null,
+          episode_id: Number(episodeId),
+          comment: comment.trim(),
+        },
         'Comment posted successfully.'
       );
     } catch (error) {
@@ -178,7 +247,7 @@ class EpisodeCommentController {
    */
   static async replies(req, res) {
     try {
-      const commentId = req.params.id || req.params.comment;
+      const commentId = req.params.commentId || req.params.id || req.params.comment;
       const { page = 1, limit = 10 } = req.query;
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
@@ -308,6 +377,7 @@ class EpisodeCommentController {
         {
           id: Number(commentId),
           comment_id: Number(commentId),
+          story_id: commentRecord.story_id ? Number(commentRecord.story_id) : null,
           episode_id: Number(commentRecord.episode_id),
           parent_id: commentRecord.parent_id ? Number(commentRecord.parent_id) : null,
           user_id: Number(userId),
@@ -384,6 +454,7 @@ class EpisodeCommentController {
         {
           id: Number(commentId),
           comment_id: Number(commentId),
+          story_id: commentRecord.story_id ? Number(commentRecord.story_id) : null,
           episode_id: Number(commentRecord.episode_id),
         },
         'Comment deleted successfully.'

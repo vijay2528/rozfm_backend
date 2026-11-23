@@ -121,6 +121,8 @@ router.get('/comments/:id/replies', CommentController.replies);
 
 // Episode Comments (Public — list & replies)
 router.get('/episodes/:episodeId/comments', authMiddleware.optional, EpisodeCommentController.index);
+router.get('/stories/:storyId/episodes/:episodeId/comments', authMiddleware.optional, EpisodeCommentController.index);
+router.get('/episodes/comments', authMiddleware.optional, EpisodeCommentController.index);
 router.get('/episodes/:episodeId/comments/:commentId/replies', EpisodeCommentController.replies);
 
 router.get('/episodes/:id', authMiddleware.optional, EpisodeController.show);

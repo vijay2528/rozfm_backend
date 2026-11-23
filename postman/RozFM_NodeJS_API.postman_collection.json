@@ -6137,10 +6137,16 @@
                 {
                   "key": "limit",
                   "value": "10"
+                },
+                {
+                  "key": "story_id",
+                  "value": "1",
+                  "description": "Optional filter by story ID",
+                  "disabled": true
                 }
               ]
             },
-            "description": "GET /api/v1/episodes/:episodeId/comments\nList paginated top-level comments for a specific episode.\nAuth is optional (liked status requires auth)."
+            "description": "GET /api/v1/episodes/:episodeId/comments\nList paginated top-level comments for a specific episode.\nSupports optional ?story_id= filter.\nAuth is optional (liked status requires auth)."
           }
         },
         {
