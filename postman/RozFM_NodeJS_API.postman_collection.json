@@ -1307,18 +1307,13 @@
           ]
         },
         {
-          "name": "Unlock Episode Range",
+          "name": "Get Episode Range Coins (unlock-range)",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}",
-                "type": "text"
               }
             ],
             "body": {
@@ -1340,22 +1335,17 @@
                 "unlock-range"
               ]
             },
-            "description": "Unlock multiple episodes at a time within an episode range using user wallet coins."
+            "description": "Returns total_coins sum for the selected episode range without unlocking anything."
           },
           "response": [
             {
-              "name": "Success",
+              "name": "Success (Total Coins Only)",
               "originalRequest": {
                 "method": "POST",
                 "header": [
                   {
                     "key": "Content-Type",
                     "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}",
-                    "type": "text"
                   }
                 ],
                 "body": {
@@ -1376,7 +1366,8 @@
                     "episodes",
                     "unlock-range"
                   ]
-                }
+                },
+                "description": "Returns total_coins sum for the selected episode range without unlocking anything."
               },
               "status": "OK",
               "code": 200,
@@ -1388,7 +1379,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n    \"success\": true,\n    \"message\": \"Successfully unlocked 50 episodes.\",\n    \"data\": {\n        \"story_id\": 1,\n        \"range\": {\n            \"from_episode\": 1,\n            \"to_episode\": 50\n        },\n        \"unlocked_count\": 50,\n        \"coins_spent\": 1250,\n        \"wallet_balance\": 750,\n        \"unlocked_episode_ids\": [\n            101,\n            102\n        ]\n    }\n}"
+              "body": "{\n    \"success\": true,\n    \"message\": \"Episode range coins calculated successfully.\",\n    \"data\": {\n        \"total_coins\": 25\n    }\n}"
             }
           ]
         },

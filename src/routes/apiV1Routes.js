@@ -280,13 +280,13 @@ router.post('/episodes/play-duration', WatchHistoryController.updatePlayDuration
 router.post('/episodes/update-play-duration', WatchHistoryController.updatePlayDuration);
 router.post('/episode/play-duration', WatchHistoryController.updatePlayDuration);
 
-// Episode Range Coins Calculation & Unlock
+// Episode Range Coins Calculation
 router.post('/episodes/range-coins', authMiddleware.optional, EpisodeController.calculateRangeCoins);
 router.post('/episodes/calculate-coins', authMiddleware.optional, EpisodeController.calculateRangeCoins);
 router.post('/stories/:storyId/episodes/range-coins', authMiddleware.optional, EpisodeController.calculateRangeCoins);
 router.post('/stories/:storyId/episodes/calculate-coins', authMiddleware.optional, EpisodeController.calculateRangeCoins);
-router.post('/episodes/unlock-range', authMiddleware, EpisodeController.unlockRange);
-router.post('/stories/:storyId/episodes/unlock-range', authMiddleware, EpisodeController.unlockRange);
+router.post('/episodes/unlock-range', authMiddleware.optional, EpisodeController.calculateRangeCoins);
+router.post('/stories/:storyId/episodes/unlock-range', authMiddleware.optional, EpisodeController.calculateRangeCoins);
 
 // Dynamic :id routes
 router.post('/episodes/:id/track-progress', WatchHistoryController.trackProgress);
