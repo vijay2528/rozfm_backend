@@ -790,7 +790,7 @@ class EpisodeController {
       const endEp = Math.max(from, to);
 
       const [[result]] = await pool.query(
-        `SELECT COALESCE(SUM(COALESCE(coins, 0)), 0) AS total_coins
+        `SELECT COALESCE(SUM(CASE WHEN is_premium = 1 THEN COALESCE(coins, 0) ELSE 0 END), 0) AS total_coins
          FROM episodes
          WHERE story_id = ?
            AND COALESCE(episode_number, position) >= ?
@@ -843,7 +843,6 @@ class EpisodeController {
            e.episode_number,
            e.position,
            e.title,
-           e.is_free,
            e.is_premium,
            COALESCE(e.coins, 25) AS coins,
            s.user_id AS writer_id
@@ -868,9 +867,9 @@ class EpisodeController {
       );
       const alreadyUnlockedSet = new Set(alreadyUnlockedRows.map((r) => Number(r.episode_id)));
 
-      // Filter only locked premium episodes
+      // Filter only locked premium episodes (is_premium = 1 is paid, is_premium = 0 is free)
       const toUnlock = episodes.filter((ep) => {
-        const isFree = ep.is_free === 1 || ep.is_premium === 0;
+        const isFree = Number(ep.is_premium) === 0;
         return !isFree && !alreadyUnlockedSet.has(Number(ep.id));
       });
 
