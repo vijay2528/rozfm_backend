@@ -903,9 +903,14 @@ class EpisodeController {
         }
       });
 
+      const fromEpObj = mappedEpisodes.find((ep) => ep.episode_no === fromEpisode);
+      const toEpObj = mappedEpisodes.find((ep) => ep.episode_no === targetEpNo);
+
       return ApiResponse.success(res, {
         from_episode: fromEpisode,
+        from_episode_id: fromEpObj ? Number(fromEpObj.id) : null,
         to_episode: targetEpNo,
+        to_episode_id: toEpObj ? Number(toEpObj.id) : null,
         total_coins: totalCoins,
       }, 'Coins calculated successfully.');
     } catch (error) {

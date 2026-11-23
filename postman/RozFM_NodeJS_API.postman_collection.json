@@ -1302,7 +1302,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n    \"success\": true,\n    \"message\": \"Coins calculated successfully.\",\n    \"data\": {\n        \"from_episode\": 18,\n        \"to_episode\": 20,\n        \"total_coins\": 50\n    }\n}"
+              "body": "{\n    \"success\": true,\n    \"message\": \"Coins calculated successfully.\",\n    \"data\": {\n        \"from_episode\": 11,\n        \"from_episode_id\": 5014,\n        \"to_episode\": 100,\n        \"to_episode_id\": 5103,\n        \"total_coins\": 2250\n    }\n}"
             }
           ]
         },
