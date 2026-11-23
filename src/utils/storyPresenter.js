@@ -244,6 +244,8 @@ function toStoryFieldsArray(story, options = {}) {
     shares: {
       count: sharesCount,
       formatted: formatNumber(sharesCount),
+      share_count: sharesCount,
+      shares_count: sharesCount,
       growth: '0%',
     },
   };
@@ -288,6 +290,7 @@ function toStoryFieldsArray(story, options = {}) {
     id: Number(story.id),
     story_id: Number(story.id),
     title: story.title,
+    story_name: story.title,
     description: story.description || null,
     cover_image: coverUrl,
     banner_image: bannerUrl,
@@ -323,6 +326,7 @@ function toStoryFieldsArray(story, options = {}) {
     },
     likes_count: likesCount,
     shares_count: sharesCount,
+    share_count: sharesCount,
     is_liked: Boolean(isLiked),
     is_bookmarked: Boolean(isBookmarked),
     performance: performanceObj,

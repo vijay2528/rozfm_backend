@@ -249,13 +249,49 @@ class WriterDashboardController {
       let stories = [];
       try {
         const [storyRows] = await pool.query(
-          'SELECT id, total_views, listeners_count, shares_count FROM stories WHERE user_id = ?',
+          `SELECT s.id, s.title, s.slug, s.description, s.cover_image_path, s.banner_image_path,
+                  s.status, s.release_status, s.is_approved, s.rating,
+                  s.total_views, s.listeners_count, s.shares_count,
+                  (SELECT COUNT(*) FROM episodes e WHERE e.story_id = s.id) AS episodes_count,
+                  (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) AS likes_count,
+                  c.category_name
+           FROM stories s
+           LEFT JOIN categories c ON s.category_id = c.id
+           WHERE s.user_id = ?
+           ORDER BY s.created_at DESC`,
           [userIdNum]
         );
         stories = storyRows;
       } catch (err) {
         console.warn('Stories query warning:', err.message);
       }
+
+      const formattedStories = stories.map((s) => {
+        const shares = Number(s.shares_count || 0);
+        const views = Number(s.total_views || s.listeners_count || 0);
+        return {
+          id: Number(s.id),
+          story_id: Number(s.id),
+          title: s.title,
+          story_name: s.title,
+          description: s.description || null,
+          category: s.category_name || null,
+          cover_image: resolveUrl(s.cover_image_path),
+          cover_image_path: s.cover_image_path || null,
+          banner_image: resolveUrl(s.banner_image_path),
+          status: s.status || 'Published',
+          is_approved: s.is_approved || 'Approved',
+          rating: Number(s.rating || 0),
+          total_views: views,
+          play_count: views,
+          plays_count: views,
+          listeners_count: Number(s.listeners_count || 0),
+          episodes_count: Number(s.episodes_count || 0),
+          likes_count: Number(s.likes_count || 0),
+          share_count: shares,
+          shares_count: shares,
+        };
+      });
 
       const storyIds = stories.map((s) => s.id);
       const totalStoriesCount = stories.length;
@@ -380,13 +416,117 @@ class WriterDashboardController {
           stories_summary: {
             total_stories: totalStoriesCount,
             total_episodes: totalEpisodesCount,
+            total_shares: todayShares,
+            stories: formattedStories,
           },
+          stories: formattedStories,
         },
         'Writer dashboard statistics fetched successfully.'
       );
     } catch (error) {
       console.error('Writer Dashboard Critical Error:', error);
       return ApiResponse.error(res, 'Failed to fetch writer dashboard statistics.', 500);
+    }
+  }
+
+  /**
+   * GET /api/v1/writer/stories
+   * List all stories for the authenticated writer with live share counts
+   */
+  static async stories(req, res) {
+    try {
+      let user = req.user || null;
+      const requestedUserId = (req && req.query) ? (req.query.user_id || req.query.id) : null;
+      if (requestedUserId) {
+        try {
+          const [[userRow]] = await pool.query(
+            'SELECT id, name, role FROM users WHERE id = ? LIMIT 1',
+            [Number(requestedUserId)]
+          );
+          if (userRow) user = userRow;
+        } catch (_) {}
+      }
+
+      if (!user) {
+        return ApiResponse.error(res, 'User not found.', 404);
+      }
+
+      const userIdNum = Number(user.id);
+      const { page = 1, limit = 20, sort = 'newest' } = req.query;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+      const offset = (pageNum - 1) * limitNum;
+
+      let orderBy = 's.created_at DESC';
+      if (sort === 'shares' || sort === 'most_shared') {
+        orderBy = 's.shares_count DESC, s.created_at DESC';
+      } else if (sort === 'popular' || sort === 'plays') {
+        orderBy = 's.total_views DESC, s.created_at DESC';
+      } else if (sort === 'rating') {
+        orderBy = 's.rating DESC, s.created_at DESC';
+      }
+
+      const [[{ total }]] = await pool.query(
+        'SELECT COUNT(*) AS total FROM stories WHERE user_id = ?',
+        [userIdNum]
+      );
+
+      const [storyRows] = await pool.query(
+        `SELECT s.id, s.title, s.slug, s.description, s.cover_image_path, s.banner_image_path,
+                s.status, s.release_status, s.is_approved, s.rating,
+                s.total_views, s.listeners_count, s.shares_count,
+                (SELECT COUNT(*) FROM episodes e WHERE e.story_id = s.id) AS episodes_count,
+                (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) AS likes_count,
+                c.category_name
+         FROM stories s
+         LEFT JOIN categories c ON s.category_id = c.id
+         WHERE s.user_id = ?
+         ORDER BY ${orderBy}
+         LIMIT ? OFFSET ?`,
+        [userIdNum, limitNum, offset]
+      );
+
+      const formatted = storyRows.map((s) => {
+        const shares = Number(s.shares_count || 0);
+        const views = Number(s.total_views || s.listeners_count || 0);
+        return {
+          id: Number(s.id),
+          story_id: Number(s.id),
+          title: s.title,
+          story_name: s.title,
+          description: s.description || null,
+          category: s.category_name || null,
+          cover_image: resolveUrl(s.cover_image_path),
+          cover_image_path: s.cover_image_path || null,
+          banner_image: resolveUrl(s.banner_image_path),
+          status: s.status || 'Published',
+          is_approved: s.is_approved || 'Approved',
+          rating: Number(s.rating || 0),
+          total_views: views,
+          play_count: views,
+          plays_count: views,
+          listeners_count: Number(s.listeners_count || 0),
+          episodes_count: Number(s.episodes_count || 0),
+          likes_count: Number(s.likes_count || 0),
+          share_count: shares,
+          shares_count: shares,
+        };
+      });
+
+      return ApiResponse.success(
+        res,
+        {
+          stories: formatted,
+          total: Number(total || 0),
+          page: pageNum,
+          limit: limitNum,
+          total_pages: Math.ceil((total || 0) / limitNum) || 0,
+        },
+        'Writer stories fetched successfully.'
+      );
+    } catch (err) {
+      console.error('Writer Stories Error:', err);
+      return ApiResponse.error(res, 'Failed to fetch writer stories.', 500);
     }
   }
 }

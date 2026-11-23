@@ -244,7 +244,7 @@ class AdminCreatorController {
 
       // Fetch creator's stories
       const [stories] = await pool.query(
-        `SELECT id, title, cover_image_path, status, release_status, is_approved, episodes_count, listeners_count, total_views, rating, created_at
+        `SELECT id, title, cover_image_path, status, release_status, is_approved, episodes_count, listeners_count, total_views, rating, shares_count, created_at
          FROM stories WHERE user_id = ? ORDER BY created_at DESC`,
         [creatorId]
       );
@@ -877,7 +877,7 @@ class AdminCreatorController {
       const [[{ total }]] = await pool.query(`SELECT COUNT(*) AS total FROM stories ${whereSql}`, params);
 
       const [storyRows] = await pool.query(
-        `SELECT id, title, cover_image_path, episodes_count, listeners_count, total_views, rating, status, is_approved, created_at
+        `SELECT id, title, cover_image_path, episodes_count, listeners_count, total_views, rating, shares_count, status, is_approved, created_at
          FROM stories
          ${whereSql}
          ORDER BY created_at DESC
@@ -887,15 +887,20 @@ class AdminCreatorController {
 
       const stories = storyRows.map((s) => {
         const playsNum = Number(s.total_views || s.listeners_count || 0);
+        const sharesNum = Number(s.shares_count || 0);
         return {
           id: s.id,
+          story_id: Number(s.id),
           title: s.title,
+          story_name: s.title,
           episodes: Number(s.episodes_count || 0),
           episodes_count: Number(s.episodes_count || 0),
           plays: playsNum > 0 ? formatFollowersCount(playsNum) : '-',
           plays_num: playsNum,
           cover_image_path: s.cover_image_path || null,
           rating: s.rating,
+          shares_count: sharesNum,
+          share_count: sharesNum,
           status: s.status || 'Published',
           is_approved: s.is_approved || 'Approved',
           created_at: s.created_at,

@@ -113,6 +113,7 @@ router.get('/sections/top-picks', SectionController.topPicks);
 // Stories & Episodes Details (Public)
 router.get('/stories', StoryController.index);
 router.get('/stories/:id', authMiddleware.optional, StoryController.show);
+router.post('/stories/:id/share', authMiddleware.optional, StoryController.share);
 router.get('/stories/:storyId/episodes', authMiddleware.optional, EpisodeController.index);
 router.get('/episodes', authMiddleware.optional, EpisodeController.index);
 router.get('/stories/:id/reviews', ReviewController.index);
@@ -168,6 +169,7 @@ router.post('/user/notifications/settings', MeController.updateNotificationSetti
 
 // Writer Dashboard API
 router.get('/writer/dashboard', WriterDashboardController.index);
+router.get('/writer/stories', WriterDashboardController.stories);
 
 // Trending My Ranking (Authenticated)
 router.get('/trending/my-ranking', TrendingController.myRanking);

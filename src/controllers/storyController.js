@@ -859,16 +859,75 @@ class StoryController {
 
   /**
    * POST /api/v1/stories/:id/share
-   * Increment story shares count
+   * Increment story shares count atomically and record share event
    */
   static async share(req, res) {
     try {
-      const storyId = req.params.id || req.params.story;
-      await pool.query('UPDATE stories SET shares_count = shares_count + 1 WHERE id = ?', [storyId]);
-      const [rows] = await pool.query('SELECT shares_count FROM stories WHERE id = ? LIMIT 1', [storyId]);
-      const sharesCount = rows.length > 0 ? rows[0].shares_count : 0;
+      const storyParam = req.params.id || req.params.story || (req.body && (req.body.story_id || req.body.id));
+      if (!storyParam) {
+        return ApiResponse.error(res, 'Story ID is required.', 400);
+      }
 
-      return ApiResponse.success(res, { shares_count: sharesCount }, 'Story share count updated.');
+      const userId = req.user ? req.user.id : null;
+      const platform = (req.body && req.body.platform) ? String(req.body.platform).trim().slice(0, 50) : null;
+
+      // 1. Fetch story first to confirm existence
+      const [storyRows] = await pool.query(
+        'SELECT id, title, shares_count FROM stories WHERE id = ? OR slug = ? LIMIT 1',
+        [storyParam, storyParam]
+      );
+
+      if (storyRows.length === 0) {
+        return ApiResponse.error(res, 'Story not found.', 404);
+      }
+
+      const storyId = storyRows[0].id;
+      const storyTitle = storyRows[0].title;
+
+      // 2. Increment share count atomically (prevents race conditions)
+      await pool.query(
+        'UPDATE stories SET shares_count = COALESCE(shares_count, 0) + 1 WHERE id = ?',
+        [storyId]
+      );
+
+      // 3. Fetch latest count directly from database
+      const [updatedRows] = await pool.query(
+        'SELECT id, title, shares_count FROM stories WHERE id = ? LIMIT 1',
+        [storyId]
+      );
+      const latestCount = updatedRows.length > 0 ? Number(updatedRows[0].shares_count || 0) : 0;
+
+      // 4. Optionally record the share event in story_shares log
+      try {
+        await pool.query(
+          `CREATE TABLE IF NOT EXISTS \`story_shares\` (
+            \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+            \`user_id\` INT NULL,
+            \`story_id\` INT NOT NULL,
+            \`platform\` VARCHAR(50) NULL,
+            \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX \`idx_story_shares_story\` (\`story_id\`),
+            INDEX \`idx_story_shares_user\` (\`user_id\`)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+        );
+        await pool.query(
+          'INSERT INTO story_shares (story_id, user_id, platform, created_at) VALUES (?, ?, ?, NOW())',
+          [storyId, userId, platform]
+        );
+      } catch (logErr) {
+        console.warn('[StoryController.share] Share event log warning:', logErr.message);
+      }
+
+      return ApiResponse.success(
+        res,
+        {
+          story_id: Number(storyId),
+          story_name: storyTitle,
+          share_count: latestCount,
+          shares_count: latestCount,
+        },
+        'Story share count updated successfully.'
+      );
     } catch (error) {
       console.error('Share Story Error:', error);
       return ApiResponse.error(res, 'Failed to share story.', 500);

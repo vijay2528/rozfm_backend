@@ -339,6 +339,20 @@ async function runMigrations() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // 12b. Story Shares log table
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`story_shares\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`user_id\` INT NULL,
+        \`story_id\` INT NOT NULL,
+        \`platform\` VARCHAR(50) NULL,
+        \`created_at\` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX \`idx_story_shares_story\` (\`story_id\`),
+        INDEX \`idx_story_shares_user\` (\`user_id\`),
+        CONSTRAINT \`fk_story_shares_story\` FOREIGN KEY (\`story_id\`) REFERENCES \`stories\` (\`id\`) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     // 13. Watch History table
     await connection.query(`
       CREATE TABLE IF NOT EXISTS \`watch_histories\` (
