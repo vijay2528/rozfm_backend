@@ -212,7 +212,47 @@ class AdminAdRewardSettingsController {
     try {
       const targetUserId = req.query.user_id || req.user?.id || null;
       const statusData = await AdminAdRewardSettingsController.getAdRewardStatusData(targetUserId);
-      return ApiResponse.success(res, statusData, 'Ad rewards fetched successfully');
+
+      const [rows] = await pool.query(
+        `SELECT \`key\`, \`value\` FROM settings
+         WHERE \`key\` IN (
+           'coins_per_ad',
+           'max_ads_per_day',
+           'daily_reset_hour',
+           'ad_reward_enabled',
+           'ad_reward_tiers',
+           'instant_reward',
+           'no_limit_mode'
+         )`
+      );
+
+      const map = {};
+      rows.forEach((r) => { map[r.key] = r.value; });
+
+      let tiers = [];
+      try {
+        tiers = map.ad_reward_tiers ? JSON.parse(map.ad_reward_tiers) : AdminAdRewardSettingsController._defaultTiers();
+      } catch (_) {
+        tiers = AdminAdRewardSettingsController._defaultTiers();
+      }
+
+      const settings = {
+        coins_per_ad:       parseFloat(map.coins_per_ad       ?? '1'),
+        max_ads_per_day:    parseInt(map.max_ads_per_day       ?? '10', 10),
+        daily_reset_hour:   parseInt(map.daily_reset_hour      ?? '0', 10),
+        ad_reward_enabled:  (map.ad_reward_enabled ?? '1') === '1',
+        instant_reward:     (map.instant_reward    ?? '1') === '1',
+        no_limit_mode:      (map.no_limit_mode     ?? '0') === '1',
+        ad_reward_tiers:    tiers,
+      };
+
+      return ApiResponse.success(res, {
+        settings,
+        coins_per_ad: settings.coins_per_ad,
+        max_ads_per_day: settings.max_ads_per_day,
+        ad_reward_enabled: settings.ad_reward_enabled,
+        ...statusData,
+      }, 'Ad rewards fetched successfully');
     } catch (error) {
       console.error('Admin Get Ad Reward Settings Error:', error);
       return ApiResponse.error(res, 'Failed to fetch ad reward settings.', 500);

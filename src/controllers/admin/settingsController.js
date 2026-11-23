@@ -28,6 +28,8 @@ class SettingsController {
         maintenance_mode: settingsMap.maintenance_mode === 'true' || settingsMap.maintenance_mode === true,
         allow_new_signups: settingsMap.allow_new_signups === undefined ? true : (settingsMap.allow_new_signups === 'true' || settingsMap.allow_new_signups === true),
         guest_mode_access: settingsMap.guest_mode_access === undefined ? true : (settingsMap.guest_mode_access === 'true' || settingsMap.guest_mode_access === true),
+        coins_per_ad: settingsMap.coins_per_ad !== undefined ? parseFloat(settingsMap.coins_per_ad) : 1,
+        max_ads_per_day: settingsMap.max_ads_per_day !== undefined ? parseInt(settingsMap.max_ads_per_day, 10) : 10,
       };
 
       return ApiResponse.success(res, { general_settings: generalSettings }, 'General settings fetched successfully.');
