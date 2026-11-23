@@ -730,6 +730,261 @@ class EpisodeController {
       return ApiResponse.error(res, 'Failed to unlock episode.', 500);
     }
   }
+
+  /**
+   * Helper: Parse range parameters from request body / query / params
+   */
+  static _parseRange(req) {
+    const body = req.body || {};
+    const query = req.query || {};
+    const params = req.params || {};
+
+    const storyId = params.storyId || body.story_id || query.story_id || body.storyId || query.storyId;
+
+    let from = body.from_episode ?? body.start_episode ?? body.start_episode_number ?? body.from ?? query.from_episode ?? query.start_episode ?? query.from;
+    let to = body.to_episode ?? body.end_episode ?? body.end_episode_number ?? body.to ?? query.to_episode ?? query.end_episode ?? query.to;
+
+    const rawRange = body.range || query.range || body.episode_range || query.episode_range;
+    if (rawRange && typeof rawRange === 'string') {
+      const match = rawRange.trim().match(/^(\d+)\s*(?:to|-|:)\s*(\d+)$/i);
+      if (match) {
+        if (from === undefined || from === null) from = parseInt(match[1], 10);
+        if (to === undefined || to === null) to = parseInt(match[2], 10);
+      }
+    }
+
+    const fromNum = parseInt(from, 10);
+    const toNum = parseInt(to, 10);
+
+    return {
+      storyId: storyId ? parseInt(storyId, 10) : null,
+      from: isNaN(fromNum) ? null : fromNum,
+      to: isNaN(toNum) ? null : toNum,
+    };
+  }
+
+  /**
+   * POST /api/v1/episodes/calculate-coins
+   * POST /api/v1/episodes/range-coins
+   * POST /api/v1/stories/:storyId/episodes/range-coins
+   *
+   * Calculate total coins required to unlock a range of episodes (e.g. 1 to 50, 30 to 81, 51 to 999).
+   */
+  static async calculateRangeCoins(req, res) {
+    try {
+      const { storyId, from, to } = EpisodeController._parseRange(req);
+
+      if (!storyId) {
+        return ApiResponse.error(res, 'story_id is required to calculate range coins.', 422);
+      }
+
+      if (from === null || to === null || from < 1 || to < 1) {
+        return ApiResponse.error(
+          res,
+          'Invalid episode range. Please provide valid from_episode and to_episode (e.g. from_episode: 1, to_episode: 50) or range: "1 to 50".',
+          422
+        );
+      }
+
+      const startEp = Math.min(from, to);
+      const endEp = Math.max(from, to);
+
+      const [[result]] = await pool.query(
+        `SELECT COALESCE(SUM(COALESCE(coins, 0)), 0) AS total_coins
+         FROM episodes
+         WHERE story_id = ?
+           AND COALESCE(episode_number, position) >= ?
+           AND COALESCE(episode_number, position) <= ?`,
+        [storyId, startEp, endEp]
+      );
+
+      const totalCoins = Number(result?.total_coins || 0);
+
+      return ApiResponse.success(
+        res,
+        {
+          total_coins: totalCoins,
+        },
+        'Episode range coins calculated successfully.'
+      );
+    } catch (error) {
+      console.error('Calculate Range Coins Error:', error);
+      return ApiResponse.error(res, 'Failed to calculate range coins.', 500);
+    }
+  }
+
+  /**
+   * POST /api/v1/episodes/unlock-range
+   * POST /api/v1/stories/:storyId/episodes/unlock-range
+   *
+   * Unlock multiple episodes at a time within an episode range using wallet coins.
+   */
+  static async unlockRange(req, res) {
+    try {
+      const userId = req.user.id;
+      const { storyId, from, to } = EpisodeController._parseRange(req);
+
+      if (!storyId) {
+        return ApiResponse.error(res, 'story_id is required.', 422);
+      }
+
+      if (from === null || to === null || from < 1 || to < 1) {
+        return ApiResponse.error(res, 'Invalid episode range. Please provide valid from_episode and to_episode.', 422);
+      }
+
+      const startEp = Math.min(from, to);
+      const endEp = Math.max(from, to);
+
+      // Fetch episodes
+      const [episodes] = await pool.query(
+        `SELECT
+           e.id,
+           e.story_id,
+           e.episode_number,
+           e.position,
+           e.title,
+           e.is_free,
+           e.is_premium,
+           COALESCE(e.coins, 25) AS coins,
+           s.user_id AS writer_id
+         FROM episodes e
+         JOIN stories s ON s.id = e.story_id
+         WHERE e.story_id = ?
+           AND COALESCE(e.episode_number, e.position) >= ?
+           AND COALESCE(e.episode_number, e.position) <= ?
+         ORDER BY COALESCE(e.episode_number, e.position) ASC`,
+        [storyId, startEp, endEp]
+      );
+
+      if (episodes.length === 0) {
+        return ApiResponse.error(res, `No episodes found in range ${startEp} to ${endEp}.`, 404);
+      }
+
+      // Check which ones are already unlocked
+      const epIds = episodes.map((e) => e.id);
+      const [alreadyUnlockedRows] = await pool.query(
+        'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ? AND episode_id IN (?)',
+        [userId, epIds]
+      );
+      const alreadyUnlockedSet = new Set(alreadyUnlockedRows.map((r) => Number(r.episode_id)));
+
+      // Filter only locked premium episodes
+      const toUnlock = episodes.filter((ep) => {
+        const isFree = ep.is_free === 1 || ep.is_premium === 0;
+        return !isFree && !alreadyUnlockedSet.has(Number(ep.id));
+      });
+
+      if (toUnlock.length === 0) {
+        return ApiResponse.success(
+          res,
+          {
+            unlocked_count: 0,
+            coins_spent: 0,
+            message: 'All episodes in this range are already unlocked or free.',
+          },
+          'All episodes in range already unlocked.'
+        );
+      }
+
+      const totalCoinsRequired = toUnlock.reduce((acc, ep) => acc + Number(ep.coins || 0), 0);
+
+      // Check wallet balance
+      const [[user]] = await pool.query('SELECT wallet_balance FROM users WHERE id = ? LIMIT 1', [userId]);
+      const currentBalance = Number(user?.wallet_balance || 0);
+
+      if (currentBalance < totalCoinsRequired) {
+        return ApiResponse.error(
+          res,
+          `Insufficient coins. Required: ${totalCoinsRequired}, Available: ${currentBalance}`,
+          422
+        );
+      }
+
+      // Execute batch unlock in transaction
+      const connection = await pool.getConnection();
+      try {
+        await connection.beginTransaction();
+
+        // Deduct coins from user wallet
+        await connection.query(
+          'UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?',
+          [totalCoinsRequired, userId]
+        );
+
+        // Insert unlock records
+        const unlockValues = toUnlock.map((ep) => [userId, ep.id, Number(ep.coins || 0)]);
+        await connection.query(
+          'INSERT INTO user_episode_unlocks (user_id, episode_id, coins_spent) VALUES ?',
+          [unlockValues]
+        );
+
+        // Record writer earnings if applicable
+        const [settingRows] = await connection.query(
+          "SELECT `key`, `value` FROM settings WHERE `key` IN ('writer_revenue_share_percentage', 'coins_per_rupee')"
+        );
+        let sharePct = 70.0;
+        let coinsPerRupee = 10.0;
+        settingRows.forEach((s) => {
+          if (s.key === 'writer_revenue_share_percentage' && s.value) {
+            const val = parseFloat(s.value);
+            if (!isNaN(val) && val >= 0) sharePct = val;
+          }
+          if (s.key === 'coins_per_rupee' && s.value) {
+            const val = parseFloat(s.value);
+            if (!isNaN(val) && val > 0) coinsPerRupee = val;
+          }
+        });
+
+        for (const ep of toUnlock) {
+          if (ep.writer_id) {
+            const epCoins = Number(ep.coins || 0);
+            const writerCoins = parseFloat(((epCoins * sharePct) / 100).toFixed(2));
+            const rupeeAmount = parseFloat((writerCoins / coinsPerRupee).toFixed(2));
+            await connection.query(
+              `INSERT INTO writer_earnings (user_id, story_id, episode_id, amount, coins, source_type, description)
+               VALUES (?, ?, ?, ?, ?, 'episode_unlock', ?)`,
+              [
+                ep.writer_id,
+                ep.story_id,
+                ep.id,
+                rupeeAmount,
+                writerCoins,
+                `Unlocked Ep #${ep.episode_number || ep.position}: ${ep.title} (${sharePct}% share of ${epCoins} coins)`
+              ]
+            );
+          }
+        }
+
+        await connection.commit();
+      } catch (txErr) {
+        await connection.rollback();
+        throw txErr;
+      } finally {
+        connection.release();
+      }
+
+      const newBalance = currentBalance - totalCoinsRequired;
+
+      return ApiResponse.success(
+        res,
+        {
+          story_id: storyId,
+          range: {
+            from_episode: startEp,
+            to_episode: endEp,
+          },
+          unlocked_count: toUnlock.length,
+          coins_spent: totalCoinsRequired,
+          wallet_balance: newBalance,
+          unlocked_episode_ids: toUnlock.map((e) => e.id),
+        },
+        `Successfully unlocked ${toUnlock.length} episodes.`
+      );
+    } catch (error) {
+      console.error('Unlock Range Error:', error);
+      return ApiResponse.error(res, 'Failed to unlock episode range.', 500);
+    }
+  }
 }
 
 module.exports = EpisodeController;

@@ -1231,6 +1231,168 @@
           }
         },
         {
+          "name": "Calculate Episode Range Coins",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"story_id\": 1,\n    \"from_episode\": 1,\n    \"to_episode\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/episodes/calculate-coins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "calculate-coins"
+              ]
+            },
+            "description": "Calculate the total coins required to unlock an episode range (e.g. 1 to 50, 30 to 81, 51 to 999). In success response, returns only total_coins."
+          },
+          "response": [
+            {
+              "name": "Success (Total Coins Only)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"story_id\": 1,\n    \"from_episode\": 1,\n    \"to_episode\": 50\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/episodes/calculate-coins",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "episodes",
+                    "calculate-coins"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Episode range coins calculated successfully.\",\n    \"data\": {\n        \"total_coins\": 1250\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unlock Episode Range",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"story_id\": 1,\n    \"from_episode\": 1,\n    \"to_episode\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/episodes/unlock-range",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "episodes",
+                "unlock-range"
+              ]
+            },
+            "description": "Unlock multiple episodes at a time within an episode range using user wallet coins."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"story_id\": 1,\n    \"from_episode\": 1,\n    \"to_episode\": 50\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/episodes/unlock-range",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "episodes",
+                    "unlock-range"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Successfully unlocked 50 episodes.\",\n    \"data\": {\n        \"story_id\": 1,\n        \"range\": {\n            \"from_episode\": 1,\n            \"to_episode\": 50\n        },\n        \"unlocked_count\": 50,\n        \"coins_spent\": 1250,\n        \"wallet_balance\": 750,\n        \"unlocked_episode_ids\": [\n            101,\n            102\n        ]\n    }\n}"
+            }
+          ]
+        },
+        {
           "name": "List Scheduled Stories",
           "request": {
             "auth": {
