@@ -823,28 +823,9 @@ class EpisodeController {
         return ApiResponse.error(res, 'No episodes found for this story.', 404);
       }
 
-      // Check user unlocked status & VIP membership
+      // Check user unlocked status from user_episode_unlocks (specific coin purchases)
       const userUnlockedEpisodeIds = new Set();
-      let hasActiveMembership = false;
-
       if (userId) {
-        const [subRows] = await pool.query(
-          "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1",
-          [userId]
-        );
-        const [userRows] = await pool.query(
-          "SELECT wallet_balance, subscription_type, role FROM users WHERE id = ? LIMIT 1",
-          [userId]
-        );
-        if (userRows.length > 0) {
-          if (userRows[0].subscription_type === 'vip' || userRows[0].role === 'vip') {
-            hasActiveMembership = true;
-          }
-        }
-        if (subRows.length > 0) {
-          hasActiveMembership = true;
-        }
-
         const [unlocks] = await pool.query(
           'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ?',
           [userId]
@@ -859,9 +840,10 @@ class EpisodeController {
       // Map episodes with consistent numbering and unlocked status
       const mappedEpisodes = episodes.map((ep) => {
         const epNo = Number(ep.episode_number || ep.position || 1);
-        const isPremium = Boolean(ep.is_premium);
-        const isUnlocked = !isPremium || hasActiveMembership || userUnlockedEpisodeIds.has(Number(ep.id));
-        const coinCost = isPremium ? Number(ep.coins || 0) : 0;
+        const isPremium = Number(ep.is_premium) === 1;
+        const isUnlocked = !isPremium || userUnlockedEpisodeIds.has(Number(ep.id));
+        const rawCoins = Number(ep.coins);
+        const coinCost = isPremium ? (!isNaN(rawCoins) && rawCoins > 0 ? rawCoins : 25) : 0;
 
         return {
           id: Number(ep.id),
@@ -891,25 +873,26 @@ class EpisodeController {
 
       // Determine from_episode:
       // If user supplied explicit from_episode, use it;
-      // otherwise find the last unlocked episode strictly less than targetEpNo.
+      // otherwise find the first locked episode before or at targetEpNo (e.g. episode 11).
       let fromEpisode = 0;
       if (explicitFrom !== undefined && explicitFrom !== null && !isNaN(parseInt(explicitFrom, 10))) {
         fromEpisode = parseInt(explicitFrom, 10);
       } else {
-        const unlockedBeforeTarget = mappedEpisodes
-          .filter((ep) => ep.episode_no < targetEpNo && ep.is_unlocked)
-          .sort((a, b) => b.episode_no - a.episode_no);
+        const lockedUpToTarget = mappedEpisodes
+          .filter((ep) => ep.episode_no <= targetEpNo && !ep.is_unlocked)
+          .sort((a, b) => a.episode_no - b.episode_no);
 
-        if (unlockedBeforeTarget.length > 0) {
-          fromEpisode = unlockedBeforeTarget[0].episode_no;
+        if (lockedUpToTarget.length > 0) {
+          fromEpisode = lockedUpToTarget[0].episode_no;
         } else {
-          fromEpisode = 0;
+          // If no episodes are locked (all free or already unlocked)
+          fromEpisode = targetEpNo;
         }
       }
 
-      // Filter all episodes in range: fromEpisode < episode_no <= targetEpNo
+      // Filter all episodes in range: fromEpisode <= episode_no <= targetEpNo
       const episodesInRange = mappedEpisodes.filter(
-        (ep) => ep.episode_no > fromEpisode && ep.episode_no <= targetEpNo
+        (ep) => ep.episode_no >= fromEpisode && ep.episode_no <= targetEpNo
       );
 
       // Sum coins for only locked episodes (already unlocked episodes are NOT considered)
