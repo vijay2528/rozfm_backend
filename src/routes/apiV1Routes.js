@@ -86,7 +86,8 @@ router.get('/home', authMiddleware.optional, HomeController.index);
 router.get('/banners', BannerController.index);
 router.get('/categories', CategoryController.index);
 router.get('/plans', authMiddleware.optional, PlanController.index);
-router.get('/coin-packs', CoinPackController.index);
+router.get('/coin-packs', authMiddleware.optional, CoinPackController.index);
+router.get('/coin_packs', authMiddleware.optional, CoinPackController.index);
 
 // Ad Reward Settings API (Public / Optional Auth for App Users)
 router.get('/ads/reward-config', authMiddleware.optional, AdRewardController.config);

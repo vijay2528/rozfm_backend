@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
+const CoinPackController = require('./coinPackController');
 
 class PurchaseController {
   /**
@@ -121,6 +122,21 @@ class PurchaseController {
             coinPack = cpRows[0];
             type = 'inapp';
           }
+        }
+      }
+
+      // ── One-Time Welcome Offer Restriction ──
+      const isWelcome = CoinPackController.isWelcomePack(coinPack) ||
+        (subscriptionPlan && CoinPackController.isWelcomePack(subscriptionPlan));
+
+      if (isWelcome) {
+        const welcomePurchased = await CoinPackController.hasPurchasedWelcomeOffer(userId);
+        if (welcomePurchased) {
+          return ApiResponse.error(
+            res,
+            'You have already purchased the Welcome Offer. This offer can only be purchased once per account.',
+            400
+          );
         }
       }
 

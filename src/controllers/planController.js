@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
+const CoinPackController = require('./coinPackController');
 
 class PlanController {
   /**
@@ -43,12 +44,16 @@ class PlanController {
         rows = [];
       }
 
-      const trialUsed = await PlanController.hasUsedTrial(req.user?.id);
+      const userId = req.user?.id || null;
+      const trialUsed = await PlanController.hasUsedTrial(userId);
+      const welcomeOfferUsed = await CoinPackController.hasPurchasedWelcomeOffer(userId);
 
       let plans = (rows || [])
         .filter((p) => {
           // Trial is one-time per user
           if (trialUsed && (p.is_trial == 1 || p.is_trial === true)) return false;
+          // Welcome offer is one-time per user
+          if (welcomeOfferUsed && CoinPackController.isWelcomePack(p)) return false;
           if (p.is_active !== undefined && p.is_active !== null) {
             return p.is_active == 1 || p.is_active === true;
           }

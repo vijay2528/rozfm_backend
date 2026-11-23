@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
+const CoinPackController = require('./coinPackController');
 
 class WalletController {
   static async show(req, res) {
@@ -127,6 +128,21 @@ class WalletController {
       const rawStatus = String(payment_status || status || 'paid').toLowerCase().trim();
       const isFailed = rawStatus === 'failed' || rawStatus === 'faild';
       const normalizedPaymentStatus = isFailed ? 'failed' : 'paid';
+
+      // One-time Welcome Offer check on wallet purchase
+      if (coinPackId && !isFailed) {
+        const [packs] = await pool.query('SELECT * FROM coin_sales WHERE id = ? LIMIT 1', [coinPackId]);
+        if (packs.length > 0 && CoinPackController.isWelcomePack(packs[0])) {
+          const alreadyPurchased = await CoinPackController.hasPurchasedWelcomeOffer(userId);
+          if (alreadyPurchased) {
+            return ApiResponse.error(
+              res,
+              'You have already purchased the Welcome Offer. This offer can only be purchased once per account.',
+              400
+            );
+          }
+        }
+      }
 
       const connection = await pool.getConnection();
       try {
