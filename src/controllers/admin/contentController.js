@@ -342,6 +342,43 @@ class ContentController {
 
       const newStoryId = result.insertId;
 
+      // Upgrade assigned creator / user role from Listener/user to Creator
+      if (finalUserId) {
+        try {
+          const [userRows] = await pool.query(
+            'SELECT id, role FROM users WHERE id = ? LIMIT 1',
+            [finalUserId]
+          );
+          if (userRows.length > 0) {
+            const currentRole = String(userRows[0].role || '').toLowerCase().trim();
+            if (!currentRole || currentRole === 'listener' || currentRole === 'user') {
+              let creatorRoleId = null;
+              try {
+                const [rRows] = await pool.query(
+                  "SELECT id FROM roles WHERE LOWER(name) = 'creator' OR LOWER(display_name) LIKE '%creator%' LIMIT 1"
+                );
+                if (rRows.length > 0) creatorRoleId = rRows[0].id;
+              } catch (_) {}
+
+              if (creatorRoleId) {
+                await pool.query(
+                  "UPDATE users SET role = 'Creator', role_id = ? WHERE id = ?",
+                  [creatorRoleId, finalUserId]
+                );
+              } else {
+                await pool.query(
+                  "UPDATE users SET role = 'Creator' WHERE id = ?",
+                  [finalUserId]
+                );
+              }
+              console.log(`[AdminContentController.storeStory] User #${finalUserId} upgraded to Creator.`);
+            }
+          }
+        } catch (roleErr) {
+          console.warn('[AdminContentController.storeStory] Upgrade role to Creator warning:', roleErr.message);
+        }
+      }
+
       // 6. Return response
       const [storyRows] = await pool.query(
         `SELECT s.*, c.category_name, u.name as author_name,

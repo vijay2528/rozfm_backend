@@ -589,6 +589,53 @@ class StoryController {
       );
 
       const storyId = result.insertId;
+
+      // Automatically upgrade user role from Listener/user to Creator upon creating a story
+      let updatedUserRole = null;
+      if (userId) {
+        try {
+          const [userRows] = await pool.query(
+            'SELECT id, role FROM users WHERE id = ? LIMIT 1',
+            [userId]
+          );
+          if (userRows.length > 0) {
+            const currentRole = String(userRows[0].role || '').toLowerCase().trim();
+            if (!currentRole || currentRole === 'listener' || currentRole === 'user') {
+              let creatorRoleId = null;
+              try {
+                const [rRows] = await pool.query(
+                  "SELECT id FROM roles WHERE LOWER(name) = 'creator' OR LOWER(display_name) LIKE '%creator%' LIMIT 1"
+                );
+                if (rRows.length > 0) creatorRoleId = rRows[0].id;
+              } catch (_) {}
+
+              if (creatorRoleId) {
+                await pool.query(
+                  "UPDATE users SET role = 'Creator', role_id = ? WHERE id = ?",
+                  [creatorRoleId, userId]
+                );
+              } else {
+                await pool.query(
+                  "UPDATE users SET role = 'Creator' WHERE id = ?",
+                  [userId]
+                );
+              }
+
+              updatedUserRole = 'Creator';
+              if (req.user) {
+                req.user.role = 'Creator';
+                if (creatorRoleId) req.user.role_id = creatorRoleId;
+              }
+              console.log(`[StoryController.store] User #${userId} upgraded from Listener to Creator.`);
+            } else {
+              updatedUserRole = userRows[0].role;
+            }
+          }
+        } catch (roleErr) {
+          console.warn('[StoryController.store] Upgrade role to Creator warning:', roleErr.message);
+        }
+      }
+
       const [storyRows] = await pool.query(
         `SELECT s.*, c.category_name, u.name as author_name, u.avatar_path as author_image FROM stories s
          LEFT JOIN categories c ON s.category_id = c.id
@@ -599,7 +646,10 @@ class StoryController {
 
       return ApiResponse.success(
         res,
-        { story: toStoryFieldsArray(storyRows[0]) },
+        {
+          story: toStoryFieldsArray(storyRows[0]),
+          user_role: updatedUserRole || (req.user && req.user.role) || 'Creator',
+        },
         'Story created successfully.',
         201
       );
