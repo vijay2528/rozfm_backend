@@ -463,10 +463,10 @@ class EpisodeController {
               episodeTitle: newEp[0]?.title || '',
               title: 'New Episode Available! 🎙️',
               body: `Ep ${newEp[0]?.episode_number || ''} - '${newEp[0]?.title || 'New Episode'}' is now available to listen.`,
-            }).catch(() => {});
-          }).catch(() => {});
-        }).catch(() => {});
-      }).catch(() => {});
+            }).catch(() => { });
+          }).catch(() => { });
+        }).catch(() => { });
+      }).catch(() => { });
 
       return ApiResponse.success(
         res,
@@ -732,93 +732,205 @@ class EpisodeController {
   }
 
   /**
-   * Helper: Parse range parameters from request body / query / params
-   */
-  static _parseRange(req) {
-    const body = req.body || {};
-    const query = req.query || {};
-    const params = req.params || {};
-
-    const storyId = params.storyId || body.story_id || query.story_id || body.storyId || query.storyId;
-
-    let from = body.from_episode ?? body.start_episode ?? body.start_episode_number ?? body.from ?? query.from_episode ?? query.start_episode ?? query.from;
-    let to = body.to_episode ?? body.end_episode ?? body.end_episode_number ?? body.to ?? query.to_episode ?? query.end_episode ?? query.to;
-
-    const rawRange = body.range || query.range || body.episode_range || query.episode_range;
-    if (rawRange && typeof rawRange === 'string') {
-      const match = rawRange.trim().match(/^(\d+)\s*(?:to|-|:)\s*(\d+)$/i);
-      if (match) {
-        if (from === undefined || from === null) from = parseInt(match[1], 10);
-        if (to === undefined || to === null) to = parseInt(match[2], 10);
-      }
-    }
-
-    const fromNum = parseInt(from, 10);
-    const toNum = parseInt(to, 10);
-
-    return {
-      storyId: storyId ? parseInt(storyId, 10) : null,
-      from: isNaN(fromNum) ? null : fromNum,
-      to: isNaN(toNum) ? null : toNum,
-    };
-  }
-
-  /**
    * POST /api/v1/episodes/calculate-coins
-   * POST /api/v1/episodes/range-coins
-   * POST /api/v1/stories/:storyId/episodes/range-coins
+   * GET  /api/v1/episodes/calculate-coins
+   * POST /api/v1/stories/:storyId/episodes/calculate-coins
    *
-   * Calculate total coins required to unlock a range of episodes (e.g. 1 to 50, 30 to 81, 51 to 999).
+   * Calculates coins required to unlock episodes up to `episode_no` for a given `story_id`.
+   * Finds the last unlocked episode before `episode_no` (e.g. 18).
+   * Sums coins for all locked episodes between `from_episode` (18) and `to_episode` (20).
+   * Already unlocked episodes are excluded from the total coins sum.
+   *
+   * Request body / query params:
+   *   story_id     : number (required) - Story ID
+   *   episode_no   : number (required) - Target episode number (or to_episode)
+   *   from_episode : number (optional) - Explicit starting episode if provided
+   *
+   * Response data:
+   *   { from_episode: 18, to_episode: 20, total_coins: 50 }
    */
-  static async calculateRangeCoins(req, res) {
+  static async calculateCoins(req, res) {
     try {
-      const { storyId, from, to } = EpisodeController._parseRange(req);
+      const storyId =
+        req.body?.story_id ||
+        req.query?.story_id ||
+        req.params?.storyId ||
+        req.body?.storyId ||
+        req.query?.storyId;
+
+      let targetEpisodeNoRaw =
+        req.body?.episode_no ??
+        req.body?.episode_number ??
+        req.body?.to_episode ??
+        req.body?.to ??
+        req.body?.end_episode ??
+        req.body?.position ??
+        req.query?.episode_no ??
+        req.query?.episode_number ??
+        req.query?.to_episode ??
+        req.query?.to ??
+        req.query?.end_episode ??
+        req.query?.position;
+
+      let explicitFrom =
+        req.body?.from_episode ??
+        req.body?.from ??
+        req.body?.start_episode ??
+        req.query?.from_episode ??
+        req.query?.from ??
+        req.query?.start_episode;
+
+      const rawRange =
+        req.body?.range ||
+        req.query?.range ||
+        req.body?.episode_range ||
+        req.query?.episode_range;
+
+      if (rawRange && typeof rawRange === 'string') {
+        const match = rawRange.trim().match(/^(\d+)\s*(?:to|-|:)\s*(\d+)$/i);
+        if (match) {
+          if (explicitFrom === undefined || explicitFrom === null) explicitFrom = parseInt(match[1], 10);
+          if (targetEpisodeNoRaw === undefined || targetEpisodeNoRaw === null) targetEpisodeNoRaw = parseInt(match[2], 10);
+        }
+      }
+
+      const targetEpisodeId = req.body?.episode_id || req.query?.episode_id;
+      const userId = req.user ? req.user.id : null;
 
       if (!storyId) {
-        return ApiResponse.error(res, 'story_id is required to calculate range coins.', 422);
+        return ApiResponse.error(res, 'story_id is required.', 422);
       }
 
-      if (from === null || to === null || from < 1 || to < 1) {
-        return ApiResponse.error(
-          res,
-          'Invalid episode range. Please provide valid from_episode and to_episode (e.g. from_episode: 1, to_episode: 50) or range: "1 to 50".',
-          422
-        );
+      // Verify story exists
+      const [storyRows] = await pool.query(
+        'SELECT id, title FROM stories WHERE id = ? LIMIT 1',
+        [storyId]
+      );
+      if (storyRows.length === 0) {
+        return ApiResponse.error(res, 'Story not found.', 404);
       }
 
-      const startEp = Math.min(from, to);
-      const endEp = Math.max(from, to);
-
-      const [[result]] = await pool.query(
-        `SELECT COALESCE(SUM(CASE WHEN is_premium = 1 THEN COALESCE(coins, 0) ELSE 0 END), 0) AS total_coins
+      // Fetch all episodes of this story sorted by position / episode_number
+      const [episodes] = await pool.query(
+        `SELECT id, story_id, title, position, episode_number, is_premium, coins
          FROM episodes
          WHERE story_id = ?
-           AND COALESCE(episode_number, position) >= ?
-           AND COALESCE(episode_number, position) <= ?`,
-        [storyId, startEp, endEp]
+         ORDER BY COALESCE(position, episode_number, id) ASC, id ASC`,
+        [storyId]
       );
 
-      const totalCoins = Number(result?.total_coins || 0);
+      if (episodes.length === 0) {
+        return ApiResponse.error(res, 'No episodes found for this story.', 404);
+      }
 
-      return ApiResponse.success(
-        res,
-        {
-          total_coins: totalCoins,
-        },
-        'Episode range coins calculated successfully.'
+      // Check user unlocked status from user_episode_unlocks (specific coin purchases)
+      const userUnlockedEpisodeIds = new Set();
+      if (userId) {
+        const [unlocks] = await pool.query(
+          'SELECT episode_id FROM user_episode_unlocks WHERE user_id = ?',
+          [userId]
+        );
+        unlocks.forEach((u) => {
+          if (u.episode_id !== null && u.episode_id !== undefined) {
+            userUnlockedEpisodeIds.add(Number(u.episode_id));
+          }
+        });
+      }
+
+      // Map episodes with consistent numbering and unlocked status
+      const mappedEpisodes = episodes.map((ep) => {
+        const epNo = Number(ep.episode_number || ep.position || 1);
+        const isPremium = Number(ep.is_premium) === 1;
+        const isUnlocked = !isPremium || userUnlockedEpisodeIds.has(Number(ep.id));
+        const rawCoins = Number(ep.coins);
+        const coinCost = isPremium ? (!isNaN(rawCoins) && rawCoins > 0 ? rawCoins : 25) : 0;
+
+        return {
+          id: Number(ep.id),
+          episode_no: epNo,
+          position: Number(ep.position || ep.episode_number || 1),
+          title: ep.title,
+          is_premium: isPremium,
+          is_unlocked: isUnlocked,
+          coins: coinCost,
+        };
+      });
+
+      // Determine target episode number
+      let targetEpNo = null;
+      if (targetEpisodeNoRaw !== undefined && targetEpisodeNoRaw !== null && targetEpisodeNoRaw !== '') {
+        targetEpNo = parseInt(targetEpisodeNoRaw, 10);
+      } else if (targetEpisodeId) {
+        const matchEp = mappedEpisodes.find((e) => Number(e.id) === Number(targetEpisodeId));
+        if (matchEp) {
+          targetEpNo = matchEp.episode_no;
+        }
+      }
+
+      if (targetEpNo === null || isNaN(targetEpNo) || targetEpNo <= 0) {
+        return ApiResponse.error(res, 'Valid episode_no is required.', 422);
+      }
+
+      // Determine from_episode:
+      // If user supplied explicit from_episode, use it;
+      // otherwise find the first locked episode before or at targetEpNo (e.g. episode 11).
+      let fromEpisode = 0;
+      if (explicitFrom !== undefined && explicitFrom !== null && !isNaN(parseInt(explicitFrom, 10))) {
+        fromEpisode = parseInt(explicitFrom, 10);
+      } else {
+        const lockedUpToTarget = mappedEpisodes
+          .filter((ep) => ep.episode_no <= targetEpNo && !ep.is_unlocked)
+          .sort((a, b) => a.episode_no - b.episode_no);
+
+        if (lockedUpToTarget.length > 0) {
+          fromEpisode = lockedUpToTarget[0].episode_no;
+        } else {
+          // If no episodes are locked (all free or already unlocked)
+          fromEpisode = targetEpNo;
+        }
+      }
+
+      // Filter all episodes in range: fromEpisode <= episode_no <= targetEpNo
+      const episodesInRange = mappedEpisodes.filter(
+        (ep) => ep.episode_no >= fromEpisode && ep.episode_no <= targetEpNo
       );
+
+      // Sum coins for only locked episodes (already unlocked episodes are NOT considered)
+      let totalCoins = 0;
+      episodesInRange.forEach((ep) => {
+        if (!ep.is_unlocked) {
+          totalCoins += ep.coins;
+        }
+      });
+
+      const fromEpObj = mappedEpisodes.find((ep) => ep.episode_no === fromEpisode);
+      const toEpObj = mappedEpisodes.find((ep) => ep.episode_no === targetEpNo);
+
+      return ApiResponse.success(res, {
+        from_episode: fromEpisode,
+        from_episode_id: fromEpObj ? Number(fromEpObj.id) : null,
+        to_episode: targetEpNo,
+        to_episode_id: toEpObj ? Number(toEpObj.id) : null,
+        total_coins: totalCoins,
+      }, 'Coins calculated successfully.');
     } catch (error) {
-      console.error('Calculate Range Coins Error:', error);
-      return ApiResponse.error(res, 'Failed to calculate range coins.', 500);
+      console.error('Calculate Coins Error:', error);
+      return ApiResponse.error(res, 'Failed to calculate coins.', 500);
     }
   }
 
   /**
-   * Alias: POST /api/v1/episodes/unlock-range
-   * Only calculates and returns total_coins for the selected range without unlocking anything.
+   * Backward compatibility alias
+   */
+  static async calculateRangeCoins(req, res) {
+    return EpisodeController.calculateCoins(req, res);
+  }
+
+  /**
+   * Backward compatibility alias
    */
   static async unlockRange(req, res) {
-    return EpisodeController.calculateRangeCoins(req, res);
+    return EpisodeController.calculateCoins(req, res);
   }
 }
 
