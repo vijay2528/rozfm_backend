@@ -12,13 +12,21 @@ class StoryController {
    */
   static async index(req, res) {
     try {
-      const { category_id, search, language, sort, status, release_status, release, is_draft, is_scheduled, page = 1, limit = 10 } = req.query;
+      const { category_id, search, language, sort, status, release_status, release, is_draft, is_scheduled, is_approved, page = 1, limit = 10 } = req.query;
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
       const offset = (pageNum - 1) * limitNum;
 
       let whereClauses = [];
       let queryParams = [];
+
+      // Filter by is_approved: App story list only shows approved stories (is_approved = 'Approved')
+      if (is_approved && is_approved.toLowerCase() !== 'all') {
+        whereClauses.push('(s.is_approved = ? OR LOWER(s.is_approved) = LOWER(?))');
+        queryParams.push(is_approved, is_approved);
+      } else if (!is_approved) {
+        whereClauses.push("(s.is_approved = 'Approved' OR LOWER(s.is_approved) = 'approved')");
+      }
 
       const filterStatus = status || release_status || release;
       const isSchedReq = is_scheduled === '1' || is_scheduled === 'true';

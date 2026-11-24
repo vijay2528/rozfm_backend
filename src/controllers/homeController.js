@@ -13,7 +13,8 @@ const PUBLIC_STORY_STATUS_CONDITION = `(
     (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%schedule%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%schedule%')
     AND (s.status IS NULL OR s.status = '' OR LOWER(s.status) IN ('ongoing', 'completed', 'published'))
   )
-) AND (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%draft%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%draft%')`;
+) AND (LOWER(COALESCE(s.release_status, '')) NOT LIKE '%draft%' AND LOWER(COALESCE(s.status, '')) NOT LIKE '%draft%')
+  AND (s.is_approved = 'Approved' OR LOWER(s.is_approved) = 'approved')`;
 
 function formatFollowersCount(num) {
   const val = Number(num) || 0;
