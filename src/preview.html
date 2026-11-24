@@ -278,7 +278,7 @@
 
         </div>
 
-        <a class="play-btn" id="downloadBtn" href="https://play.google.com/store/apps/details?id=com.rozfm"
+        <a class="play-btn" id="downloadBtn" href="#"
             target="_blank" rel="noopener noreferrer">
             <svg class="play-icon" viewBox="0 0 24 24" fill="white">
                 <path d="M3.5 2.8v18.4L14 12 3.5 2.8z" />
@@ -302,13 +302,25 @@
 
     <script>
         (function () {
-            const PLAY_URL =
-                "https://play.google.com/store/apps/details?id=com.rozfm";
+            // Static Google Play base link
+            const STATIC_BASE = "https://play.google.com/store/apps/details?id=com.rozfm&referrer=deep_link=";
 
-            const params = new URLSearchParams(location.search);
+            // Dynamic link fetched directly from browser address bar
+            const currentBrowserUrl = window.location.href ? window.location.href.split('?')[0].split('#')[0] : '';
+            const PLAY_URL = STATIC_BASE + currentBrowserUrl;
 
             const button = document.getElementById("downloadBtn");
             const status = document.getElementById("status");
+
+            // Update button href dynamically from browser URL
+            if (button) {
+                button.href = PLAY_URL;
+                button.addEventListener("click", function () {
+                    this.href = STATIC_BASE + window.location.href.split('?')[0].split('#')[0];
+                });
+            }
+
+            const params = new URLSearchParams(window.location.search);
 
             // Preview mode for HTML Viewer editing.
             if (params.get("preview") === "1") {
@@ -316,15 +328,12 @@
                 return;
             }
 
-            // Normal HTTPS link: compatible with more HTML viewers.
-            button.href = PLAY_URL;
-            button.target = "_blank";
-            button.rel = "noopener noreferrer";
-
             // Don't force an external redirect inside HTML Viewer.
             setTimeout(function () {
-                status.innerHTML =
-                    'Ready! Tap <b>Get it on Google Play</b> to install Roz FM.';
+                if (status) {
+                    status.innerHTML =
+                        'Ready! Tap <b>Get it on Google Play</b> to install Roz FM.';
+                }
             }, 3000);
 
         })();

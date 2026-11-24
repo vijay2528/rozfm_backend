@@ -4,6 +4,7 @@ const fs = require('fs');
 const StoryController = require('./storyController');
 
 const PUBLIC_BASE_URL = process.env.R2_PUBLIC_URL || 'https://files.rozfm.com';
+const STATIC_PLAY_BASE = 'https://play.google.com/store/apps/details?id=com.rozfm&referrer=deep_link=';
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.rozfm';
 
 function resolveUrl(pathStr, host = 'api.rozfm.com', protocol = 'https') {
@@ -44,6 +45,7 @@ class StoryWebController {
       const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
       const host = req.get('host') || 'api.rozfm.com';
       const currentUrl = `${protocol}://${host}/stories/${encodeURIComponent(storyId)}`;
+      const playStoreUrlWithReferrer = `${STATIC_PLAY_BASE}${currentUrl}`;
 
       // 1. Fetch story details from DB (match by id or slug)
       let story = null;
@@ -374,7 +376,7 @@ class StoryWebController {
             </div>
         </div>
 
-        <a class="play-btn" id="downloadBtn" href="${PLAY_STORE_URL}" target="_blank" rel="noopener noreferrer">
+        <a class="play-btn" id="downloadBtn" href="${escapeHtml(playStoreUrlWithReferrer)}" target="_blank" rel="noopener noreferrer">
             <svg class="play-icon" viewBox="0 0 24 24" fill="white">
                 <path d="M3.5 2.8v18.4L14 12 3.5 2.8z"/>
                 <path d="M15.1 11l2.7-2.7-11-6.1 8.3 8.8z"/>
@@ -395,10 +397,24 @@ class StoryWebController {
 
     <script>
         (function () {
-            const PLAY_STORE_URL = "${PLAY_STORE_URL}";
+            // Static base Google Play URL with referrer param
+            const STATIC_PLAY_BASE = "${STATIC_PLAY_BASE}";
+
+            // Dynamically get current story link directly from browser address bar
+            const currentBrowserLink = window.location.href ? window.location.href.split('?')[0].split('#')[0] : '';
+            const PLAY_STORE_URL = STATIC_PLAY_BASE + currentBrowserLink;
             const STORY_ID = "${escapeHtml(actualId)}";
             const params = new URLSearchParams(window.location.search);
             const status = document.getElementById("status");
+            const button = document.getElementById("downloadBtn");
+
+            // Update button href dynamically with browser story link
+            if (button) {
+                button.href = PLAY_STORE_URL;
+                button.addEventListener("click", function () {
+                    this.href = STATIC_PLAY_BASE + window.location.href.split('?')[0].split('#')[0];
+                });
+            }
 
             // Allow manual inspection without triggering redirect
             if (params.get("preview") === "1" || params.get("noredirect") === "1") {
