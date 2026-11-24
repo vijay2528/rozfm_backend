@@ -166,10 +166,12 @@ const serveLogo = (req, res) => {
 };
 app.get('/logo.png', serveLogo);
 
-// Serve Story Preview Landing Page (WhatsApp share, web preview & deep linking)
+// Serve Story & Episode Preview Landing Pages (WhatsApp share, web preview & deep linking)
 const StoryWebController = require('./controllers/storyWebController');
 app.get('/stories/:id', StoryWebController.renderStoryPage);
 app.get('/stories/:id/:slug?', StoryWebController.renderStoryPage);
+app.get('/episodes/:id', StoryWebController.renderEpisodePage);
+app.get('/episodes/:id/:slug?', StoryWebController.renderEpisodePage);
 
 // Serve app-ads.txt for Google AdMob verification
 const serveAppAdsTxt = (req, res) => {

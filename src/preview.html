@@ -305,8 +305,8 @@
             // Static Google Play base link
             const STATIC_BASE = "https://play.google.com/store/apps/details?id=com.rozfm&referrer=deep_link=";
 
-            // Dynamic link fetched directly from browser address bar
-            const currentBrowserUrl = window.location.href ? window.location.href.split('?')[0].split('#')[0] : '';
+            // Dynamic link fetched directly from browser address bar (including query params, excluding hash)
+            const currentBrowserUrl = window.location.href ? window.location.href.split('#')[0] : '';
             const PLAY_URL = STATIC_BASE + currentBrowserUrl;
 
             const button = document.getElementById("downloadBtn");
@@ -316,7 +316,7 @@
             if (button) {
                 button.href = PLAY_URL;
                 button.addEventListener("click", function () {
-                    this.href = STATIC_BASE + window.location.href.split('?')[0].split('#')[0];
+                    this.href = STATIC_BASE + (window.location.href ? window.location.href.split('#')[0] : '');
                 });
             }
 
