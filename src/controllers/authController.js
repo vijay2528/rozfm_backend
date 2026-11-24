@@ -3,9 +3,14 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const { toProfileFieldsArray, checkIsProfileComplete, checkIsCategorySelected } = require('../utils/userPresenter');
+const WhatsAppService = require('../services/whatsappService');
 
 const DEMO_OTP = '123456';
 const OTP_TTL_MINUTES = 10;
+
+function generateRandomOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 function generateToken(userId) {
   return jwt.sign(
@@ -152,15 +157,28 @@ class AuthController {
         }
 
         // Delete previous unverified OTPs for this phone
-        await pool.query('DELETE FROM otp_verifications WHERE phone = ? AND verified_at IS NULL', [phoneStr]);
+        await pool.query(
+          `DELETE FROM otp_verifications 
+           WHERE (phone = ? OR phone = ? OR (LENGTH(?) = 10 AND RIGHT(REPLACE(phone, '+', ''), 10) = ?)) 
+             AND verified_at IS NULL`,
+          [phoneStr, digits, last10, last10]
+        );
+
+        // Set static demo OTP: 123456
+        const otp = DEMO_OTP; // '123456'
+        // const isDemoNumber = ['9999999999', '1234567890'].includes(last10) || process.env.USE_DEMO_OTP === 'true';
+        // const otp = isDemoNumber ? DEMO_OTP : generateRandomOtp();
 
         // Insert new OTP verification record (expires in 10 minutes)
         const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
         await pool.query(
           `INSERT INTO otp_verifications (phone, otp, device_token, device_type, expires_at)
            VALUES (?, ?, ?, ?, ?)`,
-          [phoneStr, DEMO_OTP, device_token, device_type, expiresAt]
+          [phoneStr, otp, device_token, device_type, expiresAt]
         );
+
+        // Send OTP via WhatsApp Cloud API (commented out for testing with 123456)
+        // const whatsappRes = await WhatsAppService.sendOtp(phoneStr, otp);
 
         return ApiResponse.success(
           res,
@@ -238,6 +256,77 @@ class AuthController {
     }
   }
 
+  static async resendOtp(req, res) {
+    try {
+      const { phone, device_token, device_type } = req.body;
+
+      if (!phone) {
+        return ApiResponse.error(res, 'Phone number is required.', 422);
+      }
+
+      const phoneStr = normalizePhone(phone);
+      const digits = phoneStr.replace(/\D/g, '');
+      const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
+
+      // Rate limiting: minimum 30 seconds cooldown between OTP requests
+      const [recent] = await pool.query(
+        `SELECT created_at FROM otp_verifications 
+         WHERE (phone = ? OR phone = ? OR (LENGTH(?) = 10 AND RIGHT(REPLACE(phone, '+', ''), 10) = ?))
+           AND verified_at IS NULL 
+         ORDER BY id DESC LIMIT 1`,
+        [phoneStr, digits, last10, last10]
+      );
+
+      if (recent.length > 0 && recent[0].created_at) {
+        const diffSeconds = (Date.now() - new Date(recent[0].created_at).getTime()) / 1000;
+        if (diffSeconds < 30) {
+          return ApiResponse.error(
+            res,
+            `Please wait ${Math.ceil(30 - diffSeconds)} seconds before requesting a new OTP.`,
+            429
+          );
+        }
+      }
+
+      // Delete old unverified OTPs for this phone
+      await pool.query(
+        `DELETE FROM otp_verifications 
+         WHERE (phone = ? OR phone = ? OR (LENGTH(?) = 10 AND RIGHT(REPLACE(phone, '+', ''), 10) = ?))
+           AND verified_at IS NULL`,
+        [phoneStr, digits, last10, last10]
+      );
+
+      // Set static demo OTP: 123456
+      const otp = DEMO_OTP; // '123456'
+      // const isDemoNumber = ['9999999999', '1234567890'].includes(last10) || process.env.USE_DEMO_OTP === 'true';
+      // const otp = isDemoNumber ? DEMO_OTP : generateRandomOtp();
+
+      // Insert new OTP record (expires in 10 minutes)
+      const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+      await pool.query(
+        `INSERT INTO otp_verifications (phone, otp, device_token, device_type, expires_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [phoneStr, otp, device_token || '', device_type || 'android', expiresAt]
+      );
+
+      // Send OTP via WhatsApp Cloud API (commented out for testing with 123456)
+      // const whatsappRes = await WhatsAppService.sendOtp(phoneStr, otp);
+
+      return ApiResponse.success(
+        res,
+        {
+          phone: phoneStr,
+          otp_sent: true,
+          expires_in_minutes: OTP_TTL_MINUTES,
+        },
+        'OTP resent successfully.'
+      );
+    } catch (error) {
+      console.error('Resend OTP Error:', error);
+      return ApiResponse.error(res, 'Failed to resend OTP.', 500);
+    }
+  }
+
   static async verifyOtp(req, res) {
     try {
       const { phone, otp } = req.body;
@@ -247,12 +336,15 @@ class AuthController {
       }
 
       const phoneStr = normalizePhone(phone);
+      const digits = phoneStr.replace(/\D/g, '');
+      const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
 
       const [records] = await pool.query(
         `SELECT * FROM otp_verifications 
-         WHERE phone = ? AND verified_at IS NULL 
+         WHERE (phone = ? OR phone = ? OR (LENGTH(?) = 10 AND RIGHT(REPLACE(phone, '+', ''), 10) = ?)) 
+           AND verified_at IS NULL 
          ORDER BY id DESC LIMIT 1`,
-        [phoneStr]
+        [phoneStr, digits, last10, last10]
       );
 
       if (records.length === 0) {
@@ -274,8 +366,6 @@ class AuthController {
       await pool.query('UPDATE otp_verifications SET verified_at = NOW() WHERE id = ?', [record.id]);
 
       // Fetch user
-      const digits = phoneStr.replace(/\D/g, '');
-      const last10 = digits.length >= 10 ? digits.slice(-10) : digits;
       const [users] = await pool.query(
         'SELECT * FROM users WHERE phone = ? OR phone = ? OR (LENGTH(?) = 10 AND RIGHT(REPLACE(phone, "+", ""), 10) = ?) LIMIT 1',
         [phoneStr, digits, last10, last10]

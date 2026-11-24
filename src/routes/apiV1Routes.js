@@ -50,6 +50,8 @@ const upload = require('../middleware/uploadMiddleware');
 router.post('/auth/register', AuthController.register);
 router.post('/auth/login', AuthController.login);
 router.post('/auth/verify-otp', AuthController.verifyOtp);
+router.post('/auth/resend-otp', AuthController.resendOtp);
+router.post('/resend-otp', AuthController.resendOtp);
 
 // Config, Languages, FAQs & Legal
 router.get('/config', ConfigController.show);

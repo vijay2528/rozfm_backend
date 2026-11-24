@@ -108,7 +108,7 @@
                 "login"
               ]
             },
-            "description": "Initiate phone login. Generates demo OTP 123456 valid for 10 minutes."
+            "description": "Initiate phone login. Generates 6-digit OTP sent via WhatsApp message (valid for 10 minutes)."
           }
         },
         {
@@ -201,6 +201,37 @@
               ]
             },
             "description": "Verify OTP (demo OTP: 123456)."
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"device_token\": \"fcm-device-token-123\",\n  \"device_type\": \"android\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/resend-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "resend-otp"
+              ]
+            },
+            "description": "Resends 6-digit verification OTP to user via WhatsApp message. Rate-limited to one request every 30 seconds."
           }
         },
         {

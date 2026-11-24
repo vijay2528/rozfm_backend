@@ -2,6 +2,7 @@ const { pool } = require('../config/db');
 const ApiResponse = require('../utils/apiResponse');
 const { toProfileFieldsArray, checkIsProfileComplete, checkIsCategorySelected } = require('../utils/userPresenter');
 const { uploadToR2, deleteFromR2 } = require('../services/r2StorageService');
+const WhatsAppService = require('../services/whatsappService');
 
 class MeController {
   static async show(req, res) {
@@ -139,14 +140,31 @@ class MeController {
         return ApiResponse.error(res, 'Phone number is already registered to another account.', 422);
       }
 
-      // Generate demo OTP '123456' for verification
+      // Generate 6-digit OTP for phone update verification
+      const isDemo = ['9999999999', '1234567890'].includes(String(phone).slice(-10)) || process.env.USE_DEMO_OTP === 'true';
+      const otp = isDemo ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+      // Clean up previous unverified OTPs
+      await pool.query('DELETE FROM otp_verifications WHERE phone = ? AND verified_at IS NULL', [phone]);
+
       await pool.query(
         'INSERT INTO otp_verifications (phone, otp, expires_at) VALUES (?, ?, ?)',
-        [phone, '123456', expiresAt]
+        [phone, otp, expiresAt]
       );
 
-      return ApiResponse.success(res, { phone, otp_demo: '123456' }, 'OTP sent for phone update verification.');
+      const whatsappRes = await WhatsAppService.sendOtp(phone, otp);
+
+      return ApiResponse.success(
+        res,
+        {
+          phone,
+          otp_sent: true,
+          expires_in_minutes: 10,
+          ...(process.env.NODE_ENV !== 'production' || !whatsappRes.success ? { debug_otp: otp } : {})
+        },
+        whatsappRes.success ? 'OTP sent to your WhatsApp number for verification.' : 'OTP generated. Please verify your phone.'
+      );
     } catch (error) {
       console.error('Request Phone Update Error:', error);
       return ApiResponse.error(res, 'Failed to initiate phone update.', 500);
