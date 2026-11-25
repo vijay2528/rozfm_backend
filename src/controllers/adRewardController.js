@@ -234,9 +234,7 @@ class AdRewardController {
         const adIndex = adsAlreadyWatched + 1;
         const description = episode
           ? `Ad Reward — ${ad_type} ad watched for Episode #${episode.position || episode.id}: ${episode.title}`
-          : (targetTier
-            ? `Ad Reward — ${targetTier.title || targetTier.label || `Option #${selectedOptionId}`} (+${rewardCoinsToAward} coin${rewardCoinsToAward > 1 ? 's' : ''})`
-            : `Ad Reward — ${ad_type} ad #${adIndex} watched (+${rewardCoinsToAward} coin${rewardCoinsToAward > 1 ? 's' : ''})`);
+          : 'Ad Reward — 1 Coins';
 
         await connection.query(
           `INSERT INTO coin_transactions (user_id, type, coins, description, reference_id, created_at)
