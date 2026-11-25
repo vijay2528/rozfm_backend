@@ -22,7 +22,7 @@ class MembershipUserController {
 
       // Build WHERE clauses
       let whereClauses = [
-        '(s.id IS NOT NULL OR (LOWER(COALESCE(u.subscription_type, "free")) NOT IN ("free", "listener", "creator", "admin", "writer", "")))'
+        "(s.id IS NOT NULL OR (LOWER(COALESCE(u.subscription_type, 'free')) NOT IN ('free', 'listener', 'creator', 'admin', 'writer', '')))"
       ];
       let queryParams = [];
 
@@ -35,15 +35,15 @@ class MembershipUserController {
       if (status && status.toLowerCase() !== 'all') {
         const st = status.toLowerCase();
         if (st === 'active') {
-          whereClauses.push('(COALESCE(s.status, "active") = "active" AND (s.expires_at IS NULL OR s.expires_at >= NOW()))');
+          whereClauses.push("(COALESCE(s.status, 'active') = 'active' AND (s.expires_at IS NULL OR s.expires_at >= NOW()))");
         } else if (st === 'expired') {
-          whereClauses.push('(s.status = "expired" OR (s.expires_at IS NOT NULL AND s.expires_at < NOW()))');
+          whereClauses.push("(s.status = 'expired' OR (s.expires_at IS NOT NULL AND s.expires_at < NOW()))");
         } else if (st === 'cancelled' || st === 'canceled') {
-          whereClauses.push('s.status = "cancelled"');
+          whereClauses.push("s.status = 'cancelled'");
         } else if (st === 'trial') {
-          whereClauses.push('(s.status = "trial" OR s.billing_cycle = "trial")');
+          whereClauses.push("(s.status = 'trial' OR s.billing_cycle = 'trial')");
         } else {
-          whereClauses.push('LOWER(COALESCE(s.status, "active")) = ?');
+          whereClauses.push("LOWER(COALESCE(s.status, 'active')) = ?");
           queryParams.push(st);
         }
       }
@@ -100,10 +100,9 @@ class MembershipUserController {
           s.created_at AS subscribed_at,
           COALESCE(s.status, 'active') AS subscription_status,
           COALESCE(p.name, u.subscription_type, 'Premium') AS plan_name,
-          p.price,
+          COALESCE(p.price, 0) AS plan_price,
           p.monthly_amount,
-          p.yearly_amount,
-          p.badge_text
+          p.yearly_amount
         FROM users u
         LEFT JOIN (
           SELECT s1.*
@@ -147,7 +146,7 @@ class MembershipUserController {
               GROUP BY user_id
             ) s2 ON s1.id = s2.max_id
           ) s ON u.id = s.user_id
-          WHERE (s.id IS NOT NULL OR (LOWER(COALESCE(u.subscription_type, "free")) NOT IN ("free", "listener", "creator", "admin", "writer", "")))
+          WHERE (s.id IS NOT NULL OR (LOWER(COALESCE(u.subscription_type, 'free')) NOT IN ('free', 'listener', 'creator', 'admin', 'writer', '')))
         `);
 
         if (statsRow) {
@@ -169,14 +168,39 @@ class MembershipUserController {
           displayStatus = 'expired';
         }
 
+        const planPrice = Number(r.plan_price || r.monthly_amount || 0);
+
         return {
           id: r.subscription_id || `SUB-${r.user_id}`,
           subscription_id: r.subscription_id || null,
           user_id: r.user_id,
+          user_name: r.user_name || 'Anonymous User',
+          user_email: r.user_email || '',
+          user_phone: r.user_phone || '',
+          avatar_path: r.avatar_path || null,
+          wallet_balance: Number(r.wallet_balance || 0),
+          is_blocked: Boolean(r.is_blocked),
+          user_joined_at: r.user_joined_at,
+          plan_id: r.plan_id || null,
+          plan_name: r.plan_name || 'Premium',
+          price: planPrice,
+          monthly_amount: r.monthly_amount ? Number(r.monthly_amount) : null,
+          yearly_amount: r.yearly_amount ? Number(r.yearly_amount) : null,
+          billing_cycle: r.billing_cycle || 'monthly',
+          subscription_status: displayStatus,
+          status: displayStatus,
+          starts_at: r.starts_at || r.subscribed_at || r.user_joined_at,
+          expires_at: r.expires_at,
+          renews_on: r.expires_at,
+          days_left: daysLeft,
+          days_remaining: daysLeft,
+          razorpay_subscription_id: r.razorpay_subscription_id || null,
+          subscribed_at: r.subscribed_at || r.user_joined_at,
+          created_at: r.subscribed_at || r.user_joined_at,
           user: {
             id: r.user_id,
             name: r.user_name || 'Anonymous User',
-            email: r.user_email || 'No email',
+            email: r.user_email || '',
             phone: r.user_phone || '',
             avatar: r.avatar_path || null,
             coins: Number(r.wallet_balance || 0),
@@ -186,17 +210,9 @@ class MembershipUserController {
           plan: {
             id: r.plan_id || null,
             name: r.plan_name || 'Premium',
-            price: Number(r.price || r.monthly_amount || 0),
+            price: planPrice,
             billing_cycle: r.billing_cycle || 'monthly',
-            badge_text: r.badge_text || null,
           },
-          status: displayStatus,
-          starts_at: r.starts_at || r.subscribed_at || r.user_joined_at,
-          expires_at: r.expires_at,
-          renews_on: r.expires_at,
-          days_remaining: daysLeft,
-          razorpay_subscription_id: r.razorpay_subscription_id || null,
-          created_at: r.subscribed_at || r.user_joined_at,
         };
       });
 
