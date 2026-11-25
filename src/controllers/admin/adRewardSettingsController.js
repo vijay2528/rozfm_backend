@@ -23,6 +23,15 @@ function formatIsoTime(date) {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${diffSign}${offsetHours}:${offsetMins}`;
 }
 
+// ── Helper: Upsert key-value pair in settings table ─────────────────────────
+async function upsertSetting(key, value) {
+  await pool.query(
+    `INSERT INTO settings (\`key\`, \`value\`) VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`), updated_at = NOW()`,
+    [key, String(value)]
+  );
+}
+
 class AdminAdRewardSettingsController {
   /**
    * Helper: Build status object for user containing wallet, daily_ad_status, reward_options, limit_message.

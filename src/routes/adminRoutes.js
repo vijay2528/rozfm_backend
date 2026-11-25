@@ -25,6 +25,7 @@ const AdminRevenueShareController = require('../controllers/admin/revenueShareCo
 const AdminAdRewardSettingsController = require('../controllers/admin/adRewardSettingsController');
 const AdRewardController = require('../controllers/adRewardController');
 const AdminMembershipPlanController = require('../controllers/admin/membershipPlanController');
+const AdminMembershipUserController = require('../controllers/admin/membershipUserController');
 const AdminCouponController = require('../controllers/admin/couponController');
 const AdminCoinTransactionController = require('../controllers/admin/coinTransactionController');
 const AdminRecommendationController = require('../controllers/admin/recommendationController');
@@ -146,6 +147,14 @@ router.post('/membership-plans', AdminMembershipPlanController.store);
 router.put('/membership-plans/:id', AdminMembershipPlanController.update);
 router.post('/membership-plans/:id', AdminMembershipPlanController.update);
 router.delete('/membership-plans/:id', AdminMembershipPlanController.destroy);
+
+// ── 6b. Membership Users & Subscriptions ──────────────────────────────────────
+router.get('/membership-users', AdminMembershipUserController.index);
+router.get('/membership/users', AdminMembershipUserController.index);
+router.get('/subscriptions', AdminMembershipUserController.index);
+router.post('/membership-users', AdminMembershipUserController.grant);
+router.post('/membership-users/:id/cancel', AdminMembershipUserController.cancel);
+router.put('/membership-users/:id/cancel', AdminMembershipUserController.cancel);
 
 router.get('/coin-packs', AdminMonetizationController.listPacks);
 router.get('/coin-packs/:id', AdminMonetizationController.showPack);
