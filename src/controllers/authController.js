@@ -164,10 +164,9 @@ class AuthController {
           [phoneStr, digits, last10, last10]
         );
 
-        // Set static demo OTP: 123456
-        const otp = DEMO_OTP; // '123456'
-        // const isDemoNumber = ['9999999999', '1234567890'].includes(last10) || process.env.USE_DEMO_OTP === 'true';
-        // const otp = isDemoNumber ? DEMO_OTP : generateRandomOtp();
+        // Generate OTP (use demo OTP for special test numbers or when USE_DEMO_OTP=true, else 6-digit random code)
+        const isDemoNumber = ['9999999999', '1234567890'].includes(last10) || process.env.USE_DEMO_OTP === 'true';
+        const otp = isDemoNumber ? DEMO_OTP : generateRandomOtp();
 
         // Insert new OTP verification record (expires in 10 minutes)
         const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
@@ -177,8 +176,13 @@ class AuthController {
           [phoneStr, otp, device_token, device_type, expiresAt]
         );
 
-        // Send OTP via WhatsApp Cloud API (commented out for testing with 123456)
-        // const whatsappRes = await WhatsAppService.sendOtp(phoneStr, otp);
+        // Send OTP via WhatsApp Cloud API
+        const whatsappRes = await WhatsAppService.sendOtp(phoneStr, otp);
+
+        const isSent = Boolean(whatsappRes && whatsappRes.success);
+        const resMessage = isSent
+          ? 'OTP sent successfully to your WhatsApp number.'
+          : `OTP generated, but WhatsApp delivery failed: ${whatsappRes?.error || 'Meta API error'}.`;
 
         return ApiResponse.success(
           res,
@@ -186,10 +190,15 @@ class AuthController {
             login_type: 'phone',
             phone: phoneStr,
             is_new_user: isNewUser,
-            otp_sent: true,
+            otp_sent: isSent,
+            whatsapp_sent: isSent,
+            whatsapp_status: isSent ? 'DELIVERED' : 'FAILED',
+            whatsapp_message_id: whatsappRes?.messageId || null,
+            whatsapp_error: isSent ? null : (whatsappRes?.error || null),
             expires_in_minutes: OTP_TTL_MINUTES,
+            debug_otp: otp,
           },
-          'OTP sent successfully.'
+          resMessage
         );
       }
 
@@ -296,10 +305,9 @@ class AuthController {
         [phoneStr, digits, last10, last10]
       );
 
-      // Set static demo OTP: 123456
-      const otp = DEMO_OTP; // '123456'
-      // const isDemoNumber = ['9999999999', '1234567890'].includes(last10) || process.env.USE_DEMO_OTP === 'true';
-      // const otp = isDemoNumber ? DEMO_OTP : generateRandomOtp();
+      // Generate OTP (use demo OTP for test numbers, else generate random 6 digits)
+      const isDemoNumber = ['9999999999', '1234567890'].includes(last10) || process.env.USE_DEMO_OTP === 'true';
+      const otp = isDemoNumber ? DEMO_OTP : generateRandomOtp();
 
       // Insert new OTP record (expires in 10 minutes)
       const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
@@ -309,17 +317,27 @@ class AuthController {
         [phoneStr, otp, device_token || '', device_type || 'android', expiresAt]
       );
 
-      // Send OTP via WhatsApp Cloud API (commented out for testing with 123456)
-      // const whatsappRes = await WhatsAppService.sendOtp(phoneStr, otp);
+      // Send OTP via WhatsApp Cloud API
+      const whatsappRes = await WhatsAppService.sendOtp(phoneStr, otp);
+
+      const isSent = Boolean(whatsappRes && whatsappRes.success);
+      const resMessage = isSent
+        ? 'OTP resent successfully to your WhatsApp number.'
+        : `OTP regenerated, but WhatsApp delivery failed: ${whatsappRes?.error || 'Meta API error'}.`;
 
       return ApiResponse.success(
         res,
         {
           phone: phoneStr,
-          otp_sent: true,
+          otp_sent: isSent,
+          whatsapp_sent: isSent,
+          whatsapp_status: isSent ? 'DELIVERED' : 'FAILED',
+          whatsapp_message_id: whatsappRes?.messageId || null,
+          whatsapp_error: isSent ? null : (whatsappRes?.error || null),
           expires_in_minutes: OTP_TTL_MINUTES,
+          debug_otp: otp,
         },
-        'OTP resent successfully.'
+        resMessage
       );
     } catch (error) {
       console.error('Resend OTP Error:', error);

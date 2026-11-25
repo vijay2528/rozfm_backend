@@ -29,8 +29,9 @@ class WhatsAppService {
   static async sendOtp(phone, otp) {
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
     const phoneNumberId = process.env.PHONE_NUMBER_ID;
-    const templateName = process.env.WHATSAPP_TEMPLATE_NAME || 'send_otp';
-    const apiVersion = process.env.WHATSAPP_API_VERSION || 'v21.0';
+    const templateName = process.env.WHATSAPP_TEMPLATE_NAME || process.env.TEMPLATE_NAME || 'send_otp';
+    const apiVersion = process.env.WHATSAPP_API_VERSION || 'v26.0';
+    let templateLanguage = process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'en';
 
     const formattedTo = formatPhoneNumber(phone);
     const otpCode = String(otp).trim();
@@ -54,44 +55,38 @@ class WhatsAppService {
 
     const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
 
-    // Template payload for "send_otp" AUTHENTICATION template with COPY_CODE button
-    const payloadWithButton = {
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: formattedTo,
-      type: 'template',
-      template: {
-        name: templateName,
-        language: {
-          code: 'en',
+    const buildPayload = (lang, includeButton = true) => {
+      const components = [
+        {
+          type: 'body',
+          parameters: [{ type: 'text', text: otpCode }],
         },
-        components: [
-          {
-            type: 'body',
-            parameters: [
-              {
-                type: 'text',
-                text: otpCode,
-              },
-            ],
-          },
-          {
-            type: 'button',
-            sub_type: 'url',
-            index: '0',
-            parameters: [
-              {
-                type: 'text',
-                text: otpCode,
-              },
-            ],
-          },
-        ],
-      },
+      ];
+
+      if (includeButton) {
+        components.push({
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
+          parameters: [{ type: 'text', text: otpCode }],
+        });
+      }
+
+      return {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: formattedTo,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: { code: lang },
+          components,
+        },
+      };
     };
 
     try {
-      console.log(`[WhatsAppService] Sending OTP to ${formattedTo} using template '${templateName}'...`);
+      console.log(`[WhatsAppService] Sending OTP to ${formattedTo} using template '${templateName}' (${templateLanguage}) via ${apiVersion}...`);
 
       let response = await fetch(url, {
         method: 'POST',
@@ -99,7 +94,7 @@ class WhatsAppService {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payloadWithButton),
+        body: JSON.stringify(buildPayload(templateLanguage, true)),
         signal: AbortSignal.timeout(10000),
       });
 
@@ -110,25 +105,16 @@ class WhatsAppService {
         resData = { raw: await response.text() };
       }
 
-      // If button component caused an issue, retry once with body component only
-      if (!response.ok && resData?.error?.message?.toLowerCase().includes('button')) {
-        console.warn('[WhatsAppService] Button parameter failed, retrying with body only...');
-        const payloadBodyOnly = {
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to: formattedTo,
-          type: 'template',
-          template: {
-            name: templateName,
-            language: { code: 'en' },
-            components: [
-              {
-                type: 'body',
-                parameters: [{ type: 'text', text: otpCode }],
-              },
-            ],
-          },
-        };
+      // If template was not found in specified language (e.g. en_US when template is 'en'), retry with 'en'
+      if (
+        !response.ok &&
+        templateLanguage !== 'en' &&
+        (resData?.error?.code === 132001 ||
+          resData?.error?.message?.toLowerCase().includes('translation') ||
+          resData?.error?.error_data?.details?.includes(templateLanguage))
+      ) {
+        console.warn(`[WhatsAppService] Template '${templateName}' not found in '${templateLanguage}', retrying with 'en'...`);
+        templateLanguage = 'en';
 
         response = await fetch(url, {
           method: 'POST',
@@ -136,7 +122,27 @@ class WhatsAppService {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(payloadBodyOnly),
+          body: JSON.stringify(buildPayload('en', true)),
+          signal: AbortSignal.timeout(10000),
+        });
+
+        try {
+          resData = await response.json();
+        } catch {
+          resData = null;
+        }
+      }
+
+      // If button component caused an issue, retry once with body component only
+      if (!response.ok && resData?.error?.message?.toLowerCase().includes('button')) {
+        console.warn('[WhatsAppService] Button parameter failed, retrying with body only...');
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(buildPayload(templateLanguage, false)),
           signal: AbortSignal.timeout(10000),
         });
 
