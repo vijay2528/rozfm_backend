@@ -162,16 +162,10 @@ class AdRewardController {
       let episode = null;
       let rewardCoinsToAward = null;
 
-      // Priority 1: If client explicitly passed reward_coins or coins in the request body
-      const bodyRewardCoins = reward_coins !== undefined
-        ? parseFloat(reward_coins)
-        : (coins !== undefined ? parseFloat(coins) : null);
-
-      if (bodyRewardCoins !== null && !isNaN(bodyRewardCoins) && bodyRewardCoins > 0) {
-        rewardCoinsToAward = bodyRewardCoins;
-      }
-
-      if (hasEpisode) {
+      // Whatever option_id user passes, add only 1 coin
+      if (selectedOptionId !== null) {
+        rewardCoinsToAward = 1;
+      } else if (hasEpisode) {
         const epId = parseInt(episode_id, 10);
         if (isNaN(epId) || epId <= 0) {
           return ApiResponse.error(res, 'Invalid episode_id provided.', 422);
@@ -187,35 +181,24 @@ class AdRewardController {
         }
 
         episode = epRows[0];
-        if (rewardCoinsToAward === null) {
-          const epCoins = Number(episode.coins);
-          rewardCoinsToAward = (!isNaN(epCoins) && epCoins > 0) ? epCoins : defaultCoinsPerAd;
-        }
-      } else if (targetTier) {
-        // Priority 2: Use the option ID's specific reward_coins (not default setting coins!)
-        if (rewardCoinsToAward === null) {
-          const tierReward = Number(targetTier.reward_coins ?? targetTier.coins);
-          rewardCoinsToAward = (!isNaN(tierReward) && tierReward > 0) ? tierReward : defaultCoinsPerAd;
-        }
+        const epCoins = Number(episode.coins);
+        rewardCoinsToAward = (!isNaN(epCoins) && epCoins > 0) ? epCoins : defaultCoinsPerAd;
       } else {
-        // Priority 3: Fallback if no option_id, no episode, no body reward_coins
-        if (rewardCoinsToAward === null) {
-          const count = ads_count ? parseInt(ads_count, 10) : 1;
-          const validCount = (!isNaN(count) && count > 0) ? count : 1;
-          rewardCoinsToAward = validCount * defaultCoinsPerAd;
+        // Fallback when no option_id: check body coins or default to 1 coin
+        const bodyRewardCoins = reward_coins !== undefined
+          ? parseFloat(reward_coins)
+          : (coins !== undefined ? parseFloat(coins) : null);
+
+        if (bodyRewardCoins !== null && !isNaN(bodyRewardCoins) && bodyRewardCoins > 0) {
+          rewardCoinsToAward = bodyRewardCoins;
+        } else {
+          rewardCoinsToAward = 1;
         }
       }
 
       rewardCoinsToAward = Math.round(rewardCoinsToAward);
-        // Ensure at least one coin is awarded when episode_id is missing or empty
-        if (!hasEpisode && rewardCoinsToAward < 1) {
-          rewardCoinsToAward = 1;
-        }
-        if (rewardCoinsToAward <= 0) {
-          return ApiResponse.error(res, 'No coins to award.', 422);
-        }
       if (rewardCoinsToAward <= 0) {
-        return ApiResponse.error(res, 'No coins to award.', 422);
+        rewardCoinsToAward = 1;
       }
 
       // ── 2. Check Daily Limit ───────────────────────────────────────────────
@@ -252,8 +235,8 @@ class AdRewardController {
         const description = episode
           ? `Ad Reward — ${ad_type} ad watched for Episode #${episode.position || episode.id}: ${episode.title}`
           : (targetTier
-              ? `Ad Reward — ${targetTier.title || targetTier.label || `Option #${selectedOptionId}`} (+${rewardCoinsToAward} coins)`
-              : `Ad Reward — ${ad_type} ad #${adIndex} watched (+${rewardCoinsToAward} coins)`);
+            ? `Ad Reward — ${targetTier.title || targetTier.label || `Option #${selectedOptionId}`} (+${rewardCoinsToAward} coin${rewardCoinsToAward > 1 ? 's' : ''})`
+            : `Ad Reward — ${ad_type} ad #${adIndex} watched (+${rewardCoinsToAward} coin${rewardCoinsToAward > 1 ? 's' : ''})`);
 
         await connection.query(
           `INSERT INTO coin_transactions (user_id, type, coins, description, reference_id, created_at)
