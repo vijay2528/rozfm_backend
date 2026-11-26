@@ -21,22 +21,22 @@ class MembershipUserController {
         );
       } catch (_) {}
 
-      // Build WHERE clauses
+      // Build WHERE clauses - Only show users with an actual subscription record
       let whereClauses = [
-        "(s.id IS NOT NULL OR (LOWER(COALESCE(u.subscription_type, 'free')) NOT IN ('free', 'listener', 'creator', 'admin', 'writer', '')))"
+        "s.id IS NOT NULL"
       ];
       let queryParams = [];
 
       if (search && String(search).trim()) {
         const s = `%${String(search).trim()}%`;
-        whereClauses.push('(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR p.name LIKE ? OR u.subscription_type LIKE ?)');
-        queryParams.push(s, s, s, s, s);
+        whereClauses.push('(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR p.name LIKE ?)');
+        queryParams.push(s, s, s, s);
       }
 
       if (status && status.toLowerCase() !== 'all') {
         const st = status.toLowerCase();
         if (st === 'active') {
-          whereClauses.push("(COALESCE(s.status, 'active') = 'active' AND (s.expires_at IS NULL OR s.expires_at >= NOW()))");
+          whereClauses.push("(s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at >= NOW()))");
         } else if (st === 'expired') {
           whereClauses.push("(s.status = 'expired' OR (s.expires_at IS NOT NULL AND s.expires_at < NOW()))");
         } else if (st === 'cancelled' || st === 'canceled') {
@@ -44,7 +44,7 @@ class MembershipUserController {
         } else if (st === 'trial') {
           whereClauses.push("(s.status = 'trial' OR s.billing_cycle = 'trial')");
         } else {
-          whereClauses.push("LOWER(COALESCE(s.status, 'active')) = ?");
+          whereClauses.push("LOWER(s.status) = ?");
           queryParams.push(st);
         }
       }
@@ -55,32 +55,24 @@ class MembershipUserController {
           whereClauses.push('(s.plan_id = ? OR p.id = ?)');
           queryParams.push(pNum, pNum);
         } else {
-          whereClauses.push('(LOWER(p.name) LIKE ? OR LOWER(u.subscription_type) LIKE ?)');
-          queryParams.push(`%${plan_id.toLowerCase()}%`, `%${plan_id.toLowerCase()}%`);
+          whereClauses.push('LOWER(p.name) LIKE ?');
+          queryParams.push(`%${plan_id.toLowerCase()}%`);
         }
       }
 
       const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
 
-      // Count total
+      // Count total actual subscriptions
       const countSql = `
-        SELECT COUNT(DISTINCT u.id) as count
-        FROM users u
-        LEFT JOIN (
-          SELECT s1.*
-          FROM subscriptions s1
-          INNER JOIN (
-            SELECT user_id, MAX(id) as max_id
-            FROM subscriptions
-            GROUP BY user_id
-          ) s2 ON s1.id = s2.max_id
-        ) s ON u.id = s.user_id
+        SELECT COUNT(DISTINCT s.id) as count
+        FROM subscriptions s
+        INNER JOIN users u ON s.user_id = u.id
         LEFT JOIN purchase_plans p ON s.plan_id = p.id
         ${whereSql}
       `;
       const [[{ count }]] = await pool.query(countSql, queryParams);
 
-      // Data query
+      // Data query from subscriptions joined with users and purchase_plans
       const dataSql = `
         SELECT 
           u.id AS user_id,
@@ -99,24 +91,16 @@ class MembershipUserController {
           s.billing_cycle,
           s.razorpay_subscription_id,
           s.created_at AS subscribed_at,
-          COALESCE(s.status, 'active') AS subscription_status,
-          COALESCE(p.name, u.subscription_type, 'Premium') AS plan_name,
-          COALESCE(p.price, 0) AS plan_price,
+          s.status AS subscription_status,
+          COALESCE(p.name, 'Roz Pass') AS plan_name,
+          COALESCE(p.monthly_amount, p.yearly_amount, 0) AS plan_price,
           p.monthly_amount,
           p.yearly_amount
-        FROM users u
-        LEFT JOIN (
-          SELECT s1.*
-          FROM subscriptions s1
-          INNER JOIN (
-            SELECT user_id, MAX(id) as max_id
-            FROM subscriptions
-            GROUP BY user_id
-          ) s2 ON s1.id = s2.max_id
-        ) s ON u.id = s.user_id
+        FROM subscriptions s
+        INNER JOIN users u ON s.user_id = u.id
         LEFT JOIN purchase_plans p ON s.plan_id = p.id
         ${whereSql}
-        ORDER BY COALESCE(s.created_at, u.created_at) DESC
+        ORDER BY s.created_at DESC
         LIMIT ? OFFSET ?
       `;
 
@@ -132,22 +116,14 @@ class MembershipUserController {
       try {
         const [[statsRow]] = await pool.query(`
           SELECT 
-            COUNT(DISTINCT u.id) AS total_subscribers,
-            COUNT(DISTINCT CASE WHEN (s.id IS NOT NULL AND s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at >= NOW())) OR (s.id IS NULL AND LOWER(COALESCE(u.subscription_type, 'free')) NOT IN ('free', 'listener', 'creator', 'admin', 'writer', '')) THEN u.id END) AS active_subscribers,
-            COUNT(DISTINCT CASE WHEN s.status = 'expired' OR (s.expires_at IS NOT NULL AND s.expires_at < NOW()) THEN u.id END) AS expired_subscribers,
-            COUNT(DISTINCT CASE WHEN s.status = 'trial' OR s.billing_cycle = 'trial' THEN u.id END) AS trial_subscribers,
-            COUNT(DISTINCT CASE WHEN s.expires_at IS NOT NULL AND s.expires_at >= NOW() AND s.expires_at <= DATE_ADD(NOW(), INTERVAL 7 DAY) THEN u.id END) AS expiring_soon
-          FROM users u
-          LEFT JOIN (
-            SELECT s1.*
-            FROM subscriptions s1
-            INNER JOIN (
-              SELECT user_id, MAX(id) as max_id
-              FROM subscriptions
-              GROUP BY user_id
-            ) s2 ON s1.id = s2.max_id
-          ) s ON u.id = s.user_id
-          WHERE (s.id IS NOT NULL OR (LOWER(COALESCE(u.subscription_type, 'free')) NOT IN ('free', 'listener', 'creator', 'admin', 'writer', '')))
+            COUNT(DISTINCT s.id) AS total_subscribers,
+            COUNT(DISTINCT CASE WHEN s.status = 'active' AND (s.expires_at IS NULL OR s.expires_at >= NOW()) THEN s.id END) AS active_subscribers,
+            COUNT(DISTINCT CASE WHEN s.status = 'expired' OR (s.expires_at IS NOT NULL AND s.expires_at < NOW()) THEN s.id END) AS expired_subscribers,
+            COUNT(DISTINCT CASE WHEN s.status = 'trial' OR s.billing_cycle = 'trial' THEN s.id END) AS trial_subscribers,
+            COUNT(DISTINCT CASE WHEN s.expires_at IS NOT NULL AND s.expires_at >= NOW() AND s.expires_at <= DATE_ADD(NOW(), INTERVAL 7 DAY) THEN s.id END) AS expiring_soon
+          FROM subscriptions s
+          INNER JOIN users u ON s.user_id = u.id
+          LEFT JOIN purchase_plans p ON s.plan_id = p.id
         `);
 
         if (statsRow) {
