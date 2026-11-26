@@ -155,38 +155,43 @@ class DashboardController {
       const last7Days = getLast7DaysKeys();
 
       // ─────────────────────────────────────────────────────────────────────────────
-      // 1. Total Revenue & Coin Revenue (100% Dynamic from DB)
+      // 1. Total Revenue & Coin Revenue (Real Money Purchases from DB)
+      // Rule: Total Revenue = Subscription Plans Revenue + Coin Packs Revenue
       // ─────────────────────────────────────────────────────────────────────────────
       let totalCoinSales = 0;
       let totalSubsRevenue = 0;
-      let totalCoinTxns = 0;
-      let totalUnlocksRevenue = 0;
 
       let thisMonthCoinRevenue = 0;
       let lastMonthCoinRevenue = 0;
-      let thisMonthTotalRevenue = 0;
-      let lastMonthTotalRevenue = 0;
+      let thisMonthSubsRevenue = 0;
+      let lastMonthSubsRevenue = 0;
 
       const revenueDailyMap = new Map();
 
+      // (A) Coin Pack Purchases from coin_transactions (Real user payments)
       try {
         const [salesRes] = await pool.query(
           `SELECT 
              COALESCE(SUM(amount), 0) AS total_sales,
              COALESCE(SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN amount ELSE 0 END), 0) AS this_month_sales,
              COALESCE(SUM(CASE WHEN created_at >= DATE_SUB(DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00'), INTERVAL 1 MONTH) AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN amount ELSE 0 END), 0) AS last_month_sales
-           FROM coin_sales 
-           WHERE status = 1 OR status IN ('completed', 'success', 'paid')`
+           FROM coin_transactions 
+           WHERE (type IN ('coin_pack', 'coin_purchase', 'pack') OR coin_pack_id IS NOT NULL)
+             AND (payment_status IN ('paid', 'completed', 'success'))
+             AND amount > 0`
         ).catch(() => [[{ total_sales: 0, this_month_sales: 0, last_month_sales: 0 }]]);
         totalCoinSales = Number(salesRes[0]?.total_sales || 0);
         thisMonthCoinRevenue = Number(salesRes[0]?.this_month_sales || 0);
         lastMonthCoinRevenue = Number(salesRes[0]?.last_month_sales || 0);
 
-        // Daily coin sales in last 7 days for sparkline
+        // Daily coin pack sales in last 7 days for sparkline
         const [dailySales] = await pool.query(`
           SELECT DATE(created_at) as d, SUM(amount) as sum_val
-          FROM coin_sales
-          WHERE (status = 1 OR status IN ('completed', 'success', 'paid')) AND created_at >= CURDATE() - INTERVAL 6 DAY
+          FROM coin_transactions
+          WHERE (type IN ('coin_pack', 'coin_purchase', 'pack') OR coin_pack_id IS NOT NULL)
+            AND (payment_status IN ('paid', 'completed', 'success'))
+            AND amount > 0
+            AND created_at >= CURDATE() - INTERVAL 6 DAY
           GROUP BY DATE(created_at)
         `).catch(() => [[]]);
         dailySales.forEach(r => {
@@ -195,6 +200,7 @@ class DashboardController {
         });
       } catch (_) {}
 
+      // (B) Subscription Plan Purchases from subscriptions table
       try {
         const [subRes] = await pool.query(
           `SELECT 
@@ -203,18 +209,18 @@ class DashboardController {
              COALESCE(SUM(CASE WHEN s.created_at >= DATE_SUB(DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00'), INTERVAL 1 MONTH) AND s.created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN p.price ELSE 0 END), 0) AS last_month_sub
            FROM subscriptions s 
            LEFT JOIN purchase_plans p ON s.plan_id = p.id 
-           WHERE s.status IN ('active', 'completed', 'paid', '1')`
+           WHERE s.status IN ('active', 'completed', 'paid', 'expired', '1')`
         ).catch(() => [[{ total_sub: 0, this_month_sub: 0, last_month_sub: 0 }]]);
         totalSubsRevenue = Number(subRes[0]?.total_sub || 0);
-        thisMonthTotalRevenue += Number(subRes[0]?.this_month_sub || 0);
-        lastMonthTotalRevenue += Number(subRes[0]?.last_month_sub || 0);
+        thisMonthSubsRevenue = Number(subRes[0]?.this_month_sub || 0);
+        lastMonthSubsRevenue = Number(subRes[0]?.last_month_sub || 0);
 
         // Daily subscriptions in last 7 days for sparkline
         const [dailySubs] = await pool.query(`
           SELECT DATE(s.created_at) as d, SUM(p.price) as sum_val
           FROM subscriptions s
           LEFT JOIN purchase_plans p ON s.plan_id = p.id
-          WHERE s.status IN ('active', 'completed', 'paid', '1') AND s.created_at >= CURDATE() - INTERVAL 6 DAY
+          WHERE s.status IN ('active', 'completed', 'paid', 'expired', '1') AND s.created_at >= CURDATE() - INTERVAL 6 DAY
           GROUP BY DATE(s.created_at)
         `).catch(() => [[]]);
         dailySubs.forEach(r => {
@@ -223,32 +229,10 @@ class DashboardController {
         });
       } catch (_) {}
 
-      try {
-        const [txnRes] = await pool.query(
-          `SELECT 
-             COALESCE(SUM(coins), 0) AS total_coins,
-             COALESCE(SUM(CASE WHEN created_at >= DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN coins ELSE 0 END), 0) AS this_month_coins,
-             COALESCE(SUM(CASE WHEN created_at >= DATE_SUB(DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00'), INTERVAL 1 MONTH) AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01 00:00:00') THEN coins ELSE 0 END), 0) AS last_month_coins
-           FROM coin_transactions 
-           WHERE type LIKE '%purchase%' OR type LIKE '%credit%'`
-        ).catch(() => [[{ total_coins: 0, this_month_coins: 0, last_month_coins: 0 }]]);
-        totalCoinTxns = Number(txnRes[0]?.total_coins || 0) * 0.5;
-        if (thisMonthCoinRevenue === 0) {
-          thisMonthCoinRevenue = Number(txnRes[0]?.this_month_coins || 0) * 0.5;
-          lastMonthCoinRevenue = Number(txnRes[0]?.last_month_coins || 0) * 0.5;
-        }
-      } catch (_) {}
-
-      try {
-        const [unlockRes] = await pool.query(
-          `SELECT COALESCE(SUM(coins_spent), 0) AS total_unlocks FROM user_episode_unlocks`
-        ).catch(() => [[{ total_unlocks: 0 }]]);
-        totalUnlocksRevenue = Number(unlockRes[0]?.total_unlocks || 0) * 0.5;
-      } catch (_) {}
-
-      const totalRevenueNum = totalCoinSales + totalSubsRevenue + totalCoinTxns + totalUnlocksRevenue;
-      thisMonthTotalRevenue += thisMonthCoinRevenue;
-      lastMonthTotalRevenue += lastMonthCoinRevenue;
+      // Total Revenue = Subscription Plan Revenue + Coin Pack Revenue
+      const totalRevenueNum = totalSubsRevenue + totalCoinSales;
+      const thisMonthTotalRevenue = thisMonthSubsRevenue + thisMonthCoinRevenue;
+      const lastMonthTotalRevenue = lastMonthSubsRevenue + lastMonthCoinRevenue;
 
       const formattedTotalRevenue = formatCurrencyINR(totalRevenueNum);
       const revenueGrowth = calculateGrowth(thisMonthTotalRevenue, lastMonthTotalRevenue, '+0%');
@@ -540,6 +524,7 @@ class DashboardController {
 
       // ─────────────────────────────────────────────────────────────────────────────
       // 9. Revenue Trend Chart (100% Dynamic Jan - Dec from DB)
+      // Total Revenue = Subscription Plan Revenue + Coin Pack Revenue per month
       // ─────────────────────────────────────────────────────────────────────────────
       const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const totalRevenueMonthly = new Array(12).fill(0);
@@ -548,8 +533,11 @@ class DashboardController {
       try {
         const [salesMonthly] = await pool.query(`
           SELECT MONTH(created_at) AS month_num, SUM(amount) AS sum_amount
-          FROM coin_sales
-          WHERE (status = 1 OR status IN ('completed', 'success', 'paid')) AND YEAR(created_at) = YEAR(CURRENT_DATE)
+          FROM coin_transactions
+          WHERE (type IN ('coin_pack', 'coin_purchase', 'pack') OR coin_pack_id IS NOT NULL)
+            AND (payment_status IN ('paid', 'completed', 'success'))
+            AND amount > 0
+            AND YEAR(created_at) = YEAR(CURRENT_DATE)
           GROUP BY MONTH(created_at)
         `).catch(() => [[]]);
 
@@ -557,15 +545,8 @@ class DashboardController {
           SELECT MONTH(s.created_at) AS month_num, SUM(p.price) AS sum_amount
           FROM subscriptions s
           LEFT JOIN purchase_plans p ON s.plan_id = p.id
-          WHERE s.status IN ('active', 'completed', 'paid', '1') AND YEAR(s.created_at) = YEAR(CURRENT_DATE)
+          WHERE s.status IN ('active', 'completed', 'paid', 'expired', '1') AND YEAR(s.created_at) = YEAR(CURRENT_DATE)
           GROUP BY MONTH(s.created_at)
-        `).catch(() => [[]]);
-
-        const [unlocksMonthly] = await pool.query(`
-          SELECT MONTH(unlocked_at) AS month_num, SUM(coins_spent) AS sum_amount
-          FROM user_episode_unlocks
-          WHERE YEAR(unlocked_at) = YEAR(CURRENT_DATE)
-          GROUP BY MONTH(unlocked_at)
         `).catch(() => [[]]);
 
         salesMonthly.forEach((r) => {
@@ -581,13 +562,6 @@ class DashboardController {
           const m = Number(r.month_num) - 1;
           if (m >= 0 && m < 12) {
             totalRevenueMonthly[m] += Math.round(Number(r.sum_amount || 0));
-          }
-        });
-
-        unlocksMonthly.forEach((r) => {
-          const m = Number(r.month_num) - 1;
-          if (m >= 0 && m < 12) {
-            totalRevenueMonthly[m] += Math.round(Number(r.sum_amount || 0) * 0.5);
           }
         });
       } catch (_) {}
@@ -911,6 +885,7 @@ class DashboardController {
           period: 'This month',
           value: formattedCoinRevenue,
           amount: thisMonthCoinRevenue,
+          total_amount: totalCoinSales,
           change: coinGrowthText,
           is_positive: coinGrowth.is_positive,
         },
