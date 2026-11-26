@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
+const SubscriptionService = require('../../services/subscriptionService');
 
 class UserController {
   /**
@@ -16,55 +17,133 @@ class UserController {
 
       // Exclude admin staff/superadmins from general user list
       let whereClauses = [
-        '(LOWER(COALESCE(role, "")) NOT IN ("admin", "superadmin", "super_admin"))'
+        '(LOWER(COALESCE(u.role, "")) NOT IN ("admin", "superadmin", "super_admin"))'
       ];
       let queryParams = [];
 
       if (search) {
-        whereClauses.push('(name LIKE ? OR email LIKE ? OR phone LIKE ?)');
+        whereClauses.push('(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)');
         queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
       }
 
       if (role && role.toLowerCase() !== 'all') {
         const lowerRole = role.toLowerCase();
         if (lowerRole === 'listener' || lowerRole === 'user') {
-          whereClauses.push('(LOWER(COALESCE(role, "")) IN ("listener", "user", "") OR role IS NULL OR LOWER(COALESCE(subscription_type, "")) = "listener")');
+          whereClauses.push('(LOWER(COALESCE(u.role, "")) IN ("listener", "user", "") OR u.role IS NULL OR LOWER(COALESCE(u.subscription_type, "")) = "listener")');
         } else if (lowerRole === 'creator' || lowerRole === 'writer') {
-          whereClauses.push('(LOWER(COALESCE(role, "")) IN ("creator", "writer") OR LOWER(COALESCE(subscription_type, "")) IN ("creator", "writer"))');
+          whereClauses.push('(LOWER(COALESCE(u.role, "")) IN ("creator", "writer") OR LOWER(COALESCE(u.subscription_type, "")) IN ("creator", "writer"))');
         } else {
-          whereClauses.push('(LOWER(COALESCE(role, "")) = ? OR LOWER(COALESCE(subscription_type, "")) = ?)');
+          whereClauses.push('(LOWER(COALESCE(u.role, "")) = ? OR LOWER(COALESCE(u.subscription_type, "")) = ?)');
           queryParams.push(lowerRole, lowerRole);
         }
       }
 
       if (is_blocked !== undefined && is_blocked !== '') {
         const blockVal = is_blocked === '1' || is_blocked === 'true' || is_blocked === 1;
-        whereClauses.push('is_blocked = ?');
+        whereClauses.push('u.is_blocked = ?');
         queryParams.push(blockVal ? 1 : 0);
       }
 
       const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
 
-      const [[{ count }]] = await pool.query(`SELECT COUNT(*) as count FROM users ${whereSql}`, queryParams);
+      const [[{ count }]] = await pool.query(`SELECT COUNT(*) as count FROM users u ${whereSql}`, queryParams);
 
       const [users] = await pool.query(
-        `SELECT id, name, email, phone, country, state, city, subscription_type, wallet_balance, wallet_balance as coins,
-                CASE
-                  WHEN LOWER(COALESCE(role, "")) = "admin" THEN "Admin"
-                  WHEN LOWER(COALESCE(role, "")) = "creator" THEN "Creator"
-                  ELSE "Listener"
-                END as role,
-                locale, is_blocked, last_login_at, created_at, updated_at
-         FROM users
+        `SELECT 
+           u.id, u.name, u.email, u.phone, u.country, u.state, u.city, 
+           u.subscription_type, u.wallet_balance, u.wallet_balance as coins,
+           CASE
+             WHEN LOWER(COALESCE(u.role, "")) = "admin" THEN "Admin"
+             WHEN LOWER(COALESCE(u.role, "")) = "creator" THEN "Creator"
+             ELSE "Listener"
+           END as role,
+           u.locale, u.is_blocked, u.last_login_at, u.created_at, u.updated_at,
+           s.id AS sub_id,
+           s.plan_id,
+           s.status AS sub_status,
+           s.starts_at AS sub_starts_at,
+           s.expires_at AS sub_expires_at,
+           s.billing_cycle AS sub_billing_cycle,
+           s.is_manual AS sub_is_manual,
+           s.assigned_by AS sub_assigned_by,
+           s.notes AS sub_notes,
+           p.name AS plan_name,
+           p.price AS plan_price
+         FROM users u
+         LEFT JOIN (
+           SELECT s1.*
+           FROM subscriptions s1
+           INNER JOIN (
+             SELECT user_id, MAX(id) as max_id
+             FROM subscriptions
+             GROUP BY user_id
+           ) s2 ON s1.id = s2.max_id
+         ) s ON u.id = s.user_id
+         LEFT JOIN purchase_plans p ON s.plan_id = p.id
          ${whereSql}
-         ORDER BY created_at DESC
+         ORDER BY u.created_at DESC
          LIMIT ? OFFSET ?`,
         [...queryParams, limitNum, offset]
       );
 
+      const formattedUsers = users.map((u) => {
+        const expiresAtDate = u.sub_expires_at ? new Date(u.sub_expires_at) : null;
+        const now = new Date();
+        const isExpired = expiresAtDate && expiresAtDate < now;
+        const daysRemaining = expiresAtDate ? Math.max(0, Math.ceil((expiresAtDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+        
+        const isVip = (u.subscription_type === 'vip' || u.subscription_type === 'premium') && !isExpired;
+        const isManual = Boolean(u.sub_is_manual || u.sub_assigned_by === 'admin');
+
+        const planName = u.plan_name || (isVip ? 'VIP' : 'Free');
+        const planDisplay = isVip ? (u.plan_name || 'VIP') : (u.subscription_type || 'free');
+
+        return {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone,
+          country: u.country,
+          state: u.state,
+          city: u.city,
+          subscription_type: u.subscription_type || 'free',
+          plan: planDisplay,
+          plan_name: u.plan_name || null,
+          plan_id: u.plan_id || null,
+          is_manual_subscription: isManual,
+          assigned_by: u.sub_assigned_by || (isManual ? 'admin' : 'user'),
+          subscription_source: isManual ? 'Admin Manual' : (u.sub_id ? 'In-App Purchase' : 'None'),
+          subscription_status: u.sub_status || (isVip ? 'active' : 'free'),
+          subscription_notes: u.sub_notes || null,
+          subscription_expires_at: u.sub_expires_at || null,
+          days_remaining: daysRemaining,
+          subscription: u.sub_id ? {
+            id: u.sub_id,
+            plan_id: u.plan_id,
+            plan_name: u.plan_name || 'VIP Plan',
+            status: isExpired ? 'expired' : (u.sub_status || 'active'),
+            is_manual: isManual,
+            assigned_by: u.sub_assigned_by || (isManual ? 'admin' : 'user'),
+            notes: u.sub_notes || null,
+            starts_at: u.sub_starts_at,
+            expires_at: u.sub_expires_at,
+            days_remaining: daysRemaining,
+            billing_cycle: u.sub_billing_cycle || 'monthly',
+          } : null,
+          wallet_balance: u.wallet_balance,
+          coins: u.coins,
+          role: u.role,
+          locale: u.locale,
+          is_blocked: u.is_blocked,
+          last_login_at: u.last_login_at,
+          created_at: u.created_at,
+          updated_at: u.updated_at,
+        };
+      });
+
       return ApiResponse.success(res, {
-        users,
-        data: users,
+        users: formattedUsers,
+        data: formattedUsers,
         pagination: {
           total: count,
           page: pageNum,
@@ -438,18 +517,25 @@ static async show(req, res) {
       }
 
       const [subscriptions] = await pool.query(
-        `SELECT s.id, s.status, s.starts_at, s.expires_at, p.name as plan_name, p.badge_text
+        `SELECT s.id, s.status, s.starts_at, s.expires_at, s.is_manual, s.assigned_by, s.notes, p.name as plan_name, p.badge_text, p.id as plan_id
          FROM subscriptions s
          LEFT JOIN purchase_plans p ON s.plan_id = p.id
          WHERE s.user_id = ? ORDER BY s.created_at DESC LIMIT 1`,
         [userId]
       );
 
+      const isManual = subscriptions.length > 0 && Boolean(subscriptions[0].is_manual || subscriptions[0].assigned_by === 'admin');
+
       const premiumStatus = subscriptions.length > 0 ? {
         plan: subscriptions[0].plan_name || userRows[0].subscription_type || 'Free',
         plan_name: subscriptions[0].plan_name || userRows[0].subscription_type || 'Free',
         subscription_type: subscriptions[0].plan_name || userRows[0].subscription_type || 'Free',
+        plan_id: subscriptions[0].plan_id || null,
         status: subscriptions[0].status || 'Active',
+        is_manual: isManual,
+        assigned_by: subscriptions[0].assigned_by || (isManual ? 'admin' : 'user'),
+        source: isManual ? 'Admin Manual' : 'App Purchase',
+        notes: subscriptions[0].notes || null,
         renews_on: subscriptions[0].expires_at ? new Date(subscriptions[0].expires_at).toLocaleDateString() : 'N/A',
         days_remaining: subscriptions[0].expires_at ? Math.max(0, Math.ceil((new Date(subscriptions[0].expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : 0,
         total_days: 30,
@@ -458,7 +544,12 @@ static async show(req, res) {
         plan: userRows[0].subscription_type || 'Free',
         plan_name: userRows[0].subscription_type || 'Free',
         subscription_type: userRows[0].subscription_type || 'Free',
+        plan_id: null,
         status: 'Active',
+        is_manual: false,
+        assigned_by: 'user',
+        source: 'None',
+        notes: null,
         renews_on: 'N/A',
         days_remaining: 0,
         total_days: 30,
@@ -659,7 +750,21 @@ static async show(req, res) {
         updateFields.push('`password` = ?');
         queryParams.push(hashedPassword);
       }
-      if (subscription_type !== undefined) {
+      if (req.body.plan_id || req.body.subscription_plan_id) {
+        const planId = req.body.plan_id || req.body.subscription_plan_id;
+        try {
+          await SubscriptionService.assignPlan({
+            userId,
+            planId,
+            durationDays: req.body.duration_days || req.body.durationDays,
+            assignedBy: 'admin',
+            isManual: true,
+            notes: req.body.subscription_notes || req.body.notes || 'Manually assigned by Admin',
+          });
+        } catch (planErr) {
+          console.warn('Subscription assignment warning on user update:', planErr.message);
+        }
+      } else if (subscription_type !== undefined) {
         updateFields.push('`subscription_type` = ?');
         queryParams.push(subscription_type);
       }
@@ -780,6 +885,41 @@ static async show(req, res) {
     } catch (error) {
       console.error('Admin Wallet Update Error:', error);
       return ApiResponse.error(res, 'Failed to update user wallet balance.', 500);
+    }
+  }
+
+  /**
+   * POST /api/v1/admin/users/:id/subscription
+   * POST /api/v1/admin/users/:id/assign-plan
+   * Assign subscription plan to user manually by admin
+   */
+  static async assignSubscription(req, res) {
+    try {
+      const userId = req.params.id || req.body.user_id;
+      const { plan_id, planId, duration_days, durationDays, notes } = req.body;
+      const targetPlanId = plan_id || planId;
+
+      if (!targetPlanId) {
+        return ApiResponse.error(res, 'plan_id is required.', 422);
+      }
+
+      const result = await SubscriptionService.assignPlan({
+        userId,
+        planId: targetPlanId,
+        durationDays: duration_days || durationDays,
+        assignedBy: 'admin',
+        isManual: true,
+        notes: notes || 'Manually assigned by Admin',
+      });
+
+      return ApiResponse.success(
+        res,
+        result,
+        `Subscription plan "${result.plan_name}" successfully assigned to ${result.user_name || 'user'}.`
+      );
+    } catch (error) {
+      console.error('Admin Assign Subscription Error:', error);
+      return ApiResponse.error(res, error.message || 'Failed to assign subscription.', 500);
     }
   }
 }

@@ -1,5 +1,6 @@
 const { pool } = require('../../config/db');
 const ApiResponse = require('../../utils/apiResponse');
+const SubscriptionService = require('../../services/subscriptionService');
 
 class MembershipUserController {
   /**
@@ -246,54 +247,31 @@ class MembershipUserController {
    */
   static async grant(req, res) {
     try {
-      const { user_id, plan_id, duration_days = 30 } = req.body;
+      const { user_id, plan_id, duration_days, notes } = req.body;
       if (!user_id) {
         return ApiResponse.error(res, 'User ID is required.', 422);
       }
-
-      const [[user]] = await pool.query('SELECT id, name, email FROM users WHERE id = ? LIMIT 1', [user_id]);
-      if (!user) {
-        return ApiResponse.error(res, 'User not found.', 404);
+      if (!plan_id) {
+        return ApiResponse.error(res, 'Plan ID is required.', 422);
       }
 
-      let planName = 'Premium';
-      let finalPlanId = null;
+      const result = await SubscriptionService.assignPlan({
+        userId: user_id,
+        planId: plan_id,
+        durationDays: duration_days,
+        assignedBy: 'admin',
+        isManual: true,
+        notes: notes || 'Manually assigned by Admin',
+      });
 
-      if (plan_id) {
-        const [[plan]] = await pool.query('SELECT * FROM purchase_plans WHERE id = ? LIMIT 1', [plan_id]);
-        if (plan) {
-          finalPlanId = plan.id;
-          planName = plan.name || 'Premium';
-        }
-      }
-
-      const days = Math.max(1, parseInt(duration_days, 10) || 30);
-      const startsAt = new Date();
-      const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-
-      // Insert into subscriptions table
-      const [insertRes] = await pool.query(
-        `INSERT INTO subscriptions (user_id, plan_id, status, starts_at, expires_at, billing_cycle)
-         VALUES (?, ?, 'active', ?, ?, 'monthly')`,
-        [user_id, finalPlanId, startsAt, expiresAt]
+      return ApiResponse.success(
+        res,
+        result,
+        `Membership "${result.plan_name}" successfully granted to ${result.user_name || 'user'}.`
       );
-
-      // Update user subscription_type
-      await pool.query(
-        'UPDATE users SET subscription_type = ? WHERE id = ?',
-        [planName, user_id]
-      );
-
-      return ApiResponse.success(res, {
-        subscription_id: insertRes.insertId,
-        user_id,
-        plan_name: planName,
-        expires_at: expiresAt,
-        days_granted: days,
-      }, `Membership "${planName}" successfully granted to ${user.name || user.email}.`);
     } catch (error) {
       console.error('Admin Grant Membership Error:', error);
-      return ApiResponse.error(res, 'Failed to grant membership.', 500);
+      return ApiResponse.error(res, error.message || 'Failed to grant membership.', 500);
     }
   }
 

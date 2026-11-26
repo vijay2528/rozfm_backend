@@ -83,6 +83,8 @@ router.put('/users/:id', AdminUserController.update);
 router.post('/users/:id', AdminUserController.update);
 router.delete('/users/:id', AdminUserController.destroy);
 router.post('/users/:id/wallet', AdminUserController.updateWallet);
+router.post('/users/:id/subscription', AdminUserController.assignSubscription);
+router.post('/users/:id/assign-plan', AdminUserController.assignSubscription);
 
 // ── 3. Content Management (Stories & Episode Management) ───────────────────────────────
 router.get('/stories', AdminContentController.listStories);
