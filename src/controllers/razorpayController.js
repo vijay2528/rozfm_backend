@@ -162,7 +162,7 @@ class RazorpayController {
             );
 
             await connection.query(
-              'INSERT INTO subscriptions (user_id, plan_id, status, starts_at, expires_at) VALUES (?, ?, ?, ?, ?)',
+              'INSERT INTO subscriptions (user_id, plan_id, status, starts_at, expires_at, billing_cycle) VALUES (?, ?, ?, ?, ?, "monthly")',
               [userId, planId, 'active', startsAt, expiresAt]
             );
 

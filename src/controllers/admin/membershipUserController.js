@@ -171,6 +171,9 @@ class MembershipUserController {
 
         const planPrice = Number(r.plan_price || r.monthly_amount || 0);
 
+        const rawCycle = r.billing_cycle;
+        const safeCycle = (!rawCycle || String(rawCycle).toLowerCase() === 'null') ? 'monthly' : rawCycle;
+
         return {
           id: r.subscription_id || `SUB-${r.user_id}`,
           subscription_id: r.subscription_id || null,
@@ -187,7 +190,7 @@ class MembershipUserController {
           price: planPrice,
           monthly_amount: r.monthly_amount ? Number(r.monthly_amount) : null,
           yearly_amount: r.yearly_amount ? Number(r.yearly_amount) : null,
-          billing_cycle: r.billing_cycle || 'monthly',
+          billing_cycle: safeCycle,
           subscription_status: displayStatus,
           status: displayStatus,
           starts_at: r.starts_at || r.subscribed_at || r.user_joined_at,
@@ -212,7 +215,7 @@ class MembershipUserController {
             id: r.plan_id || null,
             name: r.plan_name || 'Premium',
             price: planPrice,
-            billing_cycle: r.billing_cycle || 'monthly',
+            billing_cycle: safeCycle,
           },
         };
       });

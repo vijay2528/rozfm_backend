@@ -209,7 +209,7 @@ class PurchaseController {
 
           // 2. Insert new active subscription
           const [subResult] = await connection.query(
-            'INSERT INTO subscriptions (user_id, plan_id, status, starts_at, expires_at) VALUES (?, ?, "active", ?, ?)',
+            'INSERT INTO subscriptions (user_id, plan_id, status, starts_at, expires_at, billing_cycle) VALUES (?, ?, "active", ?, ?, "monthly")',
             [userId, subscriptionPlan.id, startsAt, expiresAt]
           );
 

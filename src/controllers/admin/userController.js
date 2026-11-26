@@ -306,6 +306,7 @@ static async show(req, res) {
         total_listening_hours: (Number(total_seconds || 0) / 3600).toFixed(1) + ' hrs',
         stories_completed: Number(completed_stories || 0),
         lifetime_spend: `₹${Number(lifetime_spend || 0).toLocaleString()}`,
+        email: user.email || 'Not provided',
         phone: user.phone || 'Not provided',
         locale: user.locale || 'en-US',
         role: user.role || 'Listener',
