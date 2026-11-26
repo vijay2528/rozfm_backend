@@ -5,38 +5,35 @@ class ReportController {
   /**
    * 1. GET /api/v1/admin/reports/revenue
    * Deep-dive revenue reporting across all monetization streams querying core tables.
+   * Rule: Total Revenue = Subscription Plans Purchases + Coin Packs Purchases
    */
   static async revenue(req, res) {
     try {
-      // 1. Query total sales from coin_sales, subscriptions, coin_transactions, and episode unlocks
+      // 1. Total Revenue: Coin Packs + Subscription Plans (Actual Money Received)
       const [salesRes] = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) AS total_sales FROM \`coin_sales\` WHERE status = 1 OR status IN ('completed', 'success', 'paid')`
+        `SELECT COALESCE(SUM(amount), 0) AS total_sales
+         FROM \`coin_transactions\`
+         WHERE (type IN ('coin_pack', 'coin_purchase', 'pack') OR coin_pack_id IS NOT NULL)
+           AND (payment_status IN ('paid', 'completed', 'success'))
+           AND amount > 0`
       ).catch(() => [[{ total_sales: 0 }]]);
 
       const [subRes] = await pool.query(
         `SELECT COALESCE(SUM(p.price), 0) AS total_sub 
          FROM \`subscriptions\` s 
          LEFT JOIN \`purchase_plans\` p ON s.plan_id = p.id 
-         WHERE s.status IN ('active', 'completed', 'paid', '1')`
+         WHERE s.status IN ('active', 'completed', 'paid', 'expired', '1')`
       ).catch(() => [[{ total_sub: 0 }]]);
-
-      const [txnRes] = await pool.query(
-        `SELECT COALESCE(SUM(coins), 0) AS total_coins FROM \`coin_transactions\` WHERE type LIKE '%purchase%' OR type LIKE '%credit%'`
-      ).catch(() => [[{ total_coins: 0 }]]);
-
-      const [unlockRes] = await pool.query(
-        `SELECT COALESCE(SUM(coins_spent), 0) AS total_unlocks FROM \`user_episode_unlocks\``
-      ).catch(() => [[{ total_unlocks: 0 }]]);
 
       const rawSales = Number(salesRes[0]?.total_sales || 0);
       const rawSubs = Number(subRes[0]?.total_sub || 0);
-      const rawCoinsRevenue = Number(txnRes[0]?.total_coins || 0) * 0.5;
-      const rawUnlockRevenue = Number(unlockRes[0]?.total_unlocks || 0) * 0.5;
 
-      const totalRevenueNum = rawSales + rawSubs + rawCoinsRevenue + rawUnlockRevenue;
+      const totalRevenueNum = rawSales + rawSubs;
 
       let formattedRevenue = '₹0';
-      if (totalRevenueNum >= 100000) {
+      if (totalRevenueNum >= 10000000) {
+        formattedRevenue = `₹${(totalRevenueNum / 10000000).toFixed(2)}Cr`;
+      } else if (totalRevenueNum >= 100000) {
         formattedRevenue = `₹${(totalRevenueNum / 100000).toFixed(2)}L`;
       } else if (totalRevenueNum >= 1000) {
         formattedRevenue = `₹${(totalRevenueNum / 1000).toFixed(1)}K`;
@@ -48,10 +45,14 @@ class ReportController {
       const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const monthlyData = new Array(12).fill(0);
 
+      // (A) Monthly Coin Pack sales
       const [monthlySales] = await pool.query(`
         SELECT MONTH(created_at) AS month_num, SUM(amount) AS monthly_sum
-        FROM \`coin_sales\`
-        WHERE (status = 1 OR status IN ('completed', 'success', 'paid')) AND YEAR(created_at) = YEAR(CURRENT_DATE)
+        FROM \`coin_transactions\`
+        WHERE (type IN ('coin_pack', 'coin_purchase', 'pack') OR coin_pack_id IS NOT NULL)
+          AND (payment_status IN ('paid', 'completed', 'success'))
+          AND amount > 0
+          AND YEAR(created_at) = YEAR(CURRENT_DATE)
         GROUP BY MONTH(created_at)
       `).catch(() => [[]]);
 
@@ -62,11 +63,12 @@ class ReportController {
         }
       });
 
+      // (B) Monthly Subscription sales
       const [monthlySubs] = await pool.query(`
         SELECT MONTH(s.created_at) AS month_num, SUM(p.price) AS monthly_sum
         FROM \`subscriptions\` s
         LEFT JOIN \`purchase_plans\` p ON s.plan_id = p.id
-        WHERE s.status IN ('active', 'completed', 'paid', '1') AND YEAR(s.created_at) = YEAR(CURRENT_DATE)
+        WHERE s.status IN ('active', 'completed', 'paid', 'expired', '1') AND YEAR(s.created_at) = YEAR(CURRENT_DATE)
         GROUP BY MONTH(s.created_at)
       `).catch(() => [[]]);
 
@@ -74,20 +76,6 @@ class ReportController {
         const m = Number(r.month_num) - 1;
         if (m >= 0 && m < 12) {
           monthlyData[m] += Math.round(Number(r.monthly_sum || 0));
-        }
-      });
-
-      const [monthlyUnlocks] = await pool.query(`
-        SELECT MONTH(unlocked_at) AS month_num, SUM(coins_spent) AS monthly_sum
-        FROM \`user_episode_unlocks\`
-        WHERE YEAR(unlocked_at) = YEAR(CURRENT_DATE)
-        GROUP BY MONTH(unlocked_at)
-      `).catch(() => [[]]);
-
-      monthlyUnlocks.forEach((r) => {
-        const m = Number(r.month_num) - 1;
-        if (m >= 0 && m < 12) {
-          monthlyData[m] += Math.round(Number(r.monthly_sum || 0) * 0.5);
         }
       });
 
@@ -105,11 +93,22 @@ class ReportController {
       }
 
       // 4. Dynamic YoY growth calculation
-      const [prevYearSales] = await pool.query(`
-        SELECT COALESCE(SUM(amount), 0) AS total FROM \`coin_sales\`
-        WHERE (status = 1 OR status IN ('completed', 'success', 'paid')) AND YEAR(created_at) = YEAR(CURRENT_DATE) - 1
+      const [prevYearCoinSales] = await pool.query(`
+        SELECT COALESCE(SUM(amount), 0) AS total FROM \`coin_transactions\`
+        WHERE (type IN ('coin_pack', 'coin_purchase', 'pack') OR coin_pack_id IS NOT NULL)
+          AND (payment_status IN ('paid', 'completed', 'success'))
+          AND amount > 0
+          AND YEAR(created_at) = YEAR(CURRENT_DATE) - 1
       `).catch(() => [[{ total: 0 }]]);
-      const prevYearTotal = Number(prevYearSales[0]?.total || 0);
+
+      const [prevYearSubs] = await pool.query(`
+        SELECT COALESCE(SUM(p.price), 0) AS total FROM \`subscriptions\` s
+        LEFT JOIN \`purchase_plans\` p ON s.plan_id = p.id
+        WHERE s.status IN ('active', 'completed', 'paid', 'expired', '1')
+          AND YEAR(s.created_at) = YEAR(CURRENT_DATE) - 1
+      `).catch(() => [[{ total: 0 }]]);
+
+      const prevYearTotal = Number(prevYearCoinSales[0]?.total || 0) + Number(prevYearSubs[0]?.total || 0);
 
       let yoyGrowthPct = '+0%';
       if (prevYearTotal > 0) {
@@ -525,21 +524,29 @@ class ReportController {
 
       if (reportName.toLowerCase().includes('revenue')) {
         csvLines.push('Transaction ID,Type,Item / Pack Name,Amount (INR),Status,Date');
+        // Subscriptions
+        const [subs] = await pool.query(
+          `SELECT s.id, p.name AS plan_name, p.price, s.status, s.created_at 
+           FROM \`subscriptions\` s 
+           LEFT JOIN \`purchase_plans\` p ON s.plan_id = p.id 
+           ORDER BY s.id DESC LIMIT 500`
+        ).catch(() => [[]]);
+        subs.forEach(s => {
+          const dateStr = s.created_at ? new Date(s.created_at).toISOString().split('T')[0] : todayStr;
+          csvLines.push(`"${s.id}","Subscription Plan","${s.plan_name || 'VIP Membership'}","₹${s.price || '0'}","${s.status || 'Active'}","${dateStr}"`);
+        });
+
+        // Coin Packs
         const [sales] = await pool.query(
-          `SELECT id, pack_name, amount, status, created_at FROM \`coin_sales\` ORDER BY id DESC LIMIT 500`
+          `SELECT id, reference_id, description, amount, payment_status, created_at 
+           FROM \`coin_transactions\` 
+           WHERE (type IN ('coin_pack', 'coin_purchase', 'pack') OR coin_pack_id IS NOT NULL) 
+             AND amount > 0 
+           ORDER BY id DESC LIMIT 500`
         ).catch(() => [[]]);
         sales.forEach(s => {
           const dateStr = s.created_at ? new Date(s.created_at).toISOString().split('T')[0] : todayStr;
-          csvLines.push(`"${s.id}","Coin Pack Sale","${s.pack_name || 'Coin Pack'}","₹${s.amount || '0'}","${s.status == 1 ? 'Completed' : 'Pending'}","${dateStr}"`);
-        });
-
-        const [unlocks] = await pool.query(
-          `SELECT id, episode_id, coins_spent, unlocked_at FROM \`user_episode_unlocks\` ORDER BY id DESC LIMIT 500`
-        ).catch(() => [[]]);
-        unlocks.forEach(u => {
-          const dateStr = u.unlocked_at ? new Date(u.unlocked_at).toISOString().split('T')[0] : todayStr;
-          const rupees = Number(u.coins_spent || 0) * 0.5;
-          csvLines.push(`"${u.id}","Episode Unlock","Episode #${u.episode_id}","₹${rupees.toFixed(2)} (${u.coins_spent} coins)","Success","${dateStr}"`);
+          csvLines.push(`"${s.reference_id || s.id}","Coin Pack Sale","${s.description || 'Coin Pack'}","₹${s.amount || '0'}","${s.payment_status || 'Paid'}","${dateStr}"`);
         });
       } else if (reportName.toLowerCase().includes('user')) {
         csvLines.push('User ID,Name,Phone,Email,Role,Wallet Balance,Subscription,Joined Date');
