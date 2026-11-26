@@ -52,15 +52,21 @@ class MeController {
               return ApiResponse.error(res, 'Phone number is already taken.', 422);
             }
           }
-          if (field === 'email' && data.email && data.email !== currentUser.email) {
-            const [existing] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1', [data.email.toLowerCase(), userId]);
-            if (existing.length > 0) {
-              return ApiResponse.error(res, 'Email is already taken.', 422);
+          if (field === 'email') {
+            const cleanEmail = data.email ? String(data.email).trim().toLowerCase() : null;
+            if (cleanEmail && cleanEmail !== currentUser.email) {
+              const [existing] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1', [cleanEmail, userId]);
+              if (existing.length > 0) {
+                return ApiResponse.error(res, 'Email is already taken.', 422);
+              }
             }
+            updateFields.push('`email` = ?');
+            queryParams.push(cleanEmail);
+            continue;
           }
 
           updateFields.push(`\`${field === 'about' ? 'bio' : field}\` = ?`);
-          queryParams.push(field === 'email' ? data.email.toLowerCase() : data[field]);
+          queryParams.push(data[field]);
         }
       }
 

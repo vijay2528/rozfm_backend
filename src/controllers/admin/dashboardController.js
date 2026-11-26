@@ -198,7 +198,7 @@ class DashboardController {
           const key = new Date(r.d).toISOString().slice(0, 10);
           revenueDailyMap.set(key, (revenueDailyMap.get(key) || 0) + Number(r.sum_val || 0));
         });
-      } catch (_) {}
+      } catch (_) { }
 
       // (B) Subscription Plan Purchases from subscriptions table
       try {
@@ -227,7 +227,7 @@ class DashboardController {
           const key = new Date(r.d).toISOString().slice(0, 10);
           revenueDailyMap.set(key, (revenueDailyMap.get(key) || 0) + Number(r.sum_val || 0));
         });
-      } catch (_) {}
+      } catch (_) { }
 
       // Total Revenue = Subscription Plan Revenue + Coin Pack Revenue
       const totalRevenueNum = totalSubsRevenue + totalCoinSales;
@@ -293,7 +293,7 @@ class DashboardController {
           const key = new Date(r.d).toISOString().slice(0, 10);
           userDailySparklineMap.set(key, Number(r.cnt || 0));
         });
-      } catch (_) {}
+      } catch (_) { }
 
       const displayActiveUsers = activeUsersCount > 0 ? activeUsersCount : totalUsersCount;
       const formattedActiveUsers = formatCount(displayActiveUsers);
@@ -330,7 +330,7 @@ class DashboardController {
           const key = new Date(r.d).toISOString().slice(0, 10);
           storiesSparklineMap.set(key, Number(r.cnt || 0));
         });
-      } catch (_) {}
+      } catch (_) { }
 
       const formattedStories = totalStoriesCount.toLocaleString('en-IN');
       const storiesGrowth = calculateGrowth(totalStoriesCount, prevMonthStoriesCount, '+0%');
@@ -362,7 +362,7 @@ class DashboardController {
           const key = new Date(r.d).toISOString().slice(0, 10);
           episodesSparklineMap.set(key, Number(r.cnt || 0));
         });
-      } catch (_) {}
+      } catch (_) { }
 
       const formattedEpisodes = totalEpisodesCount.toLocaleString('en-IN');
       const episodesGrowth = calculateGrowth(totalEpisodesCount, prevMonthEpisodesCount, '+0%');
@@ -398,7 +398,7 @@ class DashboardController {
           const key = new Date(r.d).toISOString().slice(0, 10);
           creatorsSparklineMap.set(key, Number(r.cnt || 0));
         });
-      } catch (_) {}
+      } catch (_) { }
 
       const formattedCreators = totalCreatorsCount.toLocaleString('en-IN');
       const creatorsGrowth = calculateGrowth(totalCreatorsCount, prevMonthCreatorsCount, '+0%');
@@ -439,7 +439,7 @@ class DashboardController {
           const hrs = Number((Number(r.sum_sec || 0) / 3600).toFixed(2));
           listeningSparklineMap.set(key, hrs);
         });
-      } catch (_) {}
+      } catch (_) { }
 
       const calculatedHours = totalListeningSeconds > 0 ? (totalListeningSeconds / 3600) : 0;
       const formattedListeningHours = formatListeningHours(calculatedHours);
@@ -482,7 +482,7 @@ class DashboardController {
           const key = new Date(r.d).toISOString().slice(0, 10);
           premiumSparklineMap.set(key, Number(r.cnt || 0));
         });
-      } catch (_) {}
+      } catch (_) { }
 
       const formattedPremium = formatCount(totalPremiumCount);
       const premiumGrowth = calculateGrowth(totalPremiumCount, prevMonthPremiumCount, '+0%');
@@ -564,7 +564,7 @@ class DashboardController {
             totalRevenueMonthly[m] += Math.round(Number(r.sum_amount || 0));
           }
         });
-      } catch (_) {}
+      } catch (_) { }
 
       const revenueTrend = {
         title: 'Revenue Trend',
@@ -672,7 +672,7 @@ class DashboardController {
             };
           });
         }
-      } catch (_) {}
+      } catch (_) { }
 
       const activeGenres = categoryListeningList.filter(g => g.percentage > 0);
       const displayGenres = activeGenres.length > 0 ? categoryListeningList : categoryListeningList.slice(0, 8);
@@ -806,7 +806,7 @@ class DashboardController {
 
         // Sort all real database activities by timestamp descending
         recentActivities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      } catch (_) {}
+      } catch (_) { }
 
       // ─────────────────────────────────────────────────────────────────────────────
       // Response Payload (100% Dynamic)
@@ -957,7 +957,7 @@ class DashboardController {
             }
           });
         });
-      } catch (_) {}
+      } catch (_) { }
 
       // 2. Fetch new signups in window
       try {
@@ -976,7 +976,7 @@ class DashboardController {
             }
           });
         });
-      } catch (_) {}
+      } catch (_) { }
 
       // 3. Fetch coin purchases in window
       try {
@@ -1011,7 +1011,7 @@ class DashboardController {
             }
           });
         });
-      } catch (_) {}
+      } catch (_) { }
 
       // 4. Current online listeners right now (within recent 15 minutes)
       let currentListenersOnline = 0;
@@ -1039,7 +1039,7 @@ class DashboardController {
         ).catch(() => [[{ playing_episodes: 0 }]]);
 
         currentEpisodesPlaying = Number(playing_episodes || 0);
-      } catch (_) {}
+      } catch (_) { }
 
       // Fallback: if last bucket had listeners, ensure current count is at least that
       const lastBucket = buckets[buckets.length - 1];

@@ -116,14 +116,13 @@ class AuthController {
         let userId;
 
         if (isNewUser) {
-          const placeholderEmail = `phone_${phoneStr.replace(/\D/g, '') || Date.now()}@app.local`;
           const dummyPassword = await bcrypt.hash(Math.random().toString(36), 10);
           const userName = nameStr || `User ${phoneStr.slice(-4)}`;
 
           const [insertRes] = await pool.query(
             `INSERT INTO users (name, email, phone, password, platform, device_token, device_type, subscription_type, wallet_balance, login_method)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'free', 0.00, 'phone_otp')`,
-            [userName, placeholderEmail, phoneStr, dummyPassword, device_type, device_token, device_type]
+             VALUES (?, NULL, ?, ?, ?, ?, ?, 'free', 0.00, 'phone_otp')`,
+            [userName, phoneStr, dummyPassword, device_type, device_token, device_type]
           );
           userId = insertRes.insertId;
         } else {
