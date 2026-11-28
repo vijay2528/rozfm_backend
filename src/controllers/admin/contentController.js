@@ -655,6 +655,47 @@ class ContentController {
         await pool.query(updateSql, queryParams);
       }
 
+      // ── Sync coin price to all existing premium episodes of this story ──
+      // When admin changes "Coin Price Per Episode" in Edit Story form,
+      // bulk-update the coins column on all locked (is_premium = 1) episodes.
+      const parsedCoinPrice = rawCoinPrice !== undefined && rawCoinPrice !== null && rawCoinPrice !== ''
+        ? parseInt(rawCoinPrice, 10)
+        : NaN;
+
+      if (!isNaN(parsedCoinPrice) && parsedCoinPrice >= 0) {
+        await pool.query(
+          'UPDATE episodes SET coins = ? WHERE story_id = ? AND is_premium = 1',
+          [parsedCoinPrice, storyId]
+        );
+      }
+
+      // ── Sync free_episodes_count: re-apply premium flags on existing episodes ──
+      const parsedFreeLimit = rawFree !== undefined && rawFree !== null && rawFree !== ''
+        ? parseInt(rawFree, 10)
+        : NaN;
+
+      if (!isNaN(parsedFreeLimit) && parsedFreeLimit >= 0) {
+        const [allEps] = await pool.query(
+          'SELECT id FROM episodes WHERE story_id = ? ORDER BY COALESCE(position, episode_number, id) ASC, id ASC',
+          [storyId]
+        );
+        const freeIds = allEps.slice(0, parsedFreeLimit).map((e) => e.id);
+        const premiumIds = allEps.slice(parsedFreeLimit).map((e) => e.id);
+        if (freeIds.length > 0) {
+          await pool.query(
+            `UPDATE episodes SET is_premium = 0, coins = 0 WHERE id IN (${freeIds.map(() => '?').join(',')})`,
+            freeIds
+          );
+        }
+        if (premiumIds.length > 0) {
+          const coinVal = !isNaN(parsedCoinPrice) ? parsedCoinPrice : 25;
+          await pool.query(
+            `UPDATE episodes SET is_premium = 1, coins = ? WHERE id IN (${premiumIds.map(() => '?').join(',')})`,
+            [coinVal, ...premiumIds]
+          );
+        }
+      }
+
       const [updatedRows] = await pool.query(
         `SELECT s.*, c.category_name, u.name as author_name,
                 (SELECT COUNT(*) FROM story_likes sl WHERE sl.story_id = s.id) as likes_count
@@ -1324,6 +1365,47 @@ class ContentController {
       if (storyUpdateNeeded) {
         storyUpdateParams.push(targetStoryId);
         await pool.query(`UPDATE stories SET ${storyUpdateSql.join(', ')} WHERE id = ?`, storyUpdateParams);
+
+        // ── Sync coin price to all existing premium episodes of this story ──
+        // When admin changes coin_price_per_episode, all existing locked episodes
+        // should reflect the new price (only updates is_premium = 1 episodes).
+        if (newCoinPrice !== undefined && newCoinPrice !== null && newCoinPrice !== '') {
+          const parsedNewCoin = parseInt(newCoinPrice, 10);
+          if (!isNaN(parsedNewCoin) && parsedNewCoin >= 0) {
+            await pool.query(
+              'UPDATE episodes SET coins = ? WHERE story_id = ? AND is_premium = 1',
+              [parsedNewCoin, targetStoryId]
+            );
+          }
+        }
+
+        // ── Sync free_episodes_count: mark first N episodes as free, rest as premium ──
+        // When free_episodes_count changes, re-apply premium flags on existing episodes.
+        if (newFreeEpisodes !== undefined && newFreeEpisodes !== null && newFreeEpisodes !== '') {
+          const parsedFreeLimit = parseInt(newFreeEpisodes, 10);
+          if (!isNaN(parsedFreeLimit) && parsedFreeLimit >= 0) {
+            // Get all episodes sorted by position
+            const [allEps] = await pool.query(
+              'SELECT id FROM episodes WHERE story_id = ? ORDER BY COALESCE(position, episode_number, id) ASC, id ASC',
+              [targetStoryId]
+            );
+            const freeIds = allEps.slice(0, parsedFreeLimit).map((e) => e.id);
+            const premiumIds = allEps.slice(parsedFreeLimit).map((e) => e.id);
+            if (freeIds.length > 0) {
+              await pool.query(
+                `UPDATE episodes SET is_premium = 0, coins = 0 WHERE id IN (${freeIds.map(() => '?').join(',')})`,
+                freeIds
+              );
+            }
+            if (premiumIds.length > 0) {
+              const coinVal = !isNaN(parsedNewCoin) ? parsedNewCoin : coinPrice;
+              await pool.query(
+                `UPDATE episodes SET is_premium = 1, coins = ? WHERE id IN (${premiumIds.map(() => '?').join(',')})`,
+                [coinVal, ...premiumIds]
+              );
+            }
+          }
+        }
       }
 
       // Collect uploaded audio files
